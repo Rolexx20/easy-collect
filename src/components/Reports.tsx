@@ -1,8 +1,10 @@
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, Download, Calendar, DollarSign } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface ReportsProps {
   language: string;
@@ -11,16 +13,21 @@ interface ReportsProps {
 }
 
 const Reports = ({ language, borrowers, loans }: ReportsProps) => {
+  const [selectedReportType, setSelectedReportType] = useState('collection');
+  const [selectedFileType, setSelectedFileType] = useState('pdf');
+
   const translations = {
     en: {
-      title: 'Reports & Analytics',
-      exportPDF: 'Export as PDF',
-      exportExcel: 'Export as Excel',
-      exportCSV: 'Export as CSV',
+      title: 'Select Report Type',
+      exportBtn: 'Export',
+      collectionReport: 'Collection Report',
+      overdueReport: 'Overdue Report',
       borrowerReport: 'Borrower Report',
-      loanReport: 'Loan Report',
-      paymentReport: 'Payment Report',
-      summaryReport: 'Summary Report',
+      date: 'Date',
+      borrowerName: 'Borrower Name',
+      loanAmount: 'Loan Amount',
+      paymentAmount: 'Payment Amount',
+      noPaymentData: 'No payment data available',
       totalBorrowers: 'Total Borrowers',
       totalLoans: 'Total Loans',
       totalCollected: 'Total Collected',
@@ -29,14 +36,16 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       noData: 'No data available for export'
     },
     ta: {
-      title: 'அறிக்கைகள் மற்றும் பகுப்பாய்வு',
-      exportPDF: 'PDF ஆக ஏற்றுமதி செய்யவும்',
-      exportExcel: 'Excel ஆக ஏற்றுமதி செய்யவும்',
-      exportCSV: 'CSV ஆக ஏற்றுமதி செய்யவும்',
+      title: 'அறிக்கை வகையைத் தேர்ந்தெடுக்கவும்',
+      exportBtn: 'ஏற்றுமதி',
+      collectionReport: 'வசூல் அறிக்கை',
+      overdueReport: 'தாமத அறிக்கை',
       borrowerReport: 'கடன் வாங்குபவர் அறிக்கை',
-      loanReport: 'கடன் அறிக்கை',
-      paymentReport: 'பணம் செலுத்தல் அறிக்கை',
-      summaryReport: 'சுருக்க அறிக்கை',
+      date: 'தேதி',
+      borrowerName: 'கடன் வாங்குபவர் பெயர்',
+      loanAmount: 'கடன் தொகை',
+      paymentAmount: 'பணம் செலுத்தல் தொகை',
+      noPaymentData: 'பணம் செலுத்தல் தரவு இல்லை',
       totalBorrowers: 'மொத்த கடன் வாங்குபவர்கள்',
       totalLoans: 'மொத்த கடன்கள்',
       totalCollected: 'மொத்த வசூல்',
@@ -52,108 +61,144 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   const totalLoanAmount = loans.reduce((sum, loan) => sum + loan.amount, 0);
   const pendingAmount = totalLoanAmount - totalCollected;
 
-  const exportToPDF = (reportType: string) => {
-    // Mock PDF export functionality
-    toast({ title: `${reportType} ${t.exportSuccess}` });
-    console.log(`Exporting ${reportType} to PDF...`);
-  };
+  const reportTypes = [
+    { id: 'collection', label: t.collectionReport },
+    { id: 'overdue', label: t.overdueReport },
+    { id: 'borrower', label: t.borrowerReport }
+  ];
 
-  const exportToExcel = (reportType: string) => {
-    // Mock Excel export functionality
-    toast({ title: `${reportType} ${t.exportSuccess}` });
-    console.log(`Exporting ${reportType} to Excel...`);
-  };
+  const fileTypes = [
+    { id: 'pdf', label: 'PDF' },
+    { id: 'excel', label: 'Excel' },
+    { id: 'csv', label: 'CSV' }
+  ];
 
-  const exportToCSV = (reportType: string) => {
-    // Mock CSV export functionality
-    if (reportType === 'Borrowers' && borrowers.length === 0) {
-      toast({ title: t.noData, variant: "destructive" });
-      return;
+  const getReportData = () => {
+    switch (selectedReportType) {
+      case 'collection':
+        return loans.filter(loan => loan.amountPaid > 0);
+      case 'overdue':
+        return loans.filter(loan => loan.status === 'overdue');
+      case 'borrower':
+        return borrowers;
+      default:
+        return [];
     }
-    if (reportType === 'Loans' && loans.length === 0) {
+  };
+
+  const handleExport = () => {
+    const data = getReportData();
+    if (data.length === 0) {
       toast({ title: t.noData, variant: "destructive" });
       return;
     }
     
-    toast({ title: `${reportType} ${t.exportSuccess}` });
-    console.log(`Exporting ${reportType} to CSV...`);
+    toast({ title: `${reportTypes.find(rt => rt.id === selectedReportType)?.label} ${t.exportSuccess}` });
+    console.log(`Exporting ${selectedReportType} report as ${selectedFileType.toUpperCase()}...`);
   };
 
-  const reportCards = [
-    {
-      title: t.borrowerReport,
-      description: 'Complete borrower information and loan history',
-      icon: FileText,
-      data: borrowers
-    },
-    {
-      title: t.loanReport,
-      description: 'Detailed loan information and status',
-      icon: Calendar,
-      data: loans
-    },
-    {
-      title: t.paymentReport,
-      description: 'Payment history and collection details',
-      icon: DollarSign,
-      data: loans.filter(loan => loan.amountPaid > 0)
-    }
-  ];
-
   return (
-    <div className="p-6 space-y-6">
-      <h2 className="text-3xl font-bold text-center text-gray-800 dark:text-gray-200">
-        {t.title}
-      </h2>
+    <div className="min-h-screen bg-gray-900 text-white p-6">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-2xl font-bold">{t.title}</h1>
+        
+        <div className="flex items-center gap-4">
+          {/* File Type Selection */}
+          <div className="flex bg-gray-800 rounded-lg p-1">
+            {fileTypes.map((type) => (
+              <button
+                key={type.id}
+                onClick={() => setSelectedFileType(type.id)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  selectedFileType === type.id
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {type.label}
+              </button>
+            ))}
+          </div>
+          
+          {/* Export Button */}
+          <Button 
+            onClick={handleExport}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            {t.exportBtn}
+          </Button>
+        </div>
+      </div>
+
+      {/* Report Type Selection */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        {reportTypes.map((type) => (
+          <button
+            key={type.id}
+            onClick={() => setSelectedReportType(type.id)}
+            className={`p-4 rounded-lg border-2 transition-all ${
+              selectedReportType === type.id
+                ? 'border-blue-500 bg-blue-500/20'
+                : 'border-gray-600 bg-gray-800 hover:border-gray-500'
+            }`}
+          >
+            <div className="text-left">
+              <div className="font-semibold text-lg">{type.label}</div>
+            </div>
+          </button>
+        ))}
+      </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+              <div className="text-2xl font-bold text-blue-400">
                 {borrowers.length}
               </div>
-              <div className="text-sm text-blue-700 dark:text-blue-300">
+              <div className="text-sm text-gray-400">
                 {t.totalBorrowers}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800">
+        <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-900 dark:text-green-100">
+              <div className="text-2xl font-bold text-green-400">
                 {loans.length}
               </div>
-              <div className="text-sm text-green-700 dark:text-green-300">
+              <div className="text-sm text-gray-400">
                 {t.totalLoans}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800">
+        <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+              <div className="text-2xl font-bold text-purple-400">
                 ₹{totalCollected.toLocaleString()}
               </div>
-              <div className="text-sm text-purple-700 dark:text-purple-300">
+              <div className="text-sm text-gray-400">
                 {t.totalCollected}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900 dark:to-orange-800">
+        <Card className="bg-gray-800 border-gray-700">
           <CardContent className="p-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+              <div className="text-2xl font-bold text-orange-400">
                 ₹{pendingAmount.toLocaleString()}
               </div>
-              <div className="text-sm text-orange-700 dark:text-orange-300">
+              <div className="text-sm text-gray-400">
                 {t.pendingAmount}
               </div>
             </div>
@@ -161,59 +206,47 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         </Card>
       </div>
 
-      {/* Export Options */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {reportCards.map((report, index) => (
-          <Card key={index} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <report.icon className="w-5 h-5 text-blue-600" />
-                {report.title}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {report.description}
-              </p>
-              
-              <div className="text-center py-2">
-                <span className="text-lg font-bold text-gray-800 dark:text-gray-200">
-                  {report.data.length} records
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                <Button
-                  onClick={() => exportToPDF(report.title)}
-                  className="w-full bg-red-600 hover:bg-red-700"
-                  size="sm"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  {t.exportPDF}
-                </Button>
-                
-                <Button
-                  onClick={() => exportToExcel(report.title)}
-                  className="w-full bg-green-600 hover:bg-green-700"
-                  size="sm"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  {t.exportExcel}
-                </Button>
-                
-                <Button
-                  onClick={() => exportToCSV(report.title)}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                  size="sm"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  {t.exportCSV}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Data Table */}
+      <Card className="bg-gray-800 border-gray-700">
+        <CardContent className="p-6">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-gray-700">
+                <TableHead className="text-gray-400">{t.date}</TableHead>
+                <TableHead className="text-gray-400">{t.borrowerName}</TableHead>
+                <TableHead className="text-gray-400">{t.loanAmount}</TableHead>
+                <TableHead className="text-gray-400">{t.paymentAmount}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {getReportData().length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-gray-400 py-8">
+                    {t.noPaymentData}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                getReportData().map((item, index) => (
+                  <TableRow key={index} className="border-gray-700">
+                    <TableCell className="text-gray-300">
+                      {selectedReportType === 'borrower' ? '-' : item.startDate}
+                    </TableCell>
+                    <TableCell className="text-gray-300">
+                      {selectedReportType === 'borrower' ? item.name : item.borrowerName}
+                    </TableCell>
+                    <TableCell className="text-gray-300">
+                      ₹{selectedReportType === 'borrower' ? item.totalAmount?.toLocaleString() : item.amount?.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-gray-300">
+                      ₹{selectedReportType === 'borrower' ? '-' : item.amountPaid?.toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 };

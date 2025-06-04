@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, DollarSign, Calendar, TrendingUp } from 'lucide-react';
+import { Plus, Edit, Trash2, DollarSign, Calendar, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import PaymentCollectionDialog from './PaymentCollectionDialog';
 
 interface Loan {
   id: string;
@@ -32,6 +32,8 @@ interface LoanManagerProps {
 
 const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [formData, setFormData] = useState({
     borrowerId: '',
@@ -60,6 +62,7 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
       paid: 'Paid',
       remaining: 'Remaining',
       nextPayment: 'Next Payment',
+      dailyPayment: 'Daily Payment',
       active: 'Active',
       completed: 'Completed',
       overdue: 'Overdue',
@@ -69,7 +72,9 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
       paymentCollected: 'Payment collected successfully',
       fillAllFields: 'Please fill all fields',
       noLoans: 'No loans created yet',
-      noBorrowers: 'Please add borrowers first'
+      noBorrowers: 'Please add borrowers first',
+      loanPeriod: 'Loan Period',
+      days: 'days'
     },
     ta: {
       title: 'கடன் மேலாண்மை',
@@ -89,6 +94,7 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
       paid: 'செலுத்தப்பட்டது',
       remaining: 'மீதமுள்ளது',
       nextPayment: 'அடுத்த பணம்',
+      dailyPayment: 'தினசரி பணம்',
       active: 'செயலில்',
       completed: 'முடிந்தது',
       overdue: 'தாமதம்',
@@ -98,7 +104,9 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
       paymentCollected: 'பணம் வெற்றிகரமாக வசூலிக்கப்பட்டது',
       fillAllFields: 'தயவுசெய்து அனைத்து புலங்களையும் நிரப்பவும்',
       noLoans: 'இதுவரை கடன்கள் உருவாக்கப்படவில்லை',
-      noBorrowers: 'முதலில் கடன் வாங்குபவர்களைச் சேர்க்கவும்'
+      noBorrowers: 'முதலில் கடன் வாங்குபவர்களைச் சேர்க்கவும்',
+      loanPeriod: 'கடன் காலம்',
+      days: 'நாட்கள்'
     }
   };
 
@@ -192,15 +200,25 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
 
   const getStatusBadge = (status: string) => {
     const variants = {
-      active: 'default',
-      completed: 'secondary',
-      overdue: 'destructive'
+      active: { variant: 'default' as const, icon: Clock, color: 'text-blue-600' },
+      completed: { variant: 'secondary' as const, icon: CheckCircle, color: 'text-green-600' },
+      overdue: { variant: 'destructive' as const, icon: Clock, color: 'text-red-600' }
     };
+    
+    const config = variants[status as keyof typeof variants];
+    const IconComponent = config.icon;
+    
     return (
-      <Badge variant={variants[status as keyof typeof variants] as any}>
+      <Badge variant={config.variant} className="flex items-center gap-1">
+        <IconComponent className={`w-3 h-3 ${config.color}`} />
         {t[status as keyof typeof t]}
       </Badge>
     );
+  };
+
+  const getDailyPayment = (loan: Loan) => {
+    const loanDays = loan.duration * 30; // Convert months to days
+    return loan.amount / loanDays;
   };
 
   if (borrowers.length === 0) {
@@ -341,6 +359,22 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
                   </div>
                 </div>
 
+                {/* Daily Payment Display */}
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Clock className="w-4 h-4 text-yellow-600" />
+                    <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                      {t.dailyPayment}
+                    </span>
+                  </div>
+                  <div className="text-lg font-bold text-yellow-900 dark:text-yellow-100">
+                    ₹{getDailyPayment(loan).toFixed(2)}
+                  </div>
+                  <div className="text-xs text-yellow-700 dark:text-yellow-300">
+                    {t.loanPeriod}: {loan.duration * 30} {t.days}
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>{t.paid}:</span>
@@ -371,13 +405,12 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
                     <Button
                       size="sm"
                       onClick={() => {
-                        const amount = prompt(`Enter payment amount (max: ₹${(loan.amount - loan.amountPaid).toLocaleString()})`);
-                        if (amount && !isNaN(Number(amount))) {
-                          handlePayment(loan.id, Math.min(Number(amount), loan.amount - loan.amountPaid));
-                        }
+                        setSelectedLoan(loan);
+                        setIsPaymentDialogOpen(true);
                       }}
                       className="flex-1 bg-green-600 hover:bg-green-700"
                     >
+                      <DollarSign className="w-4 h-4 mr-1" />
                       {t.collectPayment}
                     </Button>
                   )}
@@ -401,6 +434,20 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Payment Collection Dialog */}
+      {selectedLoan && (
+        <PaymentCollectionDialog
+          isOpen={isPaymentDialogOpen}
+          onClose={() => {
+            setIsPaymentDialogOpen(false);
+            setSelectedLoan(null);
+          }}
+          loan={selectedLoan}
+          onPaymentCollect={handlePayment}
+          language={language}
+        />
       )}
     </div>
   );
