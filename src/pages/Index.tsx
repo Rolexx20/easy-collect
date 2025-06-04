@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
-import Navigation from '@/components/Navigation';
+import AppSidebar from '@/components/AppSidebar';
 import Dashboard from '@/components/Dashboard';
 import BorrowerManager from '@/components/BorrowerManager';
 import LoanManager from '@/components/LoanManager';
@@ -11,6 +11,7 @@ const Index = () => {
   const [isDark, setIsDark] = useState(false);
   const [language, setLanguage] = useState('en');
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   // Data states
   const [borrowers, setBorrowers] = useState([
@@ -100,6 +101,21 @@ const Index = () => {
     }
   }, [isDark]);
 
+  // Handle mobile sidebar auto-collapse
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setSidebarCollapsed(false);
+      } else {
+        setSidebarCollapsed(true);
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
@@ -108,29 +124,41 @@ const Index = () => {
         return <BorrowerManager language={language} borrowers={borrowers} setBorrowers={setBorrowers} />;
       case 'loans':
         return <LoanManager language={language} loans={loans} setLoans={setLoans} borrowers={borrowers} />;
+      case 'payments':
+        return <LoanManager language={language} loans={loans} setLoans={setLoans} borrowers={borrowers} />;
       case 'reports':
         return <Reports language={language} borrowers={borrowers} loans={loans} />;
+      case 'settings':
+        return <div className="p-6"><h1 className="text-2xl font-bold">Settings - Coming Soon</h1></div>;
       default:
         return <Dashboard language={language} borrowers={borrowers} loans={loans} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 w-full">
-      <Header 
-        isDark={isDark} 
-        setIsDark={setIsDark} 
-        language={language} 
-        setLanguage={setLanguage} 
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 w-full flex">
+      <AppSidebar 
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        language={language}
+        isCollapsed={sidebarCollapsed}
+        setIsCollapsed={setSidebarCollapsed}
       />
-      <Navigation 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        language={language} 
-      />
-      <main className="transition-colors duration-200">
-        {renderContent()}
-      </main>
+      
+      <div className="flex-1 flex flex-col w-full md:w-auto">
+        <Header 
+          isDark={isDark} 
+          setIsDark={setIsDark} 
+          language={language} 
+          setLanguage={setLanguage}
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+        />
+        
+        <main className="flex-1 transition-colors duration-200 overflow-auto">
+          {renderContent()}
+        </main>
+      </div>
     </div>
   );
 };

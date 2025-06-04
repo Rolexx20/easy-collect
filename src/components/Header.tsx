@@ -1,54 +1,95 @@
 
-import { Moon, Sun, Languages } from 'lucide-react';
+import { Moon, Sun, Globe, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 
 interface HeaderProps {
   isDark: boolean;
-  setIsDark: (dark: boolean) => void;
+  setIsDark: (isDark: boolean) => void;
   language: string;
-  setLanguage: (lang: string) => void;
+  setLanguage: (language: string) => void;
+  sidebarCollapsed?: boolean;
+  setSidebarCollapsed?: (collapsed: boolean) => void;
 }
 
-const Header = ({ isDark, setIsDark, language, setLanguage }: HeaderProps) => {
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle('dark');
-  };
-
-  const toggleLanguage = () => {
-    setLanguage(language === 'en' ? 'ta' : 'en');
-  };
-
+const Header = ({ 
+  isDark, 
+  setIsDark, 
+  language, 
+  setLanguage,
+  sidebarCollapsed,
+  setSidebarCollapsed
+}: HeaderProps) => {
   const translations = {
-    en: { title: 'EasyCollect' },
-    ta: { title: 'ஈஸிகலெக்ட்' }
+    en: {
+      title: 'Loan Management System',
+      english: 'English',
+      tamil: 'தமிழ்'
+    },
+    ta: {
+      title: 'கடன் மேலாண்மை அமைப்பு',
+      english: 'English',
+      tamil: 'தமிழ்'
+    }
   };
+
+  const t = translations[language as keyof typeof translations];
 
   return (
-    <header className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700 px-4 py-3">
-      <div className="flex items-center justify-between max-w-7xl mx-auto">
-        <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400 text-center flex-1">
-          {translations[language as keyof typeof translations].title}
-        </h1>
+    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {setSidebarCollapsed && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="md:hidden"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+          )}
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-white hidden sm:block">
+            {t.title}
+          </h1>
+        </div>
         
         <div className="flex items-center gap-2">
+          {/* Language Switcher */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Globe className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              <DropdownMenuItem 
+                onClick={() => setLanguage('en')}
+                className="hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                {t.english}
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setLanguage('ta')}
+                className="hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                {t.tamil}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Theme Toggle */}
           <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleLanguage}
-            className="p-2"
+            variant="outline"
+            size="icon"
+            onClick={() => setIsDark(!isDark)}
           >
-            <Languages className="w-5 h-5" />
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleTheme}
-            className="p-2"
-          >
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
         </div>
       </div>
