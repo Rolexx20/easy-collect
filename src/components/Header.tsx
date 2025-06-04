@@ -1,12 +1,6 @@
-import { Moon, Sun, Globe, Menu } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
+import { Moon, Sun, Globe, Menu, LanguagesIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   isDark: boolean;
@@ -17,25 +11,21 @@ interface HeaderProps {
   setSidebarCollapsed?: (collapsed: boolean) => void;
 }
 
-const Header = ({ 
-  isDark, 
-  setIsDark, 
-  language, 
+const Header = ({
+  isDark,
+  setIsDark,
+  language,
   setLanguage,
   sidebarCollapsed,
-  setSidebarCollapsed
+  setSidebarCollapsed,
 }: HeaderProps) => {
   const translations = {
     en: {
-      title: 'EasyCollect',
-      english: 'English',
-      tamil: 'தமிழ்'
+      title: "EasyCollect",
     },
     ta: {
-      title: 'EasyCollect',
-      english: 'English',
-      tamil: 'தமிழ்'
-    }
+      title: "EasyCollect",
+    },
   };
 
   const t = translations[language as keyof typeof translations];
@@ -54,49 +44,68 @@ const Header = ({
               <Menu className="w-5 h-5" />
             </Button>
           )}
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white hidden sm:block">
+          <h1 className="text-xl font-bold text-blue-600 dark:text-blue-500">
             {t.title}
           </h1>
         </div>
-        
-        <div className="flex items-center gap-2">
-          {/* Language Switcher */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="relative">
-                <Globe className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-              <DropdownMenuItem 
-                onClick={() => setLanguage('en')}
-                className="hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                {t.english}
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => setLanguage('ta')}
-                className="hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                {t.tamil}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
 
+        <div className="flex items-center gap-2">
           {/* Theme Toggle */}
+          <div
+            onClick={() => setIsDark(!isDark)}
+            className={`relative flex items-center border-2 w-16 h-8 p-0 rounded-full cursor-pointer transition-colors ${
+              isDark
+                ? "bg-gray-700 text-white hover:bg-gray-500"
+                : "bg-gray-200 text-gray-900 hover:bg-gray-100"
+            }`}
+            aria-label="Toggle theme"
+          >
+            {/* Circular knob for the selected side */}
+            <div
+              className={`absolute top-1/2 transform -translate-y-1/2 w-6 h-6 rounded-full transition-all ${
+                isDark ? "right-1 bg-gray-800" : "left-1 bg-white"
+              }`}
+            ></div>
+
+            {/* Sun Icon */}
+            <div className="relative z-10 flex items-center justify-center w-8 h-full">
+              <Sun
+                className={`w-4 h-4 transition-colors ${
+                  isDark ? "text-yellow-500" : "text-yellow-500"
+                }`}
+              />
+            </div>
+
+            {/* Moon Icon */}
+            <div className="relative z-10 flex items-center justify-center w-8 h-full">
+              <Moon
+                className={`w-4 h-4 transition-colors ${
+                  isDark ? "text-gray-200" : "text-gray-900"
+                }`}
+              />
+            </div>
+          </div>
+          {/* Language Toggle */}
           <Button
             variant="outline"
-            size="icon"
-            onClick={() => setIsDark(!isDark)}
-            className="relative overflow-hidden"
+            size="sm"
+            onClick={() => setLanguage(language === "en" ? "ta" : "en")}
+            className={cn(
+              "flex items-center gap-2 border-2 rounded-3xl transition-colors hover:bg-gray-300 h-8",
+              isDark
+                ? "bg-gray-700 text-white hover:bg-gray-500"
+                : "bg-gray-200 text-blue-700 hover:bg-gray-100"
+            )}
           >
-            <Sun className={cn(
-              "h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
-            )} />
-            <Moon className={cn(
-              "absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
-            )} />
-            <span className="sr-only">Toggle theme</span>
+            {language === "en" ? (
+              <>
+                <LanguagesIcon className="w-4 h-4" />த
+              </>
+            ) : (
+              <>
+                <Globe className="w-4 h-4" />E
+              </>
+            )}
           </Button>
         </div>
       </div>
