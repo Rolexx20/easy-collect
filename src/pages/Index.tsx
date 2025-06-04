@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import AppSidebar from '@/components/AppSidebar';
@@ -6,6 +5,7 @@ import Dashboard from '@/components/Dashboard';
 import BorrowerManager from '@/components/BorrowerManager';
 import LoanManager from '@/components/LoanManager';
 import Reports from '@/components/Reports';
+import Settings from '@/components/Settings';
 
 const Index = () => {
   const [isDark, setIsDark] = useState(false);
@@ -124,12 +124,10 @@ const Index = () => {
         return <BorrowerManager language={language} borrowers={borrowers} setBorrowers={setBorrowers} />;
       case 'loans':
         return <LoanManager language={language} loans={loans} setLoans={setLoans} borrowers={borrowers} />;
-      case 'payments':
-        return <LoanManager language={language} loans={loans} setLoans={setLoans} borrowers={borrowers} />;
       case 'reports':
         return <Reports language={language} borrowers={borrowers} loans={loans} />;
       case 'settings':
-        return <div className="p-6"><h1 className="text-2xl font-bold">Settings - Coming Soon</h1></div>;
+        return <Settings language={language} />;
       default:
         return <Dashboard language={language} borrowers={borrowers} loans={loans} />;
     }
