@@ -169,7 +169,7 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
     const updatedLoans = loans.map(loan => {
       if (loan.id === loanId) {
         const newAmountPaid = loan.amountPaid + amount;
-        const newStatus = newAmountPaid >= loan.amount ? 'completed' : 'active';
+        const newStatus: 'active' | 'completed' | 'overdue' = newAmountPaid >= loan.amount ? 'completed' : 'active';
         return {
           ...loan,
           amountPaid: newAmountPaid,
