@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -89,7 +88,8 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       completed: 'Completed',
       overdue: 'Overdue',
       paymentProgress: 'Payment Progress',
-      daysRemaining: 'Days Remaining'
+      daysRemaining: 'Days Remaining',
+      dailyPayment: 'Daily Payment Amount'
     },
     ta: {
       title: 'கடன் மேலாண்மை',
@@ -122,7 +122,8 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       completed: 'முடிந்தது',
       overdue: 'தாமதம்',
       paymentProgress: 'பணம் செலுத்தல் முன்னேற்றம்',
-      daysRemaining: 'மீதமுள்ள நாட்கள்'
+      daysRemaining: 'மீதமுள்ள நாட்கள்',
+      dailyPayment: 'தினசரி பணம் செலுத்தும் தொகை'
     }
   };
 
@@ -141,16 +142,20 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       const interestRate = parseFloat(formData.interest_rate);
       const totalAmount = principalAmount + (principalAmount * interestRate / 100);
       const durationInDays = parseInt(formData.duration_days);
-      const durationInMonths = Math.ceil(durationInDays / 30); // Convert days to months for backend
+      
+      // Store duration_days directly as a custom field, but keep duration_months for compatibility
+      const durationInMonths = Math.max(1, Math.ceil(durationInDays / 30));
 
       const loanData = {
         borrower_id: formData.borrower_id,
         principal_amount: principalAmount,
         interest_rate: interestRate,
-        duration_months: durationInMonths, // Store as months in backend
+        duration_months: durationInMonths,
         total_amount: totalAmount,
         start_date: formData.start_date,
-        status: 'active' as const
+        status: 'active' as const,
+        // We'll store the actual days in a custom field if needed
+        duration_days: durationInDays
       };
 
       if (editingLoan) {
@@ -176,12 +181,13 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
 
   const handleEdit = (loan: Loan) => {
     setEditingLoan(loan);
-    const durationInDays = loan.duration_months * 30; // Convert months to days for UI
+    // Try to get the original days, or estimate from months
+    const estimatedDays = (loan as any).duration_days || (loan.duration_months * 30);
     setFormData({
       borrower_id: loan.borrower_id,
       principal_amount: loan.principal_amount.toString(),
       interest_rate: loan.interest_rate.toString(),
-      duration_days: durationInDays.toString(), // Show as days in UI
+      duration_days: estimatedDays.toString(),
       start_date: loan.start_date
     });
     setIsDialogOpen(true);
@@ -274,14 +280,22 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
     return Math.round((amountPaid / totalAmount) * 100);
   };
 
-  const calculateDaysRemaining = (startDate: string, durationMonths: number) => {
+  const calculateDaysRemaining = (startDate: string, durationMonths: number, loan: any) => {
     const start = new Date(startDate);
+    // Use actual days if available, otherwise estimate from months
+    const actualDays = (loan as any).duration_days || (durationMonths * 30);
     const end = new Date(start);
-    end.setMonth(end.getMonth() + durationMonths);
+    end.setDate(end.getDate() + actualDays);
     const today = new Date();
     const diffTime = end.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return Math.max(0, diffDays);
+  };
+
+  const calculateDailyPayment = (totalAmount: number, durationMonths: number, loan: any) => {
+    // Use actual days if available, otherwise estimate from months
+    const actualDays = (loan as any).duration_days || (durationMonths * 30);
+    return totalAmount / actualDays;
   };
 
   return (
@@ -362,7 +376,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                   type="number"
                   value={formData.duration_days}
                   onChange={(e) => setFormData({...formData, duration_days: e.target.value})}
-                  placeholder="365"
+                  placeholder="7"
                 />
               </div>
               <div>
@@ -402,7 +416,8 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {loans.map((loan) => {
             const progress = calculateProgress(loan.amount_paid, loan.total_amount);
-            const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months);
+            const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months, loan);
+            const dailyPayment = calculateDailyPayment(loan.total_amount, loan.duration_months, loan);
             
             return (
               <Card key={loan.id} className="hover:shadow-xl transition-all duration-300 border-l-4 border-l-blue-500">
@@ -445,6 +460,17 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                         {t.amountPaid}
                       </div>
                       <div className="text-lg font-bold text-green-700 dark:text-green-300">₹{loan.amount_paid.toLocaleString()}</div>
+                    </div>
+                  </div>
+
+                  {/* Daily Payment Amount */}
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
+                    <div className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {t.dailyPayment}
+                    </div>
+                    <div className="text-xl font-bold text-yellow-700 dark:text-yellow-300">
+                      ₹{dailyPayment.toLocaleString(undefined, {maximumFractionDigits: 0})}
                     </div>
                   </div>
 
