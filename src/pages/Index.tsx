@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
@@ -135,7 +134,10 @@ const Index = () => {
         setIsCollapsed={setSidebarCollapsed}
       />
       
-      <div className="flex-1 flex flex-col w-full md:w-auto">
+      <div className={cn(
+        "flex-1 flex flex-col w-full transition-all duration-300",
+        sidebarCollapsed ? "md:ml-16" : "md:ml-64"
+      )}>
         <Header 
           isDark={isDark} 
           setIsDark={setIsDark} 
@@ -145,12 +147,16 @@ const Index = () => {
           setSidebarCollapsed={setSidebarCollapsed}
         />
         
-        <main className="flex-1 transition-colors duration-200 overflow-auto">
+        <main className="flex-1 transition-colors duration-200 overflow-auto pb-16 md:pb-0">
           {renderContent()}
         </main>
       </div>
     </div>
   );
 };
+
+function cn(...classes: (string | undefined)[]) {
+  return classes.filter(Boolean).join(' ');
+}
 
 export default Index;

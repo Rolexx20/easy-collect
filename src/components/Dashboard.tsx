@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -26,7 +25,7 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
   // Fetch recent payments
   const { data: payments = [] } = useQuery({
     queryKey: ['payments'],
-    queryFn: getPayments
+    queryFn: () => getPayments()
   });
 
   const translations = {
