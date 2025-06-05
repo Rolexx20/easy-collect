@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, Download, Calendar, DollarSign, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -97,7 +96,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
 
   const exportToCSV = (data: any[], filename: string) => {
     let csvContent = '';
-    
     if (selectedReportType === 'collection') {
       csvContent = 'Date,Borrower Name,Loan Amount,Payment Amount,Remaining Amount\n';
       data.forEach(loan => {
@@ -114,7 +112,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         csvContent += `${borrower.name},${borrower.phone},${borrower.address},${borrower.total_loans || 0},${borrower.total_amount || 0},${borrower.total_paid || 0},${borrower.remaining_amount || 0}\n`;
       });
     }
-
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -132,18 +129,15 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       toast({ title: t.noData, variant: "destructive" });
       return;
     }
-    
     const reportName = reportTypes.find(rt => rt.id === selectedReportType)?.label || 'report';
     const timestamp = new Date().toISOString().split('T')[0];
     const filename = `${reportName}_${timestamp}.${selectedFileType}`;
-    
     if (selectedFileType === 'csv') {
       exportToCSV(data, filename);
       toast({ title: `${reportName} exported as CSV successfully` });
     } else {
-      // For PDF and Excel, show a message since full implementation would require additional libraries
-      toast({ 
-        title: `Export as ${selectedFileType.toUpperCase()}`, 
+      toast({
+        title: `Export as ${selectedFileType.toUpperCase()}`,
         description: `${reportName} data prepared. For full ${selectedFileType.toUpperCase()} export, additional libraries needed.`,
       });
       console.log(`Exporting ${selectedReportType} report as ${selectedFileType.toUpperCase()}...`, data);
@@ -190,10 +184,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
 
   const renderTableRows = () => {
     const data = getReportData();
-    
     if (data.length === 0) {
-      const noDataMessage = selectedReportType === 'overdue' ? t.noOverdueLoans : 
-                           selectedReportType === 'borrower' ? t.noBorrowerData : t.noPaymentData;
+      const noDataMessage = selectedReportType === 'overdue' ? t.noOverdueLoans :
+        selectedReportType === 'borrower' ? t.noBorrowerData : t.noPaymentData;
       return (
         <TableRow>
           <TableCell colSpan={selectedReportType === 'borrower' ? 6 : 5} className="text-center text-gray-500 dark:text-gray-400 py-8">
@@ -202,7 +195,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         </TableRow>
       );
     }
-
     return data.map((item, index) => {
       switch (selectedReportType) {
         case 'collection':
@@ -248,56 +240,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
 
   return (
     <div className="p-4 md:p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t.title}</h1>
-        
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
-          {/* File Type Selection */}
-          <div className="flex bg-gray-200 dark:bg-gray-700 rounded-lg p-1 w-full sm:w-auto">
-            {fileTypes.map((type) => (
-              <button
-                key={type.id}
-                onClick={() => setSelectedFileType(type.id)}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex-1 sm:flex-none ${
-                  selectedFileType === type.id
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                }`}
-              >
-                {type.label}
-              </button>
-            ))}
-          </div>
-          
-          {/* Export Button */}
-          <Button 
-            onClick={handleExport}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 w-full sm:w-auto"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            {t.exportBtn}
-          </Button>
-        </div>
-      </div>
-
-      {/* Report Type Selection */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        {reportTypes.map((type) => (
-          <button
-            key={type.id}
-            onClick={() => setSelectedReportType(type.id)}
-            className={`p-4 rounded-lg border-2 transition-all text-left ${
-              selectedReportType === type.id
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-500'
-            }`}
-          >
-            <div className="font-semibold text-lg text-gray-900 dark:text-white">{type.label}</div>
-          </button>
-        ))}
-      </div>
-
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
@@ -315,7 +257,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             </div>
           </CardContent>
         </Card>
-
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
@@ -331,7 +272,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             </div>
           </CardContent>
         </Card>
-
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
@@ -347,7 +287,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             </div>
           </CardContent>
         </Card>
-
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
@@ -365,21 +304,90 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         </Card>
       </div>
 
-      {/* Data Table */}
-      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
+      {/* Export Section Card */}
+      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 mb-8">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            {/* Title */}
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t.title}</h2>
+            {/* Export Button */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              {/* File Type Selection */}
+              <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                {fileTypes.map((type) => (
+                  <button
+                    key={type.id}
+                    onClick={() => setSelectedFileType(type.id)}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${selectedFileType === type.id
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                  >
+                    {type.label}
+                  </button>
+                ))}
+              </div>
+              <Button
+                onClick={handleExport}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                {t.exportBtn}
+              </Button>
+            </div>
+          </div>
+          {/* Report Type Selection */}
+          <div className="mt-8">
+            <div className="flex w-full bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+              {reportTypes.map((type) => (
+                <button
+                  key={type.id}
+                  onClick={() => setSelectedReportType(type.id)}
+                  className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${selectedReportType === type.id
+                      ? 'bg-white text-black shadow dark:bg-gray-900'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  style={{ minWidth: 0 }}
+                >
+                  {type.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Data Table */}
+            <div className="mt-4 overflow-x-auto">
+              <Table>
               <TableHeader>
                 {renderTableHeaders()}
               </TableHeader>
               <TableBody>
                 {renderTableRows()}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
+            <style>{`
+              .ec-table-header-row {
+              border-bottom: 2px solid #222 !important;
+              }
+              .ec-table-header-cell {
+              color: #111 !important;
+              font-weight: 700 !important;
+              background: transparent !important;
+              }
+              @media (prefers-color-scheme: dark) {
+              .ec-table-header-row {
+                border-bottom: 2px solid #444 !important;
+              }
+              .ec-table-header-cell {
+                color: #fff !important;
+              }
+              }
+            `}</style>
           </div>
         </CardContent>
       </Card>
+
+
     </div>
   );
 };

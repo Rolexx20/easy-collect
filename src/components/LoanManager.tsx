@@ -434,9 +434,13 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
           />
           </div>
           <div className="flex gap-2 pt-2">
-          <Button onClick={handleSubmit} className="flex-1" disabled={isLoading}>
+            <Button
+            onClick={handleSubmit}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+            disabled={isLoading}
+            >
             {isLoading ? "Saving..." : t.save}
-          </Button>
+            </Button>
           <Button variant="outline" onClick={resetForm} className="flex-1">
             {t.cancel}
           </Button>
