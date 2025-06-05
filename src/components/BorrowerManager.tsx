@@ -185,61 +185,64 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold text-left text-gray-800 dark:text-gray-200 flex-1">
-          {t.title}
-        </h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setEditingBorrower(null)} className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="w-4 h-4 mr-2" />
-              {t.addBorrower}
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingBorrower ? t.editBorrower : t.addBorrower}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">{t.name}</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  placeholder={t.name}
-                />
-              </div>
-              <div>
-                <Label htmlFor="phone">{t.phone}</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  placeholder={t.phone}
-                />
-              </div>
-              <div>
-                <Label htmlFor="address">{t.address}</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  placeholder={t.address}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={handleSubmit} className="flex-1" disabled={isLoading}>
-                  {isLoading ? "Saving..." : t.save}
-                </Button>
-                <Button variant="outline" onClick={resetForm} className="flex-1">
-                  {t.cancel}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+      <h2 className="text-3xl font-bold text-left text-gray-800 dark:text-gray-200 flex-1">
+        {t.title}
+      </h2>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogTrigger asChild>
+        <Button onClick={() => setEditingBorrower(null)} className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="w-4 h-4 mr-2" />
+          {t.addBorrower}
+        </Button>
+        </DialogTrigger>
+        <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+          {editingBorrower ? t.editBorrower : t.addBorrower}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="flex flex-col gap-2">
+          <Label htmlFor="name" className="pb-1">{t.name}</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData({...formData, name: e.target.value})}
+            placeholder={t.name}
+            className="py-2 px-3"
+          />
+          </div>
+          <div className="flex flex-col gap-2">
+          <Label htmlFor="phone" className="pb-1">{t.phone}</Label>
+          <Input
+            id="phone"
+            value={formData.phone}
+            onChange={(e) => setFormData({...formData, phone: e.target.value})}
+            placeholder={t.phone}
+            className="py-2 px-3"
+          />
+          </div>
+          <div className="flex flex-col gap-2">
+          <Label htmlFor="address" className="pb-1">{t.address}</Label>
+          <Input
+            id="address"
+            value={formData.address}
+            onChange={(e) => setFormData({...formData, address: e.target.value})}
+            placeholder={t.address}
+            className="py-2 px-3"
+          />
+          </div>
+          <div className="flex gap-2">
+          <Button onClick={handleSubmit} className="flex-1" disabled={isLoading}>
+            {isLoading ? "Saving..." : t.save}
+          </Button>
+          <Button variant="outline" onClick={resetForm} className="flex-1">
+            {t.cancel}
+          </Button>
+          </div>
+        </div>
+        </DialogContent>
+      </Dialog>
       </div>
 
       {/* --- Search filter input --- */}
@@ -249,7 +252,7 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
           placeholder="Search by borrower, name, or address"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full"
+          className="w-full focus-visible:ring-0 focus-visible:border-blue-600 dark:focus-visible:border-blue-600"
         />
       </div>
       {/* --- End search filter input --- */}

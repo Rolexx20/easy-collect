@@ -318,106 +318,111 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold text-left text-gray-800 dark:text-gray-200 flex-1">
-          {t.title}
-        </h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setEditingLoan(null)} className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="w-4 h-4 mr-2" />
-              {t.addLoan}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-blue-600" />
-                {editingLoan ? t.editLoan : t.addLoan}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              {/* ...form fields unchanged... */}
-              <div>
-                <Label htmlFor="borrower" className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  {t.borrower}
-                </Label>
-                <Select value={formData.borrower_id} onValueChange={(value) => setFormData({ ...formData, borrower_id: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t.selectBorrower} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {borrowers.map((borrower) => (
-                      <SelectItem key={borrower.id} value={borrower.id}>
-                        {borrower.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="principal" className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4" />
-                  {t.principalAmount}
-                </Label>
-                <Input
-                  id="principal"
-                  type="number"
-                  value={formData.principal_amount}
-                  onChange={(e) => setFormData({ ...formData, principal_amount: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <Label htmlFor="interest" className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />
-                  {t.interestRate}
-                </Label>
-                <Input
-                  id="interest"
-                  type="number"
-                  step="0.1"
-                  value={formData.interest_rate}
-                  onChange={(e) => setFormData({ ...formData, interest_rate: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <Label htmlFor="duration" className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  {t.duration}
-                </Label>
-                <Input
-                  id="duration"
-                  type="number"
-                  value={formData.duration_days}
-                  onChange={(e) => setFormData({ ...formData, duration_days: e.target.value })}
-                  placeholder="7"
-                />
-              </div>
-              <div>
-                <Label htmlFor="startDate" className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  {t.startDate}
-                </Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={handleSubmit} className="flex-1" disabled={isLoading}>
-                  {isLoading ? "Saving..." : t.save}
-                </Button>
-                <Button variant="outline" onClick={resetForm} className="flex-1">
-                  {t.cancel}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+      <h2 className="text-3xl font-bold text-left text-gray-800 dark:text-gray-200 flex-1">
+        {t.title}
+      </h2>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogTrigger asChild>
+        <Button onClick={() => setEditingLoan(null)} className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="w-4 h-4 mr-2" />
+          {t.addLoan}
+        </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+          <CreditCard className="w-5 h-5 text-blue-600" />
+          {editingLoan ? t.editLoan : t.addLoan}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          {/* Borrower */}
+          <div className="flex flex-col gap-1 pb-2">
+          <Label htmlFor="borrower" className="flex items-center gap-2 pb-1">
+            <User className="w-4 h-4" />
+            {t.borrower}
+          </Label>
+          <Select value={formData.borrower_id} onValueChange={(value) => setFormData({ ...formData, borrower_id: value })} >
+            <SelectTrigger>
+            <SelectValue placeholder={t.selectBorrower} />
+            </SelectTrigger>
+            <SelectContent>
+            {borrowers.map((borrower) => (
+              <SelectItem key={borrower.id} value={borrower.id}>
+              {borrower.name}
+              </SelectItem>
+            ))}
+            </SelectContent>
+          </Select>
+          </div>
+          {/* Principal Amount */}
+          <div className="flex flex-col gap-1 pb-2">
+          <Label htmlFor="principal" className="flex items-center gap-2 pb-1">
+            <DollarSign className="w-4 h-4" />
+            {t.principalAmount}
+          </Label>
+          <Input
+            id="principal"
+            type="number"
+            step="1000"
+            value={formData.principal_amount}
+            onChange={(e) => setFormData({ ...formData, principal_amount: e.target.value })}
+            placeholder="0"
+          />
+          </div>
+          {/* Interest Rate */}
+          <div className="flex flex-col gap-1 pb-2">
+          <Label htmlFor="interest" className="flex items-center gap-2 pb-1">
+            <TrendingUp className="w-4 h-4" />
+            {t.interestRate}
+          </Label>
+          <Input
+            id="interest"
+            type="number"
+            step="1"
+            value={formData.interest_rate}
+            onChange={(e) => setFormData({ ...formData, interest_rate: e.target.value })}
+            placeholder="0"
+          />
+          </div>
+          {/* Duration Days */}
+          <div className="flex flex-col gap-1 pb-2">
+          <Label htmlFor="duration" className="flex items-center gap-2 pb-1">
+            <Clock className="w-4 h-4" />
+            {t.duration} (Days)
+          </Label>
+          <Input
+            id="duration"
+            type="number"
+            value={formData.duration_days}
+            onChange={(e) => setFormData({ ...formData, duration_days: e.target.value })}
+            placeholder="7"
+          />
+          </div>
+          {/* Start Date */}
+          <div className="flex flex-col gap-1 pb-2">
+          <Label htmlFor="startDate" className="flex items-center gap-2 pb-1">
+            <Calendar className="w-4 h-4" />
+            {t.startDate}
+          </Label>
+          <Input
+            id="startDate"
+            type="date"
+            value={formData.start_date}
+            onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+          />
+          </div>
+          <div className="flex gap-2 pt-2">
+          <Button onClick={handleSubmit} className="flex-1" disabled={isLoading}>
+            {isLoading ? "Saving..." : t.save}
+          </Button>
+          <Button variant="outline" onClick={resetForm} className="flex-1">
+            {t.cancel}
+          </Button>
+          </div>
+        </div>
+        </DialogContent>
+      </Dialog>
       </div>
 
       {/* --- Search filter input --- */}
@@ -427,7 +432,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
           placeholder="Search by borrower, amount, or status"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full"
+          className="w-full focus-visible:ring-0 focus-visible:border-blue-600 dark:focus-visible:border-blue-600"
         />
       </div>
       {/* --- End search filter input --- */}
