@@ -132,11 +132,16 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
 
     setIsLoading(true);
     try {
+      const principalAmount = parseFloat(formData.principal_amount);
+      const interestRate = parseFloat(formData.interest_rate);
+      const totalAmount = principalAmount + (principalAmount * interestRate / 100);
+
       const loanData = {
         borrower_id: formData.borrower_id,
-        principal_amount: parseFloat(formData.principal_amount),
-        interest_rate: parseFloat(formData.interest_rate),
+        principal_amount: principalAmount,
+        interest_rate: interestRate,
         duration_months: parseInt(formData.duration_months),
+        total_amount: totalAmount,
         start_date: formData.start_date,
         status: 'active' as const
       };
@@ -433,7 +438,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
             setSelectedLoan(null);
           }}
           loan={selectedLoan}
-          onPaymentCollected={onDataChange}
+          onPaymentCollect={onDataChange}
           language={language}
         />
       )}
