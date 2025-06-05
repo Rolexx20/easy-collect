@@ -17,6 +17,9 @@ interface ReportsProps {
 const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   const [selectedReportType, setSelectedReportType] = useState('collection');
   const [selectedFileType, setSelectedFileType] = useState('pdf');
+  const [filterText, setFilterText] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   const translations = {
     en: {
@@ -39,7 +42,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       totalCollected: 'Total Collected',
       pendingAmount: 'Pending Amount',
       exportSuccess: 'Report exported successfully',
-      noData: 'No data available for export'
+      noData: 'No data available for export',
+      filterPlaceholder: 'Filter by name or phone...'
     },
     ta: {
       title: 'அறிக்கைகள்',
@@ -61,7 +65,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       totalCollected: 'மொத்த வசூல்',
       pendingAmount: 'நிலுவையில் உள்ள தொகை',
       exportSuccess: 'அறிக்கை வெற்றிகரமாக ஏற்றுமதி செய்யப்பட்டது',
-      noData: 'ஏற்றுமதிக்கு தரவு இல்லை'
+      noData: 'ஏற்றுமதிக்கு தரவு இல்லை',
+      filterPlaceholder: 'பெயர் அல்லது தொலைபேசி மூலம் வடிகட்டி...'
     }
   };
 
@@ -84,17 +89,49 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     { id: 'csv', label: 'CSV' }
   ];
 
+  // Filter logic for export and table
   const getReportData = () => {
+    let data: any[] = [];
     switch (selectedReportType) {
       case 'collection':
-        return loans.filter(loan => loan.amount_paid > 0);
+        data = loans.filter(loan => loan.amount_paid > 0);
+        break;
       case 'overdue':
-        return loans.filter(loan => loan.status === 'overdue');
+        data = loans.filter(loan => loan.status === 'overdue');
+        break;
       case 'borrower':
-        return borrowers;
+        data = borrowers;
+        break;
       default:
-        return [];
+        data = [];
     }
+    // Date range filter for collection/overdue
+    if ((selectedReportType === 'collection' || selectedReportType === 'overdue') && (fromDate || toDate)) {
+      data = data.filter(item => {
+        const date = new Date(item.start_date);
+        const from = fromDate ? new Date(fromDate) : null;
+        const to = toDate ? new Date(toDate) : null;
+        return (!from || date >= from) && (!to || date <= to);
+      });
+    }
+    // Text filter
+    if (filterText.trim()) {
+      const lower = filterText.trim().toLowerCase();
+      if (selectedReportType === 'borrower') {
+        data = data.filter(
+          b =>
+            (b.name && b.name.toLowerCase().includes(lower)) ||
+            (b.phone && b.phone.toLowerCase().includes(lower))
+        );
+      } else {
+        data = data.filter(
+          l =>
+            (l.borrowerName && l.borrowerName.toLowerCase().includes(lower)) ||
+            (l.phone && l.phone.toLowerCase().includes(lower))
+        );
+      }
+    }
+    return data;
   };
 
   const exportToCSV = (data: any[], filename: string) => {
@@ -110,9 +147,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         csvContent += `${loan.start_date},${loan.borrowerName || 'N/A'},${loan.total_amount},${loan.amount_paid},${loan.status}\n`;
       });
     } else if (selectedReportType === 'borrower') {
-      csvContent = 'Name,Phone,Address,Total Loans,Total Amount,Total Paid,Remaining Amount\n';
+      csvContent = 'Created Date,Name,Phone,Address,Total Loans,Total Amount,Total Paid,Remaining Amount\n';
       data.forEach(borrower => {
-        csvContent += `${borrower.name},${borrower.phone},${borrower.address},${borrower.total_loans || 0},${borrower.total_amount || 0},${borrower.total_paid || 0},${borrower.remaining_amount || 0}\n`;
+        csvContent += `${borrower.created_at ? borrower.created_at.split('T')[0] : ''},${borrower.name},${borrower.phone},${borrower.address},${borrower.total_loans || 0},${borrower.total_amount || 0},${borrower.total_paid || 0},${borrower.remaining_amount || 0}\n`;
       });
     }
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -126,7 +163,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     document.body.removeChild(link);
   };
 
-  // Excel Export
   const exportToExcel = (data: any[], filename: string) => {
     let wsData: any[] = [];
     if (selectedReportType === 'collection') {
@@ -153,8 +189,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       ];
     } else if (selectedReportType === 'borrower') {
       wsData = [
-        ['Name', 'Phone', 'Address', 'Total Loans', 'Total Amount', 'Total Paid', 'Remaining Amount'],
+        ['Created Date', 'Name', 'Phone', 'Address', 'Total Loans', 'Total Amount', 'Total Paid', 'Remaining Amount'],
         ...data.map(borrower => [
+          borrower.created_at ? borrower.created_at.split('T')[0] : '',
           borrower.name,
           borrower.phone,
           borrower.address,
@@ -171,7 +208,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     XLSX.writeFile(wb, filename);
   };
 
-  // PDF Export
   const exportToPDF = (data: any[], filename: string) => {
     const doc = new jsPDF();
     let head: string[] = [];
@@ -199,8 +235,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       ]);
       title = t.overdueReport;
     } else if (selectedReportType === 'borrower') {
-      head = ['Name', 'Phone', 'Address', 'Total Loans', 'Total Amount', 'Total Paid', 'Remaining Amount'];
+      head = ['Created Date', 'Name', 'Phone', 'Address', 'Total Loans', 'Total Amount', 'Total Paid', 'Remaining Amount'];
       body = data.map(borrower => [
+        borrower.created_at ? borrower.created_at.split('T')[0] : '',
         borrower.name,
         borrower.phone,
         borrower.address,
@@ -248,33 +285,35 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     switch (selectedReportType) {
       case 'collection':
         return (
-          <TableRow className="border-gray-200 dark:border-gray-700">
-            <TableHead className="text-gray-700 dark:text-gray-300">{t.date}</TableHead>
-            <TableHead className="text-gray-700 dark:text-gray-300">{t.borrowerName}</TableHead>
-            <TableHead className="text-gray-700 dark:text-gray-300">{t.loanAmount}</TableHead>
-            <TableHead className="text-gray-700 dark:text-gray-300">{t.paymentAmount}</TableHead>
-            <TableHead className="text-gray-700 dark:text-gray-300">{t.remainingAmount}</TableHead>
+          <TableRow>
+            <TableHead>{t.date}</TableHead>
+            <TableHead>{t.borrowerName}</TableHead>
+            <TableHead>{t.loanAmount}</TableHead>
+            <TableHead>{t.paymentAmount}</TableHead>
+            <TableHead>{t.remainingAmount}</TableHead>
           </TableRow>
         );
       case 'overdue':
         return (
-          <TableRow className="border-gray-200 dark:border-gray-700">
-            <TableHead className="text-gray-700 dark:text-gray-300">{t.date}</TableHead>
-            <TableHead className="text-gray-700 dark:text-gray-300">{t.borrowerName}</TableHead>
-            <TableHead className="text-gray-700 dark:text-gray-300">{t.loanAmount}</TableHead>
-            <TableHead className="text-gray-700 dark:text-gray-300">{t.paymentAmount}</TableHead>
-            <TableHead className="text-gray-700 dark:text-gray-300">{t.status}</TableHead>
+          <TableRow>
+            <TableHead>{t.date}</TableHead>
+            <TableHead>{t.borrowerName}</TableHead>
+            <TableHead>{t.loanAmount}</TableHead>
+            <TableHead>{t.paymentAmount}</TableHead>
+            <TableHead>{t.status}</TableHead>
           </TableRow>
         );
       case 'borrower':
         return (
-          <TableRow className="border-gray-200 dark:border-gray-700">
-            <TableHead className="text-gray-700 dark:text-gray-300">Name</TableHead>
-            <TableHead className="text-gray-700 dark:text-gray-300">Phone</TableHead>
-            <TableHead className="text-gray-700 dark:text-gray-300">Total Loans</TableHead>
-            <TableHead className="text-gray-700 dark:text-gray-300">Total Amount</TableHead>
-            <TableHead className="text-gray-700 dark:text-gray-300">Total Paid</TableHead>
-            <TableHead className="text-gray-700 dark:text-gray-300">{t.remainingAmount}</TableHead>
+          <TableRow>
+            <TableHead>Created Date</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Phone</TableHead>
+            <TableHead>Address</TableHead>
+            <TableHead>Total Loans</TableHead>
+            <TableHead>Total Amount</TableHead>
+            <TableHead>Total Paid</TableHead>
+            <TableHead>{t.remainingAmount}</TableHead>
           </TableRow>
         );
       default:
@@ -289,7 +328,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         selectedReportType === 'borrower' ? t.noBorrowerData : t.noPaymentData;
       return (
         <TableRow>
-          <TableCell colSpan={selectedReportType === 'borrower' ? 6 : 5} className="text-center text-gray-500 dark:text-gray-400 py-8">
+          <TableCell colSpan={selectedReportType === 'borrower' ? 8 : 5} className="text-center text-gray-500 dark:text-gray-400 py-8">
             {noDataMessage}
           </TableCell>
         </TableRow>
@@ -299,22 +338,22 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       switch (selectedReportType) {
         case 'collection':
           return (
-            <TableRow key={index} className="border-gray-200 dark:border-gray-700">
-              <TableCell className="text-gray-900 dark:text-gray-100">{item.start_date}</TableCell>
-              <TableCell className="text-gray-900 dark:text-gray-100">{item.borrowerName || 'N/A'}</TableCell>
-              <TableCell className="text-gray-900 dark:text-gray-100">₹{item.total_amount?.toLocaleString()}</TableCell>
-              <TableCell className="text-gray-900 dark:text-gray-100">₹{item.amount_paid?.toLocaleString()}</TableCell>
-              <TableCell className="text-gray-900 dark:text-gray-100">₹{(item.total_amount - item.amount_paid)?.toLocaleString()}</TableCell>
+            <TableRow key={index}>
+              <TableCell>{item.start_date}</TableCell>
+              <TableCell>{item.borrowerName || 'N/A'}</TableCell>
+              <TableCell>₹{item.total_amount?.toLocaleString()}</TableCell>
+              <TableCell>₹{item.amount_paid?.toLocaleString()}</TableCell>
+              <TableCell>₹{(item.total_amount - item.amount_paid)?.toLocaleString()}</TableCell>
             </TableRow>
           );
         case 'overdue':
           return (
-            <TableRow key={index} className="border-gray-200 dark:border-gray-700">
-              <TableCell className="text-gray-900 dark:text-gray-100">{item.start_date}</TableCell>
-              <TableCell className="text-gray-900 dark:text-gray-100">{item.borrowerName || 'N/A'}</TableCell>
-              <TableCell className="text-gray-900 dark:text-gray-100">₹{item.total_amount?.toLocaleString()}</TableCell>
-              <TableCell className="text-gray-900 dark:text-gray-100">₹{item.amount_paid?.toLocaleString()}</TableCell>
-              <TableCell className="text-gray-900 dark:text-gray-100">
+            <TableRow key={index}>
+              <TableCell>{item.start_date}</TableCell>
+              <TableCell>{item.borrowerName || 'N/A'}</TableCell>
+              <TableCell>₹{item.total_amount?.toLocaleString()}</TableCell>
+              <TableCell>₹{item.amount_paid?.toLocaleString()}</TableCell>
+              <TableCell>
                 <span className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
                   {item.status}
                 </span>
@@ -323,13 +362,15 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           );
         case 'borrower':
           return (
-            <TableRow key={index} className="border-gray-200 dark:border-gray-700">
-              <TableCell className="text-gray-900 dark:text-gray-100">{item.name}</TableCell>
-              <TableCell className="text-gray-900 dark:text-gray-100">{item.phone}</TableCell>
-              <TableCell className="text-gray-900 dark:text-gray-100">{item.total_loans || 0}</TableCell>
-              <TableCell className="text-gray-900 dark:text-gray-100">₹{(item.total_amount || 0).toLocaleString()}</TableCell>
-              <TableCell className="text-gray-900 dark:text-gray-100">₹{(item.total_paid || 0).toLocaleString()}</TableCell>
-              <TableCell className="text-gray-900 dark:text-gray-100">₹{(item.remaining_amount || 0).toLocaleString()}</TableCell>
+            <TableRow key={index}>
+              <TableCell>{item.created_at ? item.created_at.split('T')[0] : ''}</TableCell>
+              <TableCell>{item.name}</TableCell>
+              <TableCell>{item.phone}</TableCell>
+              <TableCell>{item.address}</TableCell>
+              <TableCell>{item.total_loans || 0}</TableCell>
+              <TableCell>₹{(item.total_amount || 0).toLocaleString()}</TableCell>
+              <TableCell>₹{(item.total_paid || 0).toLocaleString()}</TableCell>
+              <TableCell>₹{(item.remaining_amount || 0).toLocaleString()}</TableCell>
             </TableRow>
           );
         default:
@@ -340,6 +381,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
 
   return (
     <div className="p-4 md:p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">{t.title}</h1>
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
@@ -409,7 +451,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             {/* Title */}
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t.title}</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Export Reports (Multiple type)</h2>
             {/* Export Button */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
               {/* File Type Selection */}
@@ -436,15 +478,43 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
               </Button>
             </div>
           </div>
+          {/* Filter input */}
+          <div className="mt-4 flex flex-col md:flex-row gap-2">
+            {(selectedReportType === 'collection' || selectedReportType === 'overdue') && (
+              <>
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={e => setFromDate(e.target.value)}
+                  className="px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  placeholder="From date"
+                />
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={e => setToDate(e.target.value)}
+                  className="px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  placeholder="To date"
+                />
+              </>
+            )}
+            <input
+              type="text"
+              value={filterText}
+              onChange={e => setFilterText(e.target.value)}
+              placeholder={t.filterPlaceholder}
+              className="w-full md:w-1/3 px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            />
+          </div>
           {/* Report Type Selection */}
-          <div className="mt-8">
+          <div className="mt-4">
             <div className="flex w-full bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
               {reportTypes.map((type) => (
                 <button
                   key={type.id}
                   onClick={() => setSelectedReportType(type.id)}
                   className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${selectedReportType === type.id
-                      ? 'bg-white text-black shadow dark:bg-gray-900'
+                      ? 'bg-white text-gray-600 dark:text-white shadow dark:bg-gray-900'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                     }`}
                   style={{ minWidth: 0 }}
