@@ -22,7 +22,7 @@ interface Payment {
 }
 
 const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProps) => {
-  // Fetch recent payments
+  // Fetch recent payments - fix the queryFn to use proper signature
   const { data: payments = [] } = useQuery({
     queryKey: ['payments'],
     queryFn: () => getPayments()
@@ -79,7 +79,6 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
 
   const t = translations[language as keyof typeof translations];
 
-  // Calculate statistics from real data
   const totalBorrowers = borrowers.length;
   const activeLoans = loans.filter(loan => loan.status === 'active').length;
   const completedLoans = loans.filter(loan => loan.status === 'completed').length;
@@ -88,35 +87,29 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
   const totalLoanAmount = loans.reduce((sum, loan) => sum + (Number(loan.total_amount) || 0), 0);
   const pendingAmount = totalLoanAmount - totalCollected;
 
-  // Calculate overdue payments amount
   const overduePaymentsAmount = loans
     .filter(loan => loan.status === 'overdue')
     .reduce((sum, loan) => sum + (loan.total_amount - loan.amount_paid), 0);
 
-  // Calculate average payment
   const averagePayment = payments.length > 0 
     ? payments.reduce((sum, payment) => sum + Number(payment.amount), 0) / payments.length 
     : 0;
 
-  // Get recent payments (last 5)
   const recentPayments = payments
     .sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime())
     .slice(0, 5);
 
-  // Get borrower name for payment
   const getBorrowerNameForPayment = (loanId: string) => {
     const loan = loans.find(l => l.id === loanId);
     return loan?.borrowerName || 'Unknown';
   };
 
-  // Pie chart data
   const pieData = [
     { name: t.active, value: activeLoans, color: '#3b82f6' },
     { name: t.completed, value: completedLoans, color: '#10b981' },
     { name: t.overdue, value: overdueLoans, color: '#ef4444' },
   ];
 
-  // Bar chart data - recent loans
   const recentLoans = loans.slice(0, 6).map((loan, index) => ({
     name: `Loan ${index + 1}`,
     amount: Number(loan.total_amount) || 0,
