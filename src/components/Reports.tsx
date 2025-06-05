@@ -306,7 +306,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       case 'borrower':
         return (
           <TableRow>
-            <TableHead>Created Date</TableHead>
+            <TableHead>Date</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Phone</TableHead>
             <TableHead>Address</TableHead>
@@ -363,7 +363,11 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         case 'borrower':
           return (
             <TableRow key={index}>
-              <TableCell>{item.created_at ? item.created_at.split('T')[0] : ''}</TableCell>
+              <TableCell>
+                {item.created_at
+                  ? new Date(item.created_at).toISOString().split('T')[0]
+                  : ''}
+              </TableCell>
               <TableCell>{item.name}</TableCell>
               <TableCell>{item.phone}</TableCell>
               <TableCell>{item.address}</TableCell>
@@ -461,8 +465,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
                     key={type.id}
                     onClick={() => setSelectedFileType(type.id)}
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${selectedFileType === type.id
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                       }`}
                   >
                     {type.label}
@@ -514,8 +518,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
                   key={type.id}
                   onClick={() => setSelectedReportType(type.id)}
                   className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${selectedReportType === type.id
-                      ? 'bg-white text-gray-600 dark:text-white shadow dark:bg-gray-900'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                    ? 'bg-white text-gray-600 dark:text-white shadow dark:bg-gray-900'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                     }`}
                   style={{ minWidth: 0 }}
                 >
@@ -527,12 +531,12 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             {/* Data Table */}
             <div className="mt-4 overflow-x-auto">
               <Table>
-              <TableHeader>
-                {renderTableHeaders()}
-              </TableHeader>
-              <TableBody>
-                {renderTableRows()}
-              </TableBody>
+                <TableHeader>
+                  {renderTableHeaders()}
+                </TableHeader>
+                <TableBody>
+                  {renderTableRows()}
+                </TableBody>
               </Table>
             </div>
             <style>{`
