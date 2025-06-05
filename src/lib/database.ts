@@ -108,7 +108,8 @@ export const getLoans = async (): Promise<Loan[]> => {
   
   return data?.map(loan => ({
     ...loan,
-    borrowerName: loan.borrowers?.name
+    borrowerName: loan.borrowers?.name,
+    status: loan.status as 'active' | 'completed' | 'overdue'
   })) || [];
 };
 
@@ -141,7 +142,8 @@ export const createLoan = async (loan: Omit<Loan, 'id' | 'amount_paid' | 'borrow
   
   return {
     ...data,
-    borrowerName: data.borrowers?.name
+    borrowerName: data.borrowers?.name,
+    status: data.status as 'active' | 'completed' | 'overdue'
   };
 };
 
@@ -163,7 +165,8 @@ export const updateLoan = async (id: string, loan: Partial<Loan>): Promise<Loan>
   
   return {
     ...data,
-    borrowerName: data.borrowers?.name
+    borrowerName: data.borrowers?.name,
+    status: data.status as 'active' | 'completed' | 'overdue'
   };
 };
 

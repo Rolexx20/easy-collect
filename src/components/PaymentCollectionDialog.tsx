@@ -6,21 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar, DollarSign, Clock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { createPayment } from '@/lib/database';
+import { createPayment, type Loan } from '@/lib/database';
 
 interface PaymentCollectionDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  loan: {
-    id: string;
-    borrowerName: string;
-    total_amount: number;
-    amount_paid: number;
-    duration_months: number;
-    start_date: string;
-    interest_rate: number;
-    principal_amount: number;
-  };
+  loan: Loan;
   onPaymentCollect: () => void;
   language: string;
 }

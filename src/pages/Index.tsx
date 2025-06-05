@@ -20,41 +20,51 @@ const Index = () => {
   const queryClient = useQueryClient();
 
   // Fetch borrowers
-  const { data: borrowers = [], isLoading: borrowersLoading } = useQuery({
+  const { data: borrowers = [], isLoading: borrowersLoading, error: borrowersError } = useQuery({
     queryKey: ['borrowers'],
-    queryFn: getBorrowers,
-    onError: (error) => {
-      console.error('Error loading borrowers:', error);
+    queryFn: getBorrowers
+  });
+
+  // Fetch loans
+  const { data: loans = [], isLoading: loansLoading, error: loansError } = useQuery({
+    queryKey: ['loans'],
+    queryFn: getLoans
+  });
+
+  // Fetch dashboard stats
+  const { data: dashboardStats, error: dashboardError } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: getDashboardStats
+  });
+
+  // Handle errors
+  useEffect(() => {
+    if (borrowersError) {
+      console.error('Error loading borrowers:', borrowersError);
       toast({
         title: "Error loading borrowers",
         description: "Please check your connection and try again.",
         variant: "destructive"
       });
     }
-  });
+  }, [borrowersError]);
 
-  // Fetch loans
-  const { data: loans = [], isLoading: loansLoading } = useQuery({
-    queryKey: ['loans'],
-    queryFn: getLoans,
-    onError: (error) => {
-      console.error('Error loading loans:', error);
+  useEffect(() => {
+    if (loansError) {
+      console.error('Error loading loans:', loansError);
       toast({
         title: "Error loading loans",
         description: "Please check your connection and try again.",
         variant: "destructive"
       });
     }
-  });
+  }, [loansError]);
 
-  // Fetch dashboard stats
-  const { data: dashboardStats } = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: getDashboardStats,
-    onError: (error) => {
-      console.error('Error loading dashboard stats:', error);
+  useEffect(() => {
+    if (dashboardError) {
+      console.error('Error loading dashboard stats:', dashboardError);
     }
-  });
+  }, [dashboardError]);
 
   // Refresh data function
   const refreshData = () => {

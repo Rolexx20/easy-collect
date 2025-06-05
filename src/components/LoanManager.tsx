@@ -8,39 +8,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2, DollarSign, Calendar, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { createLoan, updateLoan, deleteLoan, type Loan, type Borrower } from '@/lib/database';
 import PaymentCollectionDialog from './PaymentCollectionDialog';
-
-interface Loan {
-  id: string;
-  borrowerId: string;
-  borrowerName: string;
-  amount: number;
-  interestRate: number;
-  duration: number;
-  startDate: string;
-  status: 'active' | 'completed' | 'overdue';
-  amountPaid: number;
-  nextPaymentDate: string;
-}
 
 interface LoanManagerProps {
   language: string;
   loans: Loan[];
-  setLoans: (loans: Loan[]) => void;
-  borrowers: any[];
+  borrowers: Borrower[];
+  onDataChange: () => void;
 }
 
-const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps) => {
+const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    borrowerId: '',
-    amount: '',
-    interestRate: '',
-    duration: '',
-    startDate: ''
+    borrower_id: '',
+    principal_amount: '',
+    interest_rate: '',
+    duration_months: '',
+    start_date: ''
   });
 
   const translations = {
@@ -112,88 +101,79 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
 
   const t = translations[language as keyof typeof translations];
 
-  const handleSubmit = () => {
-    if (!formData.borrowerId || !formData.amount || !formData.interestRate || !formData.duration || !formData.startDate) {
+  const handleSubmit = async () => {
+    if (!formData.borrower_id || !formData.principal_amount || !formData.interest_rate || !formData.duration_months || !formData.start_date) {
       toast({ title: t.fillAllFields, variant: "destructive" });
       return;
     }
 
-    const borrower = borrowers.find(b => b.id === formData.borrowerId);
-    const totalAmount = parseFloat(formData.amount) * (1 + parseFloat(formData.interestRate) / 100);
-
-    if (editingLoan) {
-      const updatedLoans = loans.map(l => 
-        l.id === editingLoan.id 
-          ? { 
-              ...l, 
-              ...formData,
-              borrowerName: borrower?.name || '',
-              amount: totalAmount,
-              interestRate: parseFloat(formData.interestRate),
-              duration: parseInt(formData.duration)
-            }
-          : l
-      );
-      setLoans(updatedLoans);
-      toast({ title: t.loanUpdated });
-    } else {
-      const newLoan: Loan = {
-        id: Date.now().toString(),
-        borrowerId: formData.borrowerId,
-        borrowerName: borrower?.name || '',
-        amount: totalAmount,
-        interestRate: parseFloat(formData.interestRate),
-        duration: parseInt(formData.duration),
-        startDate: formData.startDate,
-        status: 'active',
-        amountPaid: 0,
-        nextPaymentDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    setIsLoading(true);
+    try {
+      const loanData = {
+        borrower_id: formData.borrower_id,
+        principal_amount: parseFloat(formData.principal_amount),
+        interest_rate: parseFloat(formData.interest_rate),
+        duration_months: parseInt(formData.duration_months),
+        start_date: formData.start_date,
+        total_amount: parseFloat(formData.principal_amount) * (1 + parseFloat(formData.interest_rate) / 100),
+        amount_paid: 0,
+        status: 'active' as const
       };
-      setLoans([...loans, newLoan]);
-      toast({ title: t.loanAdded });
-    }
 
-    resetForm();
+      if (editingLoan) {
+        await updateLoan(editingLoan.id, loanData);
+        toast({ title: t.loanUpdated });
+      } else {
+        await createLoan(loanData);
+        toast({ title: t.loanAdded });
+      }
+      
+      onDataChange();
+      resetForm();
+    } catch (error) {
+      console.error('Error saving loan:', error);
+      toast({ 
+        title: "Error", 
+        description: "Failed to save loan. Please try again.",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleEdit = (loan: Loan) => {
     setEditingLoan(loan);
     setFormData({
-      borrowerId: loan.borrowerId,
-      amount: (loan.amount / (1 + loan.interestRate / 100)).toFixed(2),
-      interestRate: loan.interestRate.toString(),
-      duration: loan.duration.toString(),
-      startDate: loan.startDate
+      borrower_id: loan.borrower_id,
+      principal_amount: loan.principal_amount.toString(),
+      interest_rate: loan.interest_rate.toString(),
+      duration_months: loan.duration_months.toString(),
+      start_date: loan.start_date
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setLoans(loans.filter(l => l.id !== id));
-    toast({ title: t.loanDeleted });
-  };
-
-  const handlePayment = (loanId: string, amount: number) => {
-    const updatedLoans = loans.map(loan => {
-      if (loan.id === loanId) {
-        const newAmountPaid = loan.amountPaid + amount;
-        const newStatus: 'active' | 'completed' | 'overdue' = newAmountPaid >= loan.amount ? 'completed' : 'active';
-        return {
-          ...loan,
-          amountPaid: newAmountPaid,
-          status: newStatus,
-          nextPaymentDate: newStatus === 'completed' ? '' : 
-            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        };
-      }
-      return loan;
-    });
-    setLoans(updatedLoans);
-    toast({ title: t.paymentCollected });
+  const handleDelete = async (id: string) => {
+    setIsLoading(true);
+    try {
+      await deleteLoan(id);
+      toast({ title: t.loanDeleted });
+      onDataChange();
+    } catch (error) {
+      console.error('Error deleting loan:', error);
+      toast({ 
+        title: "Error", 
+        description: "Failed to delete loan. Please try again.",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const resetForm = () => {
-    setFormData({ borrowerId: '', amount: '', interestRate: '', duration: '', startDate: '' });
+    setFormData({ borrower_id: '', principal_amount: '', interest_rate: '', duration_months: '', start_date: '' });
     setEditingLoan(null);
     setIsDialogOpen(false);
   };
@@ -217,8 +197,8 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
   };
 
   const getDailyPayment = (loan: Loan) => {
-    const loanDays = loan.duration * 30; // Convert months to days
-    return loan.amount / loanDays;
+    const loanDays = loan.duration_months * 30; // Convert months to days
+    return loan.total_amount / loanDays;
   };
 
   if (borrowers.length === 0) {
@@ -258,7 +238,7 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
             <div className="space-y-4">
               <div>
                 <Label>{t.borrower}</Label>
-                <Select value={formData.borrowerId} onValueChange={(value) => setFormData({...formData, borrowerId: value})}>
+                <Select value={formData.borrower_id} onValueChange={(value) => setFormData({...formData, borrower_id: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder={t.borrower} />
                   </SelectTrigger>
@@ -276,8 +256,8 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
                 <Input
                   id="amount"
                   type="number"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                  value={formData.principal_amount}
+                  onChange={(e) => setFormData({...formData, principal_amount: e.target.value})}
                   placeholder="50000"
                 />
               </div>
@@ -286,8 +266,8 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
                 <Input
                   id="interestRate"
                   type="number"
-                  value={formData.interestRate}
-                  onChange={(e) => setFormData({...formData, interestRate: e.target.value})}
+                  value={formData.interest_rate}
+                  onChange={(e) => setFormData({...formData, interest_rate: e.target.value})}
                   placeholder="12"
                 />
               </div>
@@ -296,8 +276,8 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
                 <Input
                   id="duration"
                   type="number"
-                  value={formData.duration}
-                  onChange={(e) => setFormData({...formData, duration: e.target.value})}
+                  value={formData.duration_months}
+                  onChange={(e) => setFormData({...formData, duration_months: e.target.value})}
                   placeholder="12"
                 />
               </div>
@@ -306,13 +286,13 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
                 <Input
                   id="startDate"
                   type="date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                  value={formData.start_date}
+                  onChange={(e) => setFormData({...formData, start_date: e.target.value})}
                 />
               </div>
               <div className="flex gap-2">
-                <Button onClick={handleSubmit} className="flex-1">
-                  {t.save}
+                <Button onClick={handleSubmit} className="flex-1" disabled={isLoading}>
+                  {isLoading ? "Saving..." : t.save}
                 </Button>
                 <Button variant="outline" onClick={resetForm} className="flex-1">
                   {t.cancel}
@@ -347,14 +327,14 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
                     <DollarSign className="w-4 h-4 text-green-600" />
                     <div>
                       <div className="text-sm text-gray-500">{t.amount}</div>
-                      <div className="font-semibold">₹{loan.amount.toLocaleString()}</div>
+                      <div className="font-semibold">₹{loan.total_amount.toLocaleString()}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-blue-600" />
                     <div>
                       <div className="text-sm text-gray-500">{t.interestRate}</div>
-                      <div className="font-semibold">{loan.interestRate}%</div>
+                      <div className="font-semibold">{loan.interest_rate}%</div>
                     </div>
                   </div>
                 </div>
@@ -371,32 +351,32 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
                     ₹{getDailyPayment(loan).toFixed(2)}
                   </div>
                   <div className="text-xs text-yellow-700 dark:text-yellow-300">
-                    {t.loanPeriod}: {loan.duration * 30} {t.days}
+                    {t.loanPeriod}: {loan.duration_months * 30} {t.days}
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>{t.paid}:</span>
-                    <span className="font-semibold text-green-600">₹{loan.amountPaid.toLocaleString()}</span>
+                    <span className="font-semibold text-green-600">₹{loan.amount_paid.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>{t.remaining}:</span>
-                    <span className="font-semibold text-red-600">₹{(loan.amount - loan.amountPaid).toLocaleString()}</span>
+                    <span className="font-semibold text-red-600">₹{(loan.total_amount - loan.amount_paid).toLocaleString()}</span>
                   </div>
                   
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-green-600 h-2 rounded-full" 
-                      style={{width: `${(loan.amountPaid / loan.amount) * 100}%`}}
+                      style={{width: `${(loan.amount_paid / loan.total_amount) * 100}%`}}
                     ></div>
                   </div>
                 </div>
 
-                {loan.nextPaymentDate && (
+                {loan.next_payment_date && (
                   <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                     <Calendar className="w-4 h-4" />
-                    {t.nextPayment}: {new Date(loan.nextPaymentDate).toLocaleDateString()}
+                    {t.nextPayment}: {new Date(loan.next_payment_date).toLocaleDateString()}
                   </div>
                 )}
 
@@ -418,6 +398,7 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
                     variant="outline"
                     size="sm"
                     onClick={() => handleEdit(loan)}
+                    disabled={isLoading}
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
@@ -426,6 +407,7 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
                     size="sm"
                     onClick={() => handleDelete(loan.id)}
                     className="text-red-600 hover:text-red-700"
+                    disabled={isLoading}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -445,7 +427,7 @@ const LoanManager = ({ language, loans, setLoans, borrowers }: LoanManagerProps)
             setSelectedLoan(null);
           }}
           loan={selectedLoan}
-          onPaymentCollect={handlePayment}
+          onPaymentCollect={onDataChange}
           language={language}
         />
       )}

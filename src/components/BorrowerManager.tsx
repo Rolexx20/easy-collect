@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -296,7 +295,7 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
         onClose={() => setDeleteConfirmOpen(false)}
         onConfirm={handleDeleteConfirm}
         title={t.confirmDelete}
-        description={t.deleteWarning}
+        message={t.deleteWarning}
         language={language}
       />
     </div>
