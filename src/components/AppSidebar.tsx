@@ -51,7 +51,7 @@ const AppSidebar = ({
       {/* Desktop Sidebar */}
       <div
         className={cn(
-          "fixed left-0 top-0 h-full bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 z-50 transition-all duration-300 flex flex-col hidden md:block shadow-lg",
+          "fixed left-0 top-0 h-full bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 z-50 transition-all duration-300 flex-col hidden md:block shadow-lg",
           isCollapsed ? "w-16" : "w-64"
         )}
       >

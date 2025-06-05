@@ -117,7 +117,7 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
   }));
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 pt-20">
       <h2 className="text-3xl font-bold text-left text-gray-800 dark:text-gray-200 justify-center gap-3">
         {t.title}
       </h2>

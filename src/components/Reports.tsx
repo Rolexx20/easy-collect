@@ -384,8 +384,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   };
 
   return (
-    <div className="p-4 md:p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">{t.title}</h1>
+    <div className="p-4 md:p-6 bg-gray-50 dark:bg-gray-900">
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 pt-16">{t.title}</h1>
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">

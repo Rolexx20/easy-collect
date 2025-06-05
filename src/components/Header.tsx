@@ -7,8 +7,8 @@ interface HeaderProps {
   setIsDark: (isDark: boolean) => void;
   language: string;
   setLanguage: (language: string) => void;
-  sidebarCollapsed?: boolean;
-  setSidebarCollapsed?: (collapsed: boolean) => void;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
 }
 
 const Header = ({
@@ -16,25 +16,62 @@ const Header = ({
   setIsDark,
   language,
   setLanguage,
+  activeTab,
+  setActiveTab,
 }: HeaderProps) => {
   const translations = {
     en: {
       title: "EasyCollect",
+      dashboard: "Dashboard",
+      borrowers: "Borrowers",
+      loans: "Loans",
+      reports: "Reports",
+      settings: "Settings",
     },
     ta: {
       title: "EasyCollect",
+      dashboard: "டாஷ்போர்டு",
+      borrowers: "கடன் வாங்குபவர்கள்",
+      loans: "கடன்கள்",
+      reports: "அறிக்கைகள்",
+      settings: "அமைப்புகள்",
     },
   };
 
   const t = translations[language as keyof typeof translations];
 
+  const navItems = [
+    { id: "dashboard", label: t.dashboard },
+    { id: "borrowers", label: t.borrowers },
+    { id: "loans", label: t.loans },
+    { id: "reports", label: t.reports },
+    { id: "settings", label: t.settings },
+  ];
+
   return (
-    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 shadow-sm">
+    <header className="fixed top-0 left-0 w-full z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400 tracking-tight">
             {t.title}
           </h1>
+          {/* Top Nav Links (visible on mobile, hidden on md and up) */}
+          <nav className="ml-6 flex gap-2 md:hidden">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={cn(
+                  "px-3 py-1 rounded-full text-sm font-medium transition-all",
+                  activeTab === item.id
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-gray-600"
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
         </div>
 
         <div className="flex items-center gap-3">
