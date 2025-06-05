@@ -4,30 +4,34 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2, Phone, MapPin, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { createBorrower, updateBorrower, deleteBorrower } from '@/lib/database';
+import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 
 interface Borrower {
   id: string;
   name: string;
   phone: string;
   address: string;
-  totalLoans: number;
-  activeLoans: number;
-  totalAmount: number;
+  total_loans?: number;
+  active_loans?: number;
+  total_amount?: number;
 }
 
 interface BorrowerManagerProps {
   language: string;
   borrowers: Borrower[];
-  setBorrowers: (borrowers: Borrower[]) => void;
+  onDataChange: () => void;
 }
 
-const BorrowerManager = ({ language, borrowers, setBorrowers }: BorrowerManagerProps) => {
+const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBorrower, setEditingBorrower] = useState<Borrower | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [borrowerToDelete, setBorrowerToDelete] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -53,7 +57,9 @@ const BorrowerManager = ({ language, borrowers, setBorrowers }: BorrowerManagerP
       borrowerUpdated: 'Borrower updated successfully',
       borrowerDeleted: 'Borrower deleted successfully',
       fillAllFields: 'Please fill all fields',
-      noBorrowers: 'No borrowers registered yet'
+      noBorrowers: 'No borrowers registered yet',
+      confirmDelete: 'Are you sure you want to delete this borrower?',
+      deleteWarning: 'This action cannot be undone and will also delete all associated loans.'
     },
     ta: {
       title: 'கடன் வாங்குபவர் மேலாண்மை',
@@ -73,39 +79,41 @@ const BorrowerManager = ({ language, borrowers, setBorrowers }: BorrowerManagerP
       borrowerUpdated: 'கடன் வாங்குபவர் வெற்றிகரமாக புதுப்பிக்கப்பட்டார்',
       borrowerDeleted: 'கடன் வாங்குபவர் வெற்றிகரமாக நீக்கப்பட்டார்',
       fillAllFields: 'தயவுசெய்து அனைத்து புலங்களையும் நிரப்பவும்',
-      noBorrowers: 'இதுவரை கடன் வாங்குபவர்கள் பதிவு செய்யப்படவில்லை'
+      noBorrowers: 'இதுவரை கடன் வாங்குபவர்கள் பதிவு செய்யப்படவில்லை',
+      confirmDelete: 'இந்த கடன் வாங்குபவரை நீக்க விரும்புகிறீர்களா?',
+      deleteWarning: 'இந்த செயல் மாற்ற முடியாது மற்றும் அனைத்து தொடர்புடைய கடன்களையும் நீக்கும்.'
     }
   };
 
   const t = translations[language as keyof typeof translations];
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.name || !formData.phone || !formData.address) {
       toast({ title: t.fillAllFields, variant: "destructive" });
       return;
     }
 
-    if (editingBorrower) {
-      const updatedBorrowers = borrowers.map(b => 
-        b.id === editingBorrower.id 
-          ? { ...b, ...formData }
-          : b
-      );
-      setBorrowers(updatedBorrowers);
-      toast({ title: t.borrowerUpdated });
-    } else {
-      const newBorrower: Borrower = {
-        id: Date.now().toString(),
-        ...formData,
-        totalLoans: 0,
-        activeLoans: 0,
-        totalAmount: 0
-      };
-      setBorrowers([...borrowers, newBorrower]);
-      toast({ title: t.borrowerAdded });
+    setIsLoading(true);
+    try {
+      if (editingBorrower) {
+        await updateBorrower(editingBorrower.id, formData);
+        toast({ title: t.borrowerUpdated });
+      } else {
+        await createBorrower(formData);
+        toast({ title: t.borrowerAdded });
+      }
+      onDataChange();
+      resetForm();
+    } catch (error) {
+      console.error('Error saving borrower:', error);
+      toast({ 
+        title: "Error", 
+        description: "Failed to save borrower. Please try again.",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoading(false);
     }
-
-    resetForm();
   };
 
   const handleEdit = (borrower: Borrower) => {
@@ -118,9 +126,31 @@ const BorrowerManager = ({ language, borrowers, setBorrowers }: BorrowerManagerP
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setBorrowers(borrowers.filter(b => b.id !== id));
-    toast({ title: t.borrowerDeleted });
+  const handleDeleteClick = (id: string) => {
+    setBorrowerToDelete(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!borrowerToDelete) return;
+    
+    setIsLoading(true);
+    try {
+      await deleteBorrower(borrowerToDelete);
+      toast({ title: t.borrowerDeleted });
+      onDataChange();
+    } catch (error) {
+      console.error('Error deleting borrower:', error);
+      toast({ 
+        title: "Error", 
+        description: "Failed to delete borrower. Please try again.",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoading(false);
+      setDeleteConfirmOpen(false);
+      setBorrowerToDelete(null);
+    }
   };
 
   const resetForm = () => {
@@ -178,8 +208,8 @@ const BorrowerManager = ({ language, borrowers, setBorrowers }: BorrowerManagerP
                 />
               </div>
               <div className="flex gap-2">
-                <Button onClick={handleSubmit} className="flex-1">
-                  {t.save}
+                <Button onClick={handleSubmit} className="flex-1" disabled={isLoading}>
+                  {isLoading ? "Saving..." : t.save}
                 </Button>
                 <Button variant="outline" onClick={resetForm} className="flex-1">
                   {t.cancel}
@@ -220,15 +250,15 @@ const BorrowerManager = ({ language, borrowers, setBorrowers }: BorrowerManagerP
                 
                 <div className="grid grid-cols-3 gap-2 pt-2">
                   <div className="text-center">
-                    <div className="text-lg font-bold text-blue-600">{borrower.totalLoans}</div>
+                    <div className="text-lg font-bold text-blue-600">{borrower.total_loans || 0}</div>
                     <div className="text-xs text-gray-500">{t.totalLoans}</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-bold text-green-600">{borrower.activeLoans}</div>
+                    <div className="text-lg font-bold text-green-600">{borrower.active_loans || 0}</div>
                     <div className="text-xs text-gray-500">{t.activeLoans}</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-bold text-purple-600">₹{borrower.totalAmount.toLocaleString()}</div>
+                    <div className="text-lg font-bold text-purple-600">₹{(borrower.total_amount || 0).toLocaleString()}</div>
                     <div className="text-xs text-gray-500">{t.totalAmount}</div>
                   </div>
                 </div>
@@ -239,6 +269,7 @@ const BorrowerManager = ({ language, borrowers, setBorrowers }: BorrowerManagerP
                     size="sm"
                     onClick={() => handleEdit(borrower)}
                     className="flex-1"
+                    disabled={isLoading}
                   >
                     <Edit className="w-4 h-4 mr-1" />
                     {t.edit}
@@ -246,8 +277,9 @@ const BorrowerManager = ({ language, borrowers, setBorrowers }: BorrowerManagerP
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleDelete(borrower.id)}
+                    onClick={() => handleDeleteClick(borrower.id)}
                     className="flex-1 text-red-600 hover:text-red-700"
+                    disabled={isLoading}
                   >
                     <Trash2 className="w-4 h-4 mr-1" />
                     {t.delete}
@@ -258,6 +290,15 @@ const BorrowerManager = ({ language, borrowers, setBorrowers }: BorrowerManagerP
           ))}
         </div>
       )}
+
+      <DeleteConfirmationDialog
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        title={t.confirmDelete}
+        description={t.deleteWarning}
+        language={language}
+      />
     </div>
   );
 };

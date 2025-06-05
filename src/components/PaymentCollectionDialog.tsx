@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar, DollarSign, Clock } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { createPayment } from '@/lib/database';
 
 interface PaymentCollectionDialogProps {
   isOpen: boolean;
@@ -12,13 +14,14 @@ interface PaymentCollectionDialogProps {
   loan: {
     id: string;
     borrowerName: string;
-    amount: number;
-    amountPaid: number;
-    duration: number;
-    startDate: string;
-    interestRate: number;
+    total_amount: number;
+    amount_paid: number;
+    duration_months: number;
+    start_date: string;
+    interest_rate: number;
+    principal_amount: number;
   };
-  onPaymentCollect: (loanId: string, amount: number) => void;
+  onPaymentCollect: () => void;
   language: string;
 }
 
@@ -30,6 +33,7 @@ const PaymentCollectionDialog = ({
   language 
 }: PaymentCollectionDialogProps) => {
   const [paymentAmount, setPaymentAmount] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const translations = {
     en: {
@@ -44,7 +48,8 @@ const PaymentCollectionDialog = ({
       cancel: 'Cancel',
       loanPeriod: 'Loan Period',
       days: 'days',
-      progress: 'Payment Progress'
+      progress: 'Payment Progress',
+      paymentSuccess: 'Payment collected successfully'
     },
     ta: {
       title: 'பணம் வசூலிக்கவும்',
@@ -58,23 +63,51 @@ const PaymentCollectionDialog = ({
       cancel: 'ரத்து செய்யவும்',
       loanPeriod: 'கடன் காலம்',
       days: 'நாட்கள்',
-      progress: 'பணம் செலுத்தல் முன்னேற்றம்'
+      progress: 'பணம் செலுத்தல் முன்னேற்றம்',
+      paymentSuccess: 'பணம் வெற்றிகரமாக வசூலிக்கப்பட்டது'
     }
   };
 
   const t = translations[language as keyof typeof translations];
 
-  const remainingAmount = loan.amount - loan.amountPaid;
-  const loanDays = loan.duration * 30; // Convert months to days
-  const dailyPaymentAmount = loan.amount / loanDays;
-  const paymentProgress = (loan.amountPaid / loan.amount) * 100;
+  const remainingAmount = Number(loan.total_amount) - Number(loan.amount_paid);
+  const loanDays = loan.duration_months * 30; // Convert months to days
+  const dailyPaymentAmount = Number(loan.total_amount) / loanDays;
+  const paymentProgress = (Number(loan.amount_paid) / Number(loan.total_amount)) * 100;
 
-  const handleCollectPayment = () => {
+  const handleCollectPayment = async () => {
     const amount = parseFloat(paymentAmount);
-    if (amount > 0 && amount <= remainingAmount) {
-      onPaymentCollect(loan.id, amount);
+    if (amount <= 0 || amount > remainingAmount) {
+      toast({ 
+        title: "Invalid amount", 
+        description: `Please enter an amount between ₹1 and ₹${remainingAmount.toLocaleString()}`,
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await createPayment({
+        loan_id: loan.id,
+        amount: amount,
+        payment_date: new Date().toISOString().split('T')[0],
+        payment_method: 'cash'
+      });
+      
+      toast({ title: t.paymentSuccess });
+      onPaymentCollect();
       setPaymentAmount('');
       onClose();
+    } catch (error) {
+      console.error('Error creating payment:', error);
+      toast({ 
+        title: "Error", 
+        description: "Failed to record payment. Please try again.",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -99,12 +132,12 @@ const PaymentCollectionDialog = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <div className="text-sm text-gray-600 dark:text-gray-400">{t.totalLoan}</div>
-              <div className="font-bold text-blue-600 dark:text-blue-400">₹{loan.amount.toLocaleString()}</div>
+              <div className="font-bold text-blue-600 dark:text-blue-400">₹{Number(loan.total_amount).toLocaleString()}</div>
             </div>
             
             <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
               <div className="text-sm text-gray-600 dark:text-gray-400">{t.paidAmount}</div>
-              <div className="font-bold text-green-600 dark:text-green-400">₹{loan.amountPaid.toLocaleString()}</div>
+              <div className="font-bold text-green-600 dark:text-green-400">₹{Number(loan.amount_paid).toLocaleString()}</div>
             </div>
           </div>
 
@@ -165,12 +198,12 @@ const PaymentCollectionDialog = ({
           <div className="flex gap-3">
             <Button 
               onClick={handleCollectPayment}
-              disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || parseFloat(paymentAmount) > remainingAmount}
+              disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || parseFloat(paymentAmount) > remainingAmount || isLoading}
               className="flex-1 bg-green-600 hover:bg-green-700"
             >
-              {t.collect}
+              {isLoading ? "Processing..." : t.collect}
             </Button>
-            <Button variant="outline" onClick={onClose} className="flex-1">
+            <Button variant="outline" onClick={onClose} className="flex-1" disabled={isLoading}>
               {t.cancel}
             </Button>
           </div>

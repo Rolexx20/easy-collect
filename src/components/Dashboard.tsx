@@ -1,6 +1,5 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { DollarSign, Users, TrendingUp, AlertTriangle } from 'lucide-react';
 
@@ -8,9 +7,10 @@ interface DashboardProps {
   language: string;
   borrowers: any[];
   loans: any[];
+  dashboardStats?: any;
 }
 
-const Dashboard = ({ language, borrowers, loans }: DashboardProps) => {
+const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProps) => {
   const translations = {
     en: {
       title: 'Dashboard Overview',
@@ -19,10 +19,12 @@ const Dashboard = ({ language, borrowers, loans }: DashboardProps) => {
       totalCollected: 'Total Collected',
       overdueLoans: 'Overdue Loans',
       loanStatusDistribution: 'Loan Status Distribution',
-      monthlyCollection: 'Monthly Collection Trend',
+      monthlyCollection: 'Recent Loans Overview',
       active: 'Active',
       completed: 'Completed',
-      overdue: 'Overdue'
+      overdue: 'Overdue',
+      totalLoanAmount: 'Total Loan Amount',
+      pendingAmount: 'Pending Amount'
     },
     ta: {
       title: 'டாஷ்போர்டு அறிக்கை',
@@ -31,21 +33,25 @@ const Dashboard = ({ language, borrowers, loans }: DashboardProps) => {
       totalCollected: 'மொத்த வசூல்',
       overdueLoans: 'தாமதமான கடன்கள்',
       loanStatusDistribution: 'கடன் நிலை விநியோகம்',
-      monthlyCollection: 'மாதாந்திர வசூல் போக்கு',
+      monthlyCollection: 'சமீபத்திய கடன்கள் கண்ணோட்டம்',
       active: 'செயலில்',
       completed: 'முடிந்தது',
-      overdue: 'தாமதம்'
+      overdue: 'தாமதம்',
+      totalLoanAmount: 'மொத்த கடன் தொகை',
+      pendingAmount: 'நிலுவையில் உள்ள தொகை'
     }
   };
 
   const t = translations[language as keyof typeof translations];
 
-  // Calculate statistics
+  // Calculate statistics from real data
   const totalBorrowers = borrowers.length;
   const activeLoans = loans.filter(loan => loan.status === 'active').length;
   const completedLoans = loans.filter(loan => loan.status === 'completed').length;
   const overdueLoans = loans.filter(loan => loan.status === 'overdue').length;
-  const totalCollected = loans.reduce((sum, loan) => sum + (loan.amountPaid || 0), 0);
+  const totalCollected = loans.reduce((sum, loan) => sum + (Number(loan.amount_paid) || 0), 0);
+  const totalLoanAmount = loans.reduce((sum, loan) => sum + (Number(loan.total_amount) || 0), 0);
+  const pendingAmount = totalLoanAmount - totalCollected;
 
   // Pie chart data
   const pieData = [
@@ -54,15 +60,12 @@ const Dashboard = ({ language, borrowers, loans }: DashboardProps) => {
     { name: t.overdue, value: overdueLoans, color: '#ef4444' },
   ];
 
-  // Bar chart data (mock monthly data)
-  const barData = [
-    { month: 'Jan', amount: 25000 },
-    { month: 'Feb', amount: 30000 },
-    { month: 'Mar', amount: 28000 },
-    { month: 'Apr', amount: 35000 },
-    { month: 'May', amount: 32000 },
-    { month: 'Jun', amount: 38000 },
-  ];
+  // Bar chart data - recent loans
+  const recentLoans = loans.slice(0, 6).map((loan, index) => ({
+    name: `Loan ${index + 1}`,
+    amount: Number(loan.total_amount) || 0,
+    paid: Number(loan.amount_paid) || 0
+  }));
 
   return (
     <div className="p-6 space-y-6">
@@ -121,6 +124,33 @@ const Dashboard = ({ language, borrowers, loans }: DashboardProps) => {
         </Card>
       </div>
 
+      {/* Additional Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900 dark:to-orange-800 border-orange-200 dark:border-orange-700">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-orange-800 dark:text-orange-200">
+              {t.totalLoanAmount}
+            </CardTitle>
+            <DollarSign className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">₹{totalLoanAmount.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-900 dark:to-cyan-800 border-cyan-200 dark:border-cyan-700">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-cyan-800 dark:text-cyan-200">
+              {t.pendingAmount}
+            </CardTitle>
+            <AlertTriangle className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-cyan-900 dark:text-cyan-100">₹{pendingAmount.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
@@ -156,12 +186,13 @@ const Dashboard = ({ language, borrowers, loans }: DashboardProps) => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={barData}>
+              <BarChart data={recentLoans}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
+                <XAxis dataKey="name" />
                 <YAxis />
-                <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, 'Amount']} />
-                <Bar dataKey="amount" fill="#3b82f6" />
+                <Tooltip formatter={(value) => [`₹${Number(value).toLocaleString()}`, 'Amount']} />
+                <Bar dataKey="amount" fill="#3b82f6" name="Total Amount" />
+                <Bar dataKey="paid" fill="#10b981" name="Paid Amount" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

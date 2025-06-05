@@ -9,13 +9,153 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      borrowers: {
+        Row: {
+          address: string
+          created_at: string
+          id: string
+          name: string
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          id?: string
+          name: string
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      loans: {
+        Row: {
+          amount_paid: number
+          borrower_id: string
+          created_at: string
+          duration_months: number
+          id: string
+          interest_rate: number
+          next_payment_date: string | null
+          principal_amount: number
+          start_date: string
+          status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          amount_paid?: number
+          borrower_id: string
+          created_at?: string
+          duration_months: number
+          id?: string
+          interest_rate: number
+          next_payment_date?: string | null
+          principal_amount: number
+          start_date: string
+          status?: string
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          amount_paid?: number
+          borrower_id?: string
+          created_at?: string
+          duration_months?: number
+          id?: string
+          interest_rate?: number
+          next_payment_date?: string | null
+          principal_amount?: number
+          start_date?: string
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loans_borrower_id_fkey"
+            columns: ["borrower_id"]
+            isOneToOne: false
+            referencedRelation: "borrower_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_borrower_id_fkey"
+            columns: ["borrower_id"]
+            isOneToOne: false
+            referencedRelation: "borrowers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          loan_id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          loan_id: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          loan_id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      borrower_stats: {
+        Row: {
+          active_loans: number | null
+          address: string | null
+          id: string | null
+          name: string | null
+          phone: string | null
+          remaining_amount: number | null
+          total_amount: number | null
+          total_loans: number | null
+          total_paid: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      calculate_loan_total: {
+        Args: { principal: number; rate: number }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

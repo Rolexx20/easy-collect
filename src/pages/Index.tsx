@@ -1,4 +1,6 @@
+
 import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import AppSidebar from '@/components/AppSidebar';
 import Dashboard from '@/components/Dashboard';
@@ -6,6 +8,8 @@ import BorrowerManager from '@/components/BorrowerManager';
 import LoanManager from '@/components/LoanManager';
 import Reports from '@/components/Reports';
 import Settings from '@/components/Settings';
+import { getBorrowers, getLoans, getDashboardStats } from '@/lib/database';
+import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
   const [isDark, setIsDark] = useState(false);
@@ -13,84 +17,51 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
-  // Data states
-  const [borrowers, setBorrowers] = useState([
-    {
-      id: '1',
-      name: 'Rajesh Kumar',
-      phone: '+91 9876543210',
-      address: '123 Main Street, Chennai',
-      totalLoans: 2,
-      activeLoans: 1,
-      totalAmount: 75000
-    },
-    {
-      id: '2', 
-      name: 'Priya Sharma',
-      phone: '+91 8765432109',
-      address: '456 Oak Avenue, Mumbai',
-      totalLoans: 1,
-      activeLoans: 1,
-      totalAmount: 50000
-    }
-  ]);
+  const queryClient = useQueryClient();
 
-  const [loans, setLoans] = useState([
-    {
-      id: '1',
-      borrowerId: '1',
-      borrowerName: 'Rajesh Kumar',
-      amount: 50000,
-      interestRate: 12,
-      duration: 12,
-      startDate: '2024-01-15',
-      status: 'active' as const,
-      amountPaid: 15000,
-      nextPaymentDate: '2024-07-15'
-    },
-    {
-      id: '2',
-      borrowerId: '1', 
-      borrowerName: 'Rajesh Kumar',
-      amount: 25000,
-      interestRate: 10,
-      duration: 6,
-      startDate: '2023-12-01',
-      status: 'completed' as const,
-      amountPaid: 25000,
-      nextPaymentDate: ''
-    },
-    {
-      id: '3',
-      borrowerId: '2',
-      borrowerName: 'Priya Sharma', 
-      amount: 50000,
-      interestRate: 15,
-      duration: 18,
-      startDate: '2024-02-01',
-      status: 'overdue' as const,
-      amountPaid: 10000,
-      nextPaymentDate: '2024-06-01'
+  // Fetch borrowers
+  const { data: borrowers = [], isLoading: borrowersLoading } = useQuery({
+    queryKey: ['borrowers'],
+    queryFn: getBorrowers,
+    onError: (error) => {
+      console.error('Error loading borrowers:', error);
+      toast({
+        title: "Error loading borrowers",
+        description: "Please check your connection and try again.",
+        variant: "destructive"
+      });
     }
-  ]);
+  });
 
-  // Update borrower stats when loans change
-  useEffect(() => {
-    const updatedBorrowers = borrowers.map(borrower => {
-      const borrowerLoans = loans.filter(loan => loan.borrowerId === borrower.id);
-      const activeLoans = borrowerLoans.filter(loan => loan.status === 'active').length;
-      const totalAmount = borrowerLoans.reduce((sum, loan) => sum + loan.amount, 0);
-      
-      return {
-        ...borrower,
-        totalLoans: borrowerLoans.length,
-        activeLoans,
-        totalAmount
-      };
-    });
-    
-    setBorrowers(updatedBorrowers);
-  }, [loans]);
+  // Fetch loans
+  const { data: loans = [], isLoading: loansLoading } = useQuery({
+    queryKey: ['loans'],
+    queryFn: getLoans,
+    onError: (error) => {
+      console.error('Error loading loans:', error);
+      toast({
+        title: "Error loading loans",
+        description: "Please check your connection and try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Fetch dashboard stats
+  const { data: dashboardStats } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: getDashboardStats,
+    onError: (error) => {
+      console.error('Error loading dashboard stats:', error);
+    }
+  });
+
+  // Refresh data function
+  const refreshData = () => {
+    queryClient.invalidateQueries({ queryKey: ['borrowers'] });
+    queryClient.invalidateQueries({ queryKey: ['loans'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+  };
 
   // Theme effect
   useEffect(() => {
@@ -117,19 +88,30 @@ const Index = () => {
   }, []);
 
   const renderContent = () => {
+    if (borrowersLoading || loansLoading) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+          </div>
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard language={language} borrowers={borrowers} loans={loans} />;
+        return <Dashboard language={language} borrowers={borrowers} loans={loans} dashboardStats={dashboardStats} />;
       case 'borrowers':
-        return <BorrowerManager language={language} borrowers={borrowers} setBorrowers={setBorrowers} />;
+        return <BorrowerManager language={language} borrowers={borrowers} onDataChange={refreshData} />;
       case 'loans':
-        return <LoanManager language={language} loans={loans} setLoans={setLoans} borrowers={borrowers} />;
+        return <LoanManager language={language} loans={loans} borrowers={borrowers} onDataChange={refreshData} />;
       case 'reports':
         return <Reports language={language} borrowers={borrowers} loans={loans} />;
       case 'settings':
         return <Settings language={language} />;
       default:
-        return <Dashboard language={language} borrowers={borrowers} loans={loans} />;
+        return <Dashboard language={language} borrowers={borrowers} loans={loans} dashboardStats={dashboardStats} />;
     }
   };
 
