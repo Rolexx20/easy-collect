@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button';
 import { FileText, Download, Calendar, DollarSign, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface ReportsProps {
   language: string;
@@ -123,6 +126,102 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     document.body.removeChild(link);
   };
 
+  // Excel Export
+  const exportToExcel = (data: any[], filename: string) => {
+    let wsData: any[] = [];
+    if (selectedReportType === 'collection') {
+      wsData = [
+        ['Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Remaining Amount'],
+        ...data.map(loan => [
+          loan.start_date,
+          loan.borrowerName || 'N/A',
+          loan.total_amount,
+          loan.amount_paid,
+          loan.total_amount - loan.amount_paid
+        ])
+      ];
+    } else if (selectedReportType === 'overdue') {
+      wsData = [
+        ['Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Status'],
+        ...data.map(loan => [
+          loan.start_date,
+          loan.borrowerName || 'N/A',
+          loan.total_amount,
+          loan.amount_paid,
+          loan.status
+        ])
+      ];
+    } else if (selectedReportType === 'borrower') {
+      wsData = [
+        ['Name', 'Phone', 'Address', 'Total Loans', 'Total Amount', 'Total Paid', 'Remaining Amount'],
+        ...data.map(borrower => [
+          borrower.name,
+          borrower.phone,
+          borrower.address,
+          borrower.total_loans || 0,
+          borrower.total_amount || 0,
+          borrower.total_paid || 0,
+          borrower.remaining_amount || 0
+        ])
+      ];
+    }
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Report');
+    XLSX.writeFile(wb, filename);
+  };
+
+  // PDF Export
+  const exportToPDF = (data: any[], filename: string) => {
+    const doc = new jsPDF();
+    let head: string[] = [];
+    let body: any[][] = [];
+    let title = '';
+
+    if (selectedReportType === 'collection') {
+      head = ['Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Remaining Amount'];
+      body = data.map(loan => [
+        loan.start_date,
+        loan.borrowerName || 'N/A',
+        loan.total_amount,
+        loan.amount_paid,
+        loan.total_amount - loan.amount_paid
+      ]);
+      title = t.collectionReport;
+    } else if (selectedReportType === 'overdue') {
+      head = ['Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Status'];
+      body = data.map(loan => [
+        loan.start_date,
+        loan.borrowerName || 'N/A',
+        loan.total_amount,
+        loan.amount_paid,
+        loan.status
+      ]);
+      title = t.overdueReport;
+    } else if (selectedReportType === 'borrower') {
+      head = ['Name', 'Phone', 'Address', 'Total Loans', 'Total Amount', 'Total Paid', 'Remaining Amount'];
+      body = data.map(borrower => [
+        borrower.name,
+        borrower.phone,
+        borrower.address,
+        borrower.total_loans || 0,
+        borrower.total_amount || 0,
+        borrower.total_paid || 0,
+        borrower.remaining_amount || 0
+      ]);
+      title = t.borrowerReport;
+    }
+
+    doc.text(title, 14, 16);
+    autoTable(doc, {
+      head: [head],
+      body: body,
+      startY: 22,
+      styles: { fontSize: 9 }
+    });
+    doc.save(filename);
+  };
+
   const handleExport = () => {
     const data = getReportData();
     if (data.length === 0) {
@@ -131,16 +230,17 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     }
     const reportName = reportTypes.find(rt => rt.id === selectedReportType)?.label || 'report';
     const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `${reportName}_${timestamp}.${selectedFileType}`;
-    if (selectedFileType === 'csv') {
+    let filename = `${reportName}_${timestamp}.${selectedFileType}`;
+    if (selectedFileType === 'excel') {
+      filename = `${reportName}_${timestamp}.xlsx`;
+      exportToExcel(data, filename);
+      toast({ title: `${reportName} exported as Excel successfully` });
+    } else if (selectedFileType === 'csv') {
       exportToCSV(data, filename);
       toast({ title: `${reportName} exported as CSV successfully` });
-    } else {
-      toast({
-        title: `Export as ${selectedFileType.toUpperCase()}`,
-        description: `${reportName} data prepared. For full ${selectedFileType.toUpperCase()} export, additional libraries needed.`,
-      });
-      console.log(`Exporting ${selectedReportType} report as ${selectedFileType.toUpperCase()}...`, data);
+    } else if (selectedFileType === 'pdf') {
+      exportToPDF(data, filename);
+      toast({ title: `${reportName} exported as PDF successfully` });
     }
   };
 
@@ -386,8 +486,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           </div>
         </CardContent>
       </Card>
-
-
     </div>
   );
 };
