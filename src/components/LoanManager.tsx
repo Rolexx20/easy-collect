@@ -323,30 +323,48 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       </h2>
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
-        <Button onClick={() => setEditingLoan(null)} className="bg-blue-600 hover:bg-blue-700">
+        <Button
+          onClick={() => setEditingLoan(null)}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
           <Plus className="w-4 h-4 mr-2" />
           {t.addLoan}
         </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+        <DialogContent
+        className={`
+          max-w-md
+          ${/* Light theme */ ""} 
+          bg-white text-gray-900
+          dark:bg-gray-900 dark:text-gray-100
+          rounded-xl shadow-lg
+          border border-gray-200 dark:border-gray-700
+          p-0
+          gap-0
+          overflow-hidden
+        `}
+        >
+        <DialogHeader className="px-6 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800">
+          <DialogTitle className="flex text-xl font-semibold items-center gap-2">
           <CreditCard className="w-5 h-5 text-blue-600" />
           {editingLoan ? t.editLoan : t.addLoan}
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-2 px-6 py-6">
           {/* Borrower */}
           <div className="flex flex-col gap-1 pb-2">
           <Label htmlFor="borrower" className="flex items-center gap-2 pb-1">
             <User className="w-4 h-4" />
             {t.borrower}
           </Label>
-          <Select value={formData.borrower_id} onValueChange={(value) => setFormData({ ...formData, borrower_id: value })} >
-            <SelectTrigger>
+          <Select
+            value={formData.borrower_id}
+            onValueChange={(value) => setFormData({ ...formData, borrower_id: value })}
+          >
+            <SelectTrigger className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500">
             <SelectValue placeholder={t.selectBorrower} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
             {borrowers.map((borrower) => (
               <SelectItem key={borrower.id} value={borrower.id}>
               {borrower.name}
@@ -368,6 +386,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
             value={formData.principal_amount}
             onChange={(e) => setFormData({ ...formData, principal_amount: e.target.value })}
             placeholder="0"
+            className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
           />
           </div>
           {/* Interest Rate */}
@@ -383,6 +402,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
             value={formData.interest_rate}
             onChange={(e) => setFormData({ ...formData, interest_rate: e.target.value })}
             placeholder="0"
+            className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
           />
           </div>
           {/* Duration Days */}
@@ -397,6 +417,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
             value={formData.duration_days}
             onChange={(e) => setFormData({ ...formData, duration_days: e.target.value })}
             placeholder="7"
+            className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
           />
           </div>
           {/* Start Date */}

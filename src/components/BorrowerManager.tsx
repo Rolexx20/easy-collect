@@ -190,53 +190,64 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
       </h2>
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
-        <Button onClick={() => setEditingBorrower(null)} className="bg-blue-600 hover:bg-blue-700">
+        <Button
+          onClick={() => setEditingBorrower(null)}
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+        >
           <Plus className="w-4 h-4 mr-2" />
           {t.addBorrower}
         </Button>
         </DialogTrigger>
-        <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
+        <DialogContent className="max-w-md w-full p-0 overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-900 gap-0">
+        <DialogHeader className="px-6 pt-2 pb-2 border-b dark:border-gray-800">
+          <DialogTitle className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
           {editingBorrower ? t.editBorrower : t.addBorrower}
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="px-6 py-6 space-y-5">
           <div className="flex flex-col gap-2">
-          <Label htmlFor="name" className="pb-1">{t.name}</Label>
+          <Label htmlFor="name" className="pb-1 text-gray-700 dark:text-gray-300">{t.name}</Label>
           <Input
             id="name"
             value={formData.name}
-            onChange={(e) => setFormData({...formData, name: e.target.value})}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder={t.name}
-            className="py-2 px-3"
+            className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
           />
           </div>
           <div className="flex flex-col gap-2">
-          <Label htmlFor="phone" className="pb-1">{t.phone}</Label>
+          <Label htmlFor="phone" className="pb-1 text-gray-700 dark:text-gray-300">{t.phone}</Label>
           <Input
             id="phone"
             value={formData.phone}
-            onChange={(e) => setFormData({...formData, phone: e.target.value})}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
             placeholder={t.phone}
-            className="py-2 px-3"
+            className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
           />
           </div>
           <div className="flex flex-col gap-2">
-          <Label htmlFor="address" className="pb-1">{t.address}</Label>
+          <Label htmlFor="address" className="pb-1 text-gray-700 dark:text-gray-300">{t.address}</Label>
           <Input
             id="address"
             value={formData.address}
-            onChange={(e) => setFormData({...formData, address: e.target.value})}
+            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
             placeholder={t.address}
-            className="py-2 px-3"
+            className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
           />
           </div>
-          <div className="flex gap-2">
-          <Button onClick={handleSubmit} className="flex-1" disabled={isLoading}>
+          <div className="flex gap-2 pt-2">
+          <Button
+            onClick={handleSubmit}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+            disabled={isLoading}
+          >
             {isLoading ? "Saving..." : t.save}
           </Button>
-          <Button variant="outline" onClick={resetForm} className="flex-1">
+          <Button
+            variant="outline"
+            onClick={resetForm}
+            className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300"
+          >
             {t.cancel}
           </Button>
           </div>
