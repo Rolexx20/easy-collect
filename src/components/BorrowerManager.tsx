@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,7 +30,7 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBorrower, setEditingBorrower] = useState<Borrower | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [borrowerToDelete, setBorrowerToDelete] = useState<string | null>(null);
+  const [borrowerToDelete, setBorrowerToDelete] = useState<Borrower | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -125,8 +126,8 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
     setIsDialogOpen(true);
   };
 
-  const handleDeleteClick = (id: string) => {
-    setBorrowerToDelete(id);
+  const handleDeleteClick = (borrower: Borrower) => {
+    setBorrowerToDelete(borrower);
     setDeleteConfirmOpen(true);
   };
 
@@ -135,7 +136,7 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
     
     setIsLoading(true);
     try {
-      await deleteBorrower(borrowerToDelete);
+      await deleteBorrower(borrowerToDelete.id);
       toast({ title: t.borrowerDeleted });
       onDataChange();
     } catch (error) {
@@ -276,7 +277,7 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleDeleteClick(borrower.id)}
+                    onClick={() => handleDeleteClick(borrower)}
                     className="flex-1 text-red-600 hover:text-red-700"
                     disabled={isLoading}
                   >
@@ -296,6 +297,7 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
         onConfirm={handleDeleteConfirm}
         title={t.confirmDelete}
         message={t.deleteWarning}
+        itemName={borrowerToDelete?.name}
         language={language}
       />
     </div>
