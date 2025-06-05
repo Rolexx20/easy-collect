@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Edit, Trash2, Calendar, DollarSign, User, CreditCard, Clock, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, DollarSign, User, CreditCard, Clock, TrendingUp, AlertTriangle, IndianRupeeIcon, DollarSignIcon, Clock10, ThumbsUp, Clock12, Lightbulb, LucideLightbulb, LightbulbOffIcon } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { createLoan, updateLoan, deleteLoan } from '@/lib/database';
 import PaymentCollectionDialog from './PaymentCollectionDialog';
@@ -56,6 +56,10 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
     start_date: new Date().toISOString().split('T')[0]
   });
 
+  // --- Search filter state ---
+  const [search, setSearch] = useState('');
+  // --- End search filter state ---
+
   const translations = {
     en: {
       title: 'Loan Management',
@@ -64,7 +68,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       borrower: 'Borrower',
       principalAmount: 'Principal Amount',
       interestRate: 'Interest Rate (%)',
-      duration: 'Duration (Days)', // Changed to days
+      duration: 'Loan Period:', // Changed to days
       startDate: 'Start Date',
       save: 'Save',
       cancel: 'Cancel',
@@ -88,8 +92,8 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       completed: 'Completed',
       overdue: 'Overdue',
       paymentProgress: 'Payment Progress',
-      daysRemaining: 'Days Remaining',
-      dailyPayment: 'Daily Payment Amount'
+      daysRemaining: 'Days',
+      dailyPayment: 'Daily Pay Amt:'
     },
     ta: {
       title: 'கடன் மேலாண்மை',
@@ -130,8 +134,8 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
   const t = translations[language as keyof typeof translations];
 
   const handleSubmit = async () => {
-    if (!formData.borrower_id || !formData.principal_amount || !formData.interest_rate || 
-        !formData.duration_days || !formData.start_date) {
+    if (!formData.borrower_id || !formData.principal_amount || !formData.interest_rate ||
+      !formData.duration_days || !formData.start_date) {
       toast({ title: t.fillAllFields, variant: "destructive" });
       return;
     }
@@ -142,7 +146,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       const interestRate = parseFloat(formData.interest_rate);
       const totalAmount = principalAmount + (principalAmount * interestRate / 100);
       const durationInDays = parseInt(formData.duration_days);
-      
+
       // Store duration_days directly as a custom field, but keep duration_months for compatibility
       const durationInMonths = Math.max(1, Math.ceil(durationInDays / 30));
 
@@ -169,10 +173,10 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       resetForm();
     } catch (error) {
       console.error('Error saving loan:', error);
-      toast({ 
-        title: "Error", 
+      toast({
+        title: "Error",
         description: "Failed to save loan. Please try again.",
-        variant: "destructive" 
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
@@ -200,7 +204,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
 
   const handleDeleteConfirm = async () => {
     if (!loanToDelete) return;
-    
+
     setIsLoading(true);
     try {
       await deleteLoan(loanToDelete.id);
@@ -208,10 +212,10 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       onDataChange();
     } catch (error) {
       console.error('Error deleting loan:', error);
-      toast({ 
-        title: "Error", 
+      toast({
+        title: "Error",
         description: "Failed to delete loan. Please try again.",
-        variant: "destructive" 
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
@@ -266,9 +270,9 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'active':
-        return <TrendingUp className="w-4 h-4" />;
+        return <ThumbsUp className="w-4 h-4" />;
       case 'completed':
-        return <DollarSign className="w-4 h-4" />;
+        return <Lightbulb className="w-4 h-4" />;
       case 'overdue':
         return <AlertTriangle className="w-4 h-4" />;
       default:
@@ -298,14 +302,25 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
     return totalAmount / actualDays;
   };
 
+  // --- Filter loans by search ---
+  const filteredLoans = loans.filter((loan) => {
+    const borrowerName = loan.borrowerName || '';
+    const principal = loan.principal_amount.toString();
+    const status = loan.status || '';
+    return (
+      borrowerName.toLowerCase().includes(search.toLowerCase()) ||
+      principal.includes(search) ||
+      status.toLowerCase().includes(search.toLowerCase())
+    );
+  });
+  // --- End filter loans by search ---
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold text-center text-gray-800 dark:text-gray-200 flex-1">
-          <DollarSign className="inline-block w-8 h-8 mr-3 text-blue-600" />
+        <h2 className="text-3xl font-bold text-left text-gray-800 dark:text-gray-200 flex-1">
           {t.title}
         </h2>
-        
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => setEditingLoan(null)} className="bg-blue-600 hover:bg-blue-700">
@@ -321,12 +336,13 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
+              {/* ...form fields unchanged... */}
               <div>
                 <Label htmlFor="borrower" className="flex items-center gap-2">
                   <User className="w-4 h-4" />
                   {t.borrower}
                 </Label>
-                <Select value={formData.borrower_id} onValueChange={(value) => setFormData({...formData, borrower_id: value})}>
+                <Select value={formData.borrower_id} onValueChange={(value) => setFormData({ ...formData, borrower_id: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder={t.selectBorrower} />
                   </SelectTrigger>
@@ -348,7 +364,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                   id="principal"
                   type="number"
                   value={formData.principal_amount}
-                  onChange={(e) => setFormData({...formData, principal_amount: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, principal_amount: e.target.value })}
                   placeholder="0"
                 />
               </div>
@@ -362,7 +378,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                   type="number"
                   step="0.1"
                   value={formData.interest_rate}
-                  onChange={(e) => setFormData({...formData, interest_rate: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, interest_rate: e.target.value })}
                   placeholder="0"
                 />
               </div>
@@ -375,7 +391,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                   id="duration"
                   type="number"
                   value={formData.duration_days}
-                  onChange={(e) => setFormData({...formData, duration_days: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, duration_days: e.target.value })}
                   placeholder="7"
                 />
               </div>
@@ -388,7 +404,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                   id="startDate"
                   type="date"
                   value={formData.start_date}
-                  onChange={(e) => setFormData({...formData, start_date: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                 />
               </div>
               <div className="flex gap-2">
@@ -404,155 +420,176 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
         </Dialog>
       </div>
 
-      {loans.length === 0 ? (
-        <Card>
-          <CardContent className="flex items-center justify-center h-32">
-            <p className="text-gray-500 dark:text-gray-400 text-center">
-              {t.noLoans}
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {loans.map((loan) => {
-            const progress = calculateProgress(loan.amount_paid, loan.total_amount);
-            const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months, loan);
-            const dailyPayment = calculateDailyPayment(loan.total_amount, loan.duration_months, loan);
-            
-            return (
-              <Card key={loan.id} className="hover:shadow-xl transition-all duration-300 border-l-4 border-l-blue-500">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <User className="w-5 h-5 text-blue-600" />
-                      <span className="truncate">{loan.borrowerName || 'Unknown'}</span>
-                    </div>
-                    <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getStatusColor(loan.status)}`}>
-                      {getStatusIcon(loan.status)}
-                      {getStatusText(loan.status)}
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Payment Progress Bar */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3" />
-                        {t.paymentProgress}
-                      </span>
-                      <span className="text-sm font-bold text-blue-600">{progress}%</span>
-                    </div>
-                    <Progress value={progress} className="h-3" />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                      <div className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                        <DollarSign className="w-3 h-3" />
-                        {t.totalAmount}
-                      </div>
-                      <div className="text-lg font-bold text-blue-700 dark:text-blue-300">₹{loan.total_amount.toLocaleString()}</div>
-                    </div>
-                    <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
-                      <div className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-                        <CreditCard className="w-3 h-3" />
-                        {t.amountPaid}
-                      </div>
-                      <div className="text-lg font-bold text-green-700 dark:text-green-300">₹{loan.amount_paid.toLocaleString()}</div>
-                    </div>
-                  </div>
-
-                  {/* Daily Payment Amount */}
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
-                    <div className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {t.dailyPayment}
-                    </div>
-                    <div className="text-xl font-bold text-yellow-700 dark:text-yellow-300">
-                      ₹{dailyPayment.toLocaleString(undefined, {maximumFractionDigits: 0})}
-                    </div>
-                  </div>
-
-                  <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
-                    <div className="text-xs text-purple-600 dark:text-purple-400 flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" />
-                      {t.remainingAmount}
-                    </div>
-                    <div className="text-xl font-bold text-purple-700 dark:text-purple-300">
-                      ₹{(loan.total_amount - loan.amount_paid).toLocaleString()}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center text-sm">
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                      <Calendar className="w-4 h-4" />
-                      <span>Start: {loan.start_date}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
-                      <Clock className="w-4 h-4" />
-                      <span>{daysRemaining} {t.daysRemaining}</span>
-                    </div>
-                  </div>
-
-                  {loan.next_payment_date && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                      <DollarSign className="w-4 h-4" />
-                      <span>{t.nextPayment}: {loan.next_payment_date}</span>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 pt-2">
-                    {loan.status === 'active' && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleCollectPayment(loan)}
-                        className="flex-1 bg-green-600 hover:bg-green-700"
-                      >
-                        <CreditCard className="w-4 h-4 mr-1" />
-                        {t.collectPayment}
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(loan)}
-                      className="flex-1"
-                      disabled={isLoading}
-                    >
-                      <Edit className="w-4 h-4 mr-1" />
-                      {t.edit}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteClick(loan)}
-                      className="flex-1 text-red-600 hover:text-red-700"
-                      disabled={isLoading}
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      {t.delete}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-
-      {selectedLoan && (
-        <PaymentCollectionDialog
-          isOpen={paymentDialogOpen}
-          onClose={() => {
-            setPaymentDialogOpen(false);
-            setSelectedLoan(null);
-          }}
-          loan={selectedLoan}
-          onPaymentCollect={onDataChange}
-          language={language}
+      {/* --- Search filter input --- */}
+      <div className="mb-1">
+        <Input
+          type="text"
+          placeholder="Search by borrower, amount, or status"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full"
         />
-      )}
+      </div>
+      {/* --- End search filter input --- */}
+
+      {
+        filteredLoans.length === 0 ? (
+          <Card>
+            <CardContent className="flex items-center justify-center h-32">
+              <p className="text-gray-500 dark:text-gray-400 text-center">
+                {t.noLoans}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {filteredLoans.map((loan) => {
+              const progress = calculateProgress(loan.amount_paid, loan.total_amount);
+              const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months, loan);
+              const dailyPayment = calculateDailyPayment(loan.total_amount, loan.duration_months, loan);
+
+              return (
+                <Card key={loan.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="pb-0">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center h-10">
+                        <User className="w-6 h-6 text-gray-500 dark:text-gray-400 mr-2" />
+                        <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center h-10">
+                          {loan.borrowerName || 'Unknown'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${getStatusColor(loan.status)}`}>
+                          {getStatusIcon(loan.status)}
+                          {getStatusText(loan.status)}
+                        </span>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex gap-4 mt-2 mb-1">
+                      {/* Principal Amount */}
+                      <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 flex flex-col items-start">
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <DollarSign className="w-3 h-3" />
+                          {t.principalAmount}
+                        </span>
+                        <span className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+                          ₹ {loan.principal_amount.toLocaleString()}
+                        </span>
+                      </div>
+                      {/* Interest Rate */}
+                      <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 flex flex-col items-start">
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <TrendingUp className="w-3 h-3" />
+                          {t.interestRate}
+                        </span>
+                        <span className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+                          {loan.interest_rate} %
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Daily Payment & Loan Period - side by side, with subtle bg and compact height */}
+                    <div className="flex gap-4 mt-2 mb-1">
+                      {/* Daily Payment */}
+                      <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 flex flex-col items-start">
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <Clock10 className="w-3 h-3" />
+                          {t.dailyPayment}
+                        </span>
+                        <span className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+                          ₹ {dailyPayment.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                      {/* Loan Period */}
+                      <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2 flex flex-col items-start">
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {t.duration}
+                        </span>
+                        <span className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+                          {(loan as any).duration_days || loan.duration_months * 30} {`${t.daysRemaining.replace(/[^A-Za-z]/g, '') || 'days'}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Paid & Remaining */}
+                    <div className="flex gap-4 items-center">
+                      <div className="flex flex-col flex-1">
+                        <span className="text-xs text-green-600">{t.amountPaid}:</span>
+                        <span className="text-sm font-bold text-green-700">₹ {loan.amount_paid.toLocaleString()}</span>
+                      </div>
+                      <div className="flex flex-col flex-4">
+                        <span className="text-xs text-red-600">{t.remainingAmount}:</span>
+                        <span className="text-right text-sm font-bold text-red-600">₹ {(loan.total_amount - loan.amount_paid).toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <Progress value={progress} className="h-2 mt-1 mb-2" />
+
+                    {/* Next Payment Date */}
+                    <div className="flex items-center text-xs gap-2 text-gray-600 dark:text-gray-400">
+                      <Calendar className="w-3 h-3" />
+                      <span>
+                        {t.nextPayment}: {loan.next_payment_date || '-'}
+                      </span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-3">
+                      {loan.status === 'active' && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleCollectPayment(loan)}
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                        >
+                          <DollarSign className="w-4 h-4 text-left" />
+                          {t.collectPayment}
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(loan)}
+                        className="flex-0"
+                        disabled={isLoading}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteClick(loan)}
+                        className="flex-0 text-red-600 hover:text-red-700"
+                        disabled={isLoading}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )
+      }
+
+      {
+        selectedLoan && (
+          <PaymentCollectionDialog
+            isOpen={paymentDialogOpen}
+            onClose={() => {
+              setPaymentDialogOpen(false);
+              setSelectedLoan(null);
+            }}
+            loan={selectedLoan}
+            onPaymentCollect={onDataChange}
+            language={language}
+          />
+        )
+      }
 
       <DeleteConfirmationDialog
         isOpen={deleteConfirmOpen}
@@ -563,7 +600,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
         itemName={loanToDelete ? `${loanToDelete.borrowerName} - ₹${loanToDelete.total_amount.toLocaleString()}` : undefined}
         language={language}
       />
-    </div>
+    </div >
   );
 };
 

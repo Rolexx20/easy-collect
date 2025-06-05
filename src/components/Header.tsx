@@ -1,4 +1,4 @@
-import { Moon, Sun, Globe, LanguagesIcon } from "lucide-react";
+import { Moon, Sun, Globe, LanguagesIcon, MoonStar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -66,7 +66,7 @@ const Header = ({
 
             {/* Moon Icon */}
             <div className="relative z-10 flex items-center justify-center w-8 h-full">
-              <Moon
+              <MoonStar
                 className={`w-4 h-4 transition-colors ${
                   isDark ? "text-gray-200" : "text-gray-600"
                 }`}
