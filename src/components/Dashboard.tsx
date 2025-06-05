@@ -210,43 +210,56 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
           <CardContent className="flex-1 flex flex-col pt-2">
             <div className="flex-1 w-full h-[260px] min-h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={loans.slice(0, 6).map((loan) => ({
-                    name: loan.borrowerName || 'Unknown',
-                    amount: Number(loan.total_amount) || 0,
-                    paid: Number(loan.amount_paid) || 0
-                  }))}
-                  margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
-                  barCategoryGap={18}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 12 }}
-                    interval={0}
-                    height={36}
-                  />
-                  <YAxis
-                    tickFormatter={v => `₹${v.toLocaleString()}`}
-                    width={70}
-                  />
-                  <Tooltip
-                    formatter={(value: number) => [`₹${Number(value).toLocaleString()}`]}
-                  />
-                  <Bar dataKey="amount" name="Total Amount" fill="#d1d5db" barSize={22} />
-                  <Bar dataKey="paid" name="Paid Amount" fill="#6366f1" barSize={14} />
-                </BarChart>
+          <BarChart
+            data={loans.slice(0, 6).map((loan) => ({
+              name: loan.borrowerName || 'Unknown',
+              amount: Number(loan.total_amount) || 0,
+              paid: Number(loan.amount_paid) || 0
+            }))}
+            margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+            barCategoryGap={18}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="name"
+              tick={{ fontSize: 12 }}
+              interval={0}
+              height={36}
+            />
+            <YAxis
+              tickFormatter={v => `₹${v.toLocaleString()}`}
+              width={70}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor:
+            typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
+              ? '#23272f'
+              : '#fff',
+                color:
+            typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
+              ? '#f3f4f6'
+              : '#111827',
+                border: '1px solid #e5e7eb',
+                borderRadius: 8,
+                fontSize: 14,
+              }}
+              formatter={(value: number) => [`₹${Number(value).toLocaleString()}`]}
+            />
+            <Bar dataKey="amount" name="Total Amount" fill="#d1d5db" barSize={22} />
+            <Bar dataKey="paid" name="Paid Amount" fill="#6366f1" barSize={14} />
+          </BarChart>
               </ResponsiveContainer>
             </div>
             {/* Legend below the graph */}
             <div className="flex gap-5 mt-2 justify-center pb-2">
               <div className="flex items-center gap-1">
-                <span className="inline-block w-3 h-3 rounded bg-indigo-400" />
-                <span className="text-xs text-gray-700 dark:text-gray-200">Paid</span>
+          <span className="inline-block w-3 h-3 rounded bg-indigo-400" />
+          <span className="text-xs text-gray-700 dark:text-gray-200">Paid</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="inline-block w-3 h-3 rounded bg-gray-300 dark:bg-gray-600" />
-                <span className="text-xs text-gray-700 dark:text-gray-200">Total</span>
+          <span className="inline-block w-3 h-3 rounded bg-gray-300 dark:bg-gray-600" />
+          <span className="text-xs text-gray-700 dark:text-gray-200">Total</span>
               </div>
             </div>
           </CardContent>
