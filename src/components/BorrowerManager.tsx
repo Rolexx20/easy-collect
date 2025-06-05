@@ -1,12 +1,12 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Phone, MapPin, User } from 'lucide-react';
+import { Plus, Edit, Trash2, Phone, MapPin, User, AlertCircleIcon, CircleAlert } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { createBorrower, updateBorrower, deleteBorrower } from '@/lib/database';
 import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 
@@ -38,6 +38,10 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
     address: ''
   });
 
+  // --- Search filter state ---
+  const [search, setSearch] = useState('');
+  // --- End search filter state ---
+
   const translations = {
     en: {
       title: 'Borrower Management',
@@ -59,7 +63,7 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
       fillAllFields: 'Please fill all fields',
       noBorrowers: 'No borrowers registered yet',
       confirmDelete: 'Are you sure you want to delete this borrower?',
-      deleteWarning: 'This action cannot be undone and will also delete all associated loans.'
+      deleteWarning: 'Cannot undo. Settle loans to delete.'
     },
     ta: {
       title: 'கடன் வாங்குபவர் மேலாண்மை',
@@ -81,7 +85,7 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
       fillAllFields: 'தயவுசெய்து அனைத்து புலங்களையும் நிரப்பவும்',
       noBorrowers: 'இதுவரை கடன் வாங்குபவர்கள் பதிவு செய்யப்படவில்லை',
       confirmDelete: 'இந்த கடன் வாங்குபவரை நீக்க விரும்புகிறீர்களா?',
-      deleteWarning: 'இந்த செயல் மாற்ற முடியாது மற்றும் அனைத்து தொடர்புடைய கடன்களையும் நீக்கும்.'
+      deleteWarning: 'செயல்தவிர்க்க முடியாது. நீக்க வேண்டிய கடன்களைத் தீர்க்கவும்.'
     }
   };
 
@@ -159,13 +163,31 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
     setIsDialogOpen(false);
   };
 
+  // --- Filter borrowers by search ---
+  const filteredBorrowers = borrowers.filter((borrower) => {
+    const name = borrower.name || '';
+    const phone = borrower.phone || '';
+    const address = borrower.address || '';
+    return (
+      name.toLowerCase().includes(search.toLowerCase()) ||
+      phone.toLowerCase().includes(search.toLowerCase()) ||
+      address.toLowerCase().includes(search.toLowerCase())
+    );
+  });
+  // --- End filter borrowers by search ---
+
+  // --- Helper: Check if borrower has pending (active) loans ---
+  const hasPendingLoans = (borrower: Borrower) => {
+    return (borrower.active_loans ?? 0) > 0;
+  };
+  // --- End helper ---
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold text-center text-gray-800 dark:text-gray-200 flex-1">
+        <h2 className="text-3xl font-bold text-left text-gray-800 dark:text-gray-200 flex-1">
           {t.title}
         </h2>
-        
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => setEditingBorrower(null)} className="bg-blue-600 hover:bg-blue-700">
@@ -220,7 +242,19 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
         </Dialog>
       </div>
 
-      {borrowers.length === 0 ? (
+      {/* --- Search filter input --- */}
+      <div className="mb-1">
+        <Input
+          type="text"
+          placeholder="Search by borrower, name, or address"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full"
+        />
+      </div>
+      {/* --- End search filter input --- */}
+
+      {filteredBorrowers.length === 0 ? (
         <Card>
           <CardContent className="flex items-center justify-center h-32">
             <p className="text-gray-500 dark:text-gray-400 text-center">
@@ -230,7 +264,7 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {borrowers.map((borrower) => (
+          {filteredBorrowers.map((borrower) => (
             <Card key={borrower.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -247,7 +281,6 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
                   <MapPin className="w-4 h-4" />
                   {borrower.address}
                 </div>
-                
                 <div className="grid grid-cols-3 gap-2 pt-2">
                   <div className="text-center">
                     <div className="text-lg font-bold text-blue-600">{borrower.total_loans || 0}</div>
@@ -262,7 +295,6 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
                     <div className="text-xs text-gray-500">{t.totalAmount}</div>
                   </div>
                 </div>
-
                 <div className="flex gap-2 pt-2">
                   <Button
                     variant="outline"
@@ -274,16 +306,30 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
                     <Edit className="w-4 h-4 mr-1" />
                     {t.edit}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDeleteClick(borrower)}
-                    className="flex-1 text-red-600 hover:text-red-700"
-                    disabled={isLoading}
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    {t.delete}
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="flex-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteClick(borrower)}
+                            className={`w-full text-red-600 hover:text-red-700 ${hasPendingLoans(borrower) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={isLoading || hasPendingLoans(borrower)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            {t.delete}
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      {hasPendingLoans(borrower) && (
+                        <TooltipContent className='bg-red-700 text-white flex items-center gap-1'>
+                          <CircleAlert className="w-4 h-4" />
+                          <span className="text-xs">{t.deleteWarning}</span>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </CardContent>
             </Card>

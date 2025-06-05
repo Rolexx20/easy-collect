@@ -118,101 +118,85 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
 
   return (
     <div className="p-6 space-y-6">
-      <h2 className="text-3xl font-bold text-center text-gray-800 dark:text-gray-200 flex items-center justify-center gap-3">
-        <TrendingUp className="w-8 h-8 text-blue-600" />
+      <h2 className="text-3xl font-bold text-left text-gray-800 dark:text-gray-200 justify-center gap-3">
         {t.title}
       </h2>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 border-blue-200 dark:border-blue-700 hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-800 dark:text-blue-200">
-              {t.totalBorrowers}
-            </CardTitle>
-            <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{totalBorrowers}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800 border-green-200 dark:border-green-700 hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-800 dark:text-green-200">
-              {t.activeLoans}
-            </CardTitle>
-            <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-900 dark:text-green-100">{activeLoans}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800 border-purple-200 dark:border-purple-700 hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-purple-800 dark:text-purple-200">
-              {t.totalCollected}
-            </CardTitle>
-            <DollarSign className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">₹{totalCollected.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900 dark:to-red-800 border-red-200 dark:border-red-700 hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-red-800 dark:text-red-200">
-              {t.overdueLoans}
-            </CardTitle>
-            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-900 dark:text-red-100">{overdueLoans}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Additional Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900 dark:to-orange-800 border-orange-200 dark:border-orange-700 hover:shadow-lg transition-shadow">
+        <Card className="bg-gradient-to-br from-blue-50/10 to-blue-200 dark:from-blue-900 dark:to-blue-800/20 border-blue-200 dark:border-blue-700 hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-orange-800 dark:text-orange-200">
-              {t.pendingAmount}
-            </CardTitle>
-            <Clock className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+        <CardTitle className="text-sm font-medium text-blue-800 dark:text-white">
+          {t.totalBorrowers}
+        </CardTitle>
+        <Users className="h-6 w-6 text-blue-600 dark:text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">₹{pendingAmount.toLocaleString()}</div>
+        <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{totalBorrowers}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-900 dark:to-cyan-800 border-cyan-200 dark:border-cyan-700 hover:shadow-lg transition-shadow">
+        <Card className="bg-gradient-to-br from-green-100/20 to-green-200 dark:from-green-900 dark:to-green-800/20 border-green-200 dark:border-green-700 hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-cyan-800 dark:text-cyan-200">
-              {t.overduePayments}
-            </CardTitle>
-            <AlertTriangle className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+        <CardTitle className="text-sm font-medium text-green-800 dark:text-white">
+          {t.activeLoans}
+        </CardTitle>
+        <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-cyan-900 dark:text-cyan-100">₹{overduePaymentsAmount.toLocaleString()}</div>
+        <div className="text-3xl font-bold text-green-900 dark:text-green-100">{activeLoans}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900 dark:to-emerald-800 border-emerald-200 dark:border-emerald-700 hover:shadow-lg transition-shadow">
+        <Card className="bg-gradient-to-br from-purple-100/20 to-purple-200 dark:from-purple-900 dark:to-purple-800/20 border-purple-200 dark:border-purple-700 hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
-              {t.averagePayment}
-            </CardTitle>
-            <CreditCard className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+        <CardTitle className="text-sm font-medium text-purple-800 dark:text-white">
+          {t.totalCollected}
+        </CardTitle>
+        <DollarSign className="h-6 w-6 text-purple-600 dark:text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">₹{averagePayment.toLocaleString()}</div>
+        <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">₹{totalCollected.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-red-100/20 to-red-200 dark:from-red-900 dark:to-red-800/20 border-red-200 dark:border-red-700 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-red-800 dark:text-white">
+          {t.overdueLoans}
+        </CardTitle>
+        <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-500" />
+          </CardHeader>
+          <CardContent>
+        <div className="text-3xl font-bold text-red-900 dark:text-red-100">{overdueLoans}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-orange-100/20 to-orange-200 dark:from-orange-900 dark:to-orange-800/20 border-orange-200 dark:border-orange-700 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-orange-800 dark:text-white">
+          {t.pendingAmount}
+        </CardTitle>
+        <Clock className="h-6 w-6 text-orange-600 dark:text-orange-500" />
+          </CardHeader>
+          <CardContent>
+        <div className="text-3xl font-bold text-orange-900 dark:text-orange-100">₹{pendingAmount.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-cyan-100/20 to-cyan-200 dark:from-cyan-900 dark:to-cyan-800/20 border-cyan-200 dark:border-cyan-700 hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-cyan-800 dark:text-white">
+          {t.overduePayments}
+        </CardTitle>
+        <AlertTriangle className="h-6 w-6 text-cyan-600 dark:text-cyan-500" />
+          </CardHeader>
+          <CardContent>
+        <div className="text-3xl font-bold text-cyan-900 dark:text-cyan-100">₹{overduePaymentsAmount.toLocaleString()}</div>
           </CardContent>
         </Card>
       </div>
-
+      
       {/* Recent Payments Section */}
       <Card className="hover:shadow-lg transition-shadow">
         <CardHeader>
