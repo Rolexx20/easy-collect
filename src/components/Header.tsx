@@ -1,5 +1,5 @@
 
-import { Moon, Sun, Globe, LanguagesIcon, MoonStar } from "lucide-react";
+import { Moon, Sun, Globe, LanguagesIcon, MoonStar, Home, Users, FileText, BarChart3, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -19,17 +19,37 @@ const Header = ({
   setIsDark,
   language,
   setLanguage,
+  activeTab,
+  setActiveTab,
 }: HeaderProps) => {
   const translations = {
     en: {
       title: "EasyCollect",
+      dashboard: "Dashboard",
+      borrowers: "Borrowers",
+      loans: "Loans",
+      reports: "Reports",
+      settings: "Settings",
     },
     ta: {
       title: "EasyCollect",
+      dashboard: "டாஷ்போர்டு",
+      borrowers: "கடன் வாங்குபவர்கள்",
+      loans: "கடன்கள்",
+      reports: "அறிக்கைகள்",
+      settings: "அமைப்புகள்",
     },
   };
 
   const t = translations[language as keyof typeof translations];
+
+  const navItems = [
+    { id: "dashboard", label: t.dashboard, icon: Home },
+    { id: "borrowers", label: t.borrowers, icon: Users },
+    { id: "loans", label: t.loans, icon: FileText },
+    { id: "reports", label: t.reports, icon: BarChart3 },
+    { id: "settings", label: t.settings, icon: Settings },
+  ];
 
   return (
     <header className="fixed top-0 left-0 w-full z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 shadow-sm">
@@ -38,6 +58,25 @@ const Header = ({
           <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400 tracking-tight">
             {t.title}
           </h1>
+          
+          {/* Navigation Menu */}
+          <nav className="hidden md:flex items-center gap-2 ml-8">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200",
+                  activeTab === item.id
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400"
+                )}
+              >
+                <item.icon className="w-4 h-4" />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </nav>
         </div>
 
         <div className="flex items-center gap-3">
@@ -99,6 +138,27 @@ const Header = ({
             )}
           </Button>
         </div>
+      </div>
+
+      {/* Mobile Navigation */}
+      <div className="md:hidden mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+        <nav className="flex items-center gap-1 overflow-x-auto">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap",
+                activeTab === item.id
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              )}
+            >
+              <item.icon className="w-4 h-4" />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
       </div>
     </header>
   );

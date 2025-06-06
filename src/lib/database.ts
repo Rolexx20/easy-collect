@@ -125,8 +125,13 @@ export const createLoan = async (loan: Omit<Loan, 'id' | 'amount_paid' | 'borrow
   const { data, error } = await supabase
     .from('loans')
     .insert([{
-      ...loan,
+      borrower_id: loan.borrower_id,
+      principal_amount: loan.principal_amount,
+      interest_rate: loan.interest_rate,
+      duration_months: loan.duration_months,
       total_amount: totalAmount,
+      start_date: loan.start_date,
+      status: loan.status,
       next_payment_date: nextPaymentDate.toISOString().split('T')[0]
     }])
     .select(`
