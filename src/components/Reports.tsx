@@ -455,7 +455,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             {/* Title */}
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Export Reports (Multiple type)</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Export Reports</h2>
             {/* Export Button */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
               {/* File Type Selection */}

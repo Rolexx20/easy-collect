@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { User, Download, Upload, Save, Camera } from 'lucide-react';
+import { User, Download, Upload, Save, Camera, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -110,112 +110,111 @@ const Settings = ({ language }: SettingsProps) => {
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t.settings}</h1>
       </div>
-
-      {/* User Profile Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
-            {t.userProfile}
-          </CardTitle>
-          <CardDescription>
-            {t.profileDesc}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">{t.name}</Label>
-              <Input
-                id="name"
-                value={profile.name}
-                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">{t.email}</Label>
-              <Input
-                id="email"
-                type="email"
-                value={profile.email}
-                onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">{t.phone}</Label>
-              <Input
-                id="phone"
-                value={profile.phone}
-                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company">{t.company}</Label>
-              <Input
-                id="company"
-                value={profile.company}
-                onChange={(e) => setProfile({ ...profile, company: e.target.value })}
-              />
-            </div>
-          </div>
-          <Button onClick={handleSaveProfile} className="w-full md:w-auto">
-            <Save className="w-4 h-4 mr-2" />
-            {t.saveProfile}
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Separator />
-
-      {/* Data Management Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Download className="w-5 h-5" />
-            {t.dataManagement}
-          </CardTitle>
-          <CardDescription>
-            {t.dataDesc}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <h3 className="font-medium">{t.exportData}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {t.exportDesc}
-              </p>
-              <Button onClick={handleExportData} variant="outline" className="w-full">
-                <Download className="w-4 h-4 mr-2" />
-                {t.exportData}
-              </Button>
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-medium">{t.importData}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {t.importDesc}
-              </p>
-              <div className="relative">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* User Profile Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              {t.userProfile}
+            </CardTitle>
+            <CardDescription>
+              {t.profileDesc}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">{t.name}</Label>
                 <Input
-                  type="file"
-                  accept=".json"
-                  onChange={handleImportData}
-                  className="hidden"
-                  id="import-file"
+                  id="name"
+                  value={profile.name}
+                  onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                 />
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => document.getElementById('import-file')?.click()}
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  {t.importData}
-                </Button>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">{t.email}</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={profile.email}
+                  onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">{t.phone}</Label>
+                <Input
+                  id="phone"
+                  value={profile.phone}
+                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company">{t.company}</Label>
+                <Input
+                  id="company"
+                  value={profile.company}
+                  onChange={(e) => setProfile({ ...profile, company: e.target.value })}
+                />
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <Button onClick={handleSaveProfile} className="w-full md:w-auto bg-blue-700 text-white hover:bg-blue-800 dark:hover:bg-blue-600">
+              <Save className="w-4 h-4 mr-2" />
+              {t.saveProfile}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Data Management Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="w-5 h-5" />
+              {t.dataManagement}
+            </CardTitle>
+            <CardDescription>
+              {t.dataDesc}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <h3 className="font-medium">{t.exportData}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {t.exportDesc}
+                </p>
+                <Button onClick={handleExportData} variant="outline" className="w-full">
+                  <Download className="w-4 h-4 mr-2" />
+                  {t.exportData}
+                </Button>
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-medium">{t.importData}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {t.importDesc}
+                </p>
+                <div className="relative">
+                  <Input
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportData}
+                    className="hidden"
+                    id="import-file"
+                  />
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => document.getElementById('import-file')?.click()}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {t.importData}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
