@@ -56,9 +56,26 @@ const Header = ({
       <header className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Title - Left */}
-            <div className="flex-shrink-0">
-              <h1 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-600 tracking-tight">
+            <div className="flex items-center flex-shrink-0">
+              <img
+                src="/logo.png"
+                alt="EasyCollect Logo"
+                className="inline-block w-8 h-8 mr-2 align-middle rounded self-center"
+                style={{ verticalAlign: "middle" }}
+              />
+              <h1
+                className="text-xl sm:text-2xl font-bold tracking-tight self-center bg-clip-text text-transparent"
+                style={{
+                  backgroundImage: isDark
+                    ? "linear-gradient(90deg, #FEFEFE 0%, #EC779C 50%, #FF2020 100%)"
+                    : "linear-gradient(90deg, #000000 0%, #7593CB 50%, #EC779C 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  textShadow: isDark
+                    ? "0 1px 8px rgba(236,119,156,0.18)"
+                    : "0 1px 8px rgba(117,147,203,0.10)",
+                }}
+              >
                 {t.title}
               </h1>
             </div>
