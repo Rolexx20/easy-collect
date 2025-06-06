@@ -150,7 +150,7 @@ const Index = () => {
           setSidebarCollapsed={setSidebarCollapsed}
         />
         
-        <main className="flex-1 transition-colors duration-200 overflow-auto pb-16 md:pb-0 pt-20">
+        <main className="flex-1 transition-colors duration-200 overflow-auto pt-16 pb-20 md:pb-4">
           {renderContent()}
         </main>
       </div>

@@ -55,11 +55,6 @@ const AppSidebar = ({
             </h1>
           )}
         </div>
-
-        {/* Empty Content Area for future use */}
-        <div className="flex-1 py-6 px-3">
-          {/* Removed quick access panel content */}
-        </div>
       </div>
     </>
   );
