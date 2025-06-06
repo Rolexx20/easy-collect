@@ -156,7 +156,7 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
             <DollarSign className="h-6 w-6 text-purple-600 dark:text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">₹{totalCollected.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">₹ {totalCollected.toLocaleString()}</div>
           </CardContent>
         </Card>
 
@@ -180,7 +180,7 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
             <Clock className="h-6 w-6 text-orange-600 dark:text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-orange-900 dark:text-orange-100">₹{pendingAmount.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-orange-900 dark:text-orange-100">₹ {pendingAmount.toLocaleString()}</div>
           </CardContent>
         </Card>
 
@@ -192,7 +192,7 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
             <AlertTriangle className="h-6 w-6 text-cyan-600 dark:text-cyan-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-cyan-900 dark:text-cyan-100">₹{overduePaymentsAmount.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-cyan-900 dark:text-cyan-100">₹ {overduePaymentsAmount.toLocaleString()}</div>
           </CardContent>
         </Card>
       </div>
@@ -227,7 +227,7 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
               height={36}
             />
             <YAxis
-              tickFormatter={v => `₹${v.toLocaleString()}`}
+              tickFormatter={v => `₹ ${v.toLocaleString()}`}
               width={70}
             />
             <Tooltip
@@ -244,7 +244,7 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
                 borderRadius: 8,
                 fontSize: 14,
               }}
-              formatter={(value: number) => [`₹${Number(value).toLocaleString()}`]}
+              formatter={(value: number) => [`₹ {Number(value).toLocaleString()}`]}
             />
             <Bar dataKey="amount" name="Total Amount" fill="#d1d5db" barSize={22} />
             <Bar dataKey="paid" name="Paid Amount" fill="#6366f1" barSize={14} />
@@ -269,7 +269,7 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="w-5 h-5 text-blue-600" />
-              {t.recentPayments} ({t.thisWeek})
+              {t.recentPayments}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col">
@@ -298,8 +298,7 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
                     </div>
                     <div className="text-right">
                       <div className="font-bold text-green-600 dark:text-green-400 flex items-center gap-1">
-                        <DollarSign className="w-4 h-4" />
-                        ₹{payment.amount.toLocaleString()}
+                        ₹ {payment.amount.toLocaleString()}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">
                         {payment.payment_method}
@@ -371,8 +370,7 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
                         </div>
                         <div className="text-right">
                           <div className="font-bold text-red-700 dark:text-red-300 flex items-center gap-1">
-                            <DollarSign className="w-4 h-4" />
-                            ₹{(loan.total_amount - loan.amount_paid).toLocaleString()}
+                            ₹ {(loan.total_amount - loan.amount_paid).toLocaleString()}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">
                             {loan.status}
@@ -455,8 +453,7 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
                           </div>
                           <div className="text-right">
                             <div className="font-bold text-orange-700 dark:text-orange-300 flex items-center gap-1">
-                              <DollarSign className="w-4 h-4" />
-                              ₹{(loan.total_amount - loan.amount_paid).toLocaleString()}
+                              ₹ {(loan.total_amount - loan.amount_paid).toLocaleString()}
                             </div>
                             <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">
                               {loan.status}
