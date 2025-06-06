@@ -1,7 +1,7 @@
-
 import { Moon, Sun, Globe, LanguagesIcon, MoonStar, Home, Users, FileText, BarChart3, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import logo from "@/assets/logo.svg";
 
 interface HeaderProps {
   isDark: boolean;
@@ -58,7 +58,7 @@ const Header = ({
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center flex-shrink-0 relative">
               <img
-                src="src/assets/logo.svg"
+                src={logo}
                 alt="EasyCollect Logo"
                 className="inline-block w-14 h-14 mr-0 mt-3 align-middle rounded self-center animate-logo-spin"
                 style={{
