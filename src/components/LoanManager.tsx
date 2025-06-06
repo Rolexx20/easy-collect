@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -52,7 +53,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
     borrower_id: '',
     principal_amount: '',
     interest_rate: '',
-    duration_days: '', // Changed from duration_months to duration_days for UI
+    duration_days: '', // Keep for UI, but convert to months for database
     start_date: new Date().toISOString().split('T')[0]
   });
 
@@ -147,7 +148,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       const totalAmount = principalAmount + (principalAmount * interestRate / 100);
       const durationInDays = parseInt(formData.duration_days);
 
-      // Store duration_days directly as a custom field, but keep duration_months for compatibility
+      // Convert days to months for database storage (minimum 1 month)
       const durationInMonths = Math.max(1, Math.ceil(durationInDays / 30));
 
       const loanData = {
@@ -157,9 +158,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
         duration_months: durationInMonths,
         total_amount: totalAmount,
         start_date: formData.start_date,
-        status: 'active' as const,
-        // We'll store the actual days in a custom field if needed
-        duration_days: durationInDays
+        status: 'active' as const
       };
 
       if (editingLoan) {
@@ -185,8 +184,8 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
 
   const handleEdit = (loan: Loan) => {
     setEditingLoan(loan);
-    // Try to get the original days, or estimate from months
-    const estimatedDays = (loan as any).duration_days || (loan.duration_months * 30);
+    // Estimate days from months for editing (30 days per month)
+    const estimatedDays = loan.duration_months * 30;
     setFormData({
       borrower_id: loan.borrower_id,
       principal_amount: loan.principal_amount.toString(),
@@ -234,7 +233,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       borrower_id: '',
       principal_amount: '',
       interest_rate: '',
-      duration_days: '', // Reset to duration_days
+      duration_days: '',
       start_date: new Date().toISOString().split('T')[0]
     });
     setEditingLoan(null);
@@ -284,10 +283,10 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
     return Math.round((amountPaid / totalAmount) * 100);
   };
 
-  const calculateDaysRemaining = (startDate: string, durationMonths: number, loan: any) => {
+  const calculateDaysRemaining = (startDate: string, durationMonths: number) => {
     const start = new Date(startDate);
-    // Use actual days if available, otherwise estimate from months
-    const actualDays = (loan as any).duration_days || (durationMonths * 30);
+    // For display, use actual days (30 days per month stored in duration_months)
+    const actualDays = durationMonths * 30;
     const end = new Date(start);
     end.setDate(end.getDate() + actualDays);
     const today = new Date();
@@ -296,9 +295,9 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
     return Math.max(0, diffDays);
   };
 
-  const calculateDailyPayment = (totalAmount: number, durationMonths: number, loan: any) => {
-    // Use actual days if available, otherwise estimate from months
-    const actualDays = (loan as any).duration_days || (durationMonths * 30);
+  const calculateDailyPayment = (totalAmount: number, durationMonths: number) => {
+    // Calculate daily payment based on actual days (30 days per month)
+    const actualDays = durationMonths * 30;
     return totalAmount / actualDays;
   };
 
@@ -475,8 +474,8 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredLoans.map((loan) => {
               const progress = calculateProgress(loan.amount_paid, loan.total_amount);
-              const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months, loan);
-              const dailyPayment = calculateDailyPayment(loan.total_amount, loan.duration_months, loan);
+              const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months);
+              const dailyPayment = calculateDailyPayment(loan.total_amount, loan.duration_months);
 
               return (
                 <Card key={loan.id} className="hover:shadow-lg transition-shadow">
@@ -539,7 +538,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                           {t.duration}
                         </span>
                         <span className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">
-                          {(loan as any).duration_days || loan.duration_months * 30} {`${t.daysRemaining.replace(/[^A-Za-z]/g, '') || 'days'}`}
+                          {loan.duration_months * 30} {`${t.daysRemaining.replace(/[^A-Za-z]/g, '') || 'days'}`}
                         </span>
                       </div>
                     </div>
