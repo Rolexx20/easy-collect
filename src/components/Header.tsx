@@ -9,6 +9,8 @@ interface HeaderProps {
   setLanguage: (language: string) => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (collapsed: boolean) => void;
 }
 
 const Header = ({
@@ -18,6 +20,8 @@ const Header = ({
   setLanguage,
   activeTab,
   setActiveTab,
+  sidebarCollapsed,
+  setSidebarCollapsed,
 }: HeaderProps) => {
   const translations = {
     en: {
