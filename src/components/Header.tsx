@@ -58,23 +58,26 @@ const Header = ({
           <div className="flex items-center justify-between h-16">
             {/* Title - Left */}
             <div className="flex-shrink-0">
-              <h1 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-600 tracking-tight">
                 {t.title}
               </h1>
             </div>
 
-            {/* Navigation - Center */}
+            {/* Nav - Center */}
             <nav className="hidden md:flex flex-1 justify-center items-center space-x-1">
               {navItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200",
+                    "flex items-center gap-2 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 border-b-2",
                     activeTab === item.id
-                      ? "bg-blue-600 text-white shadow-md"
-                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400"
+                      ? "border-blue-600 bg-gray-100 dark:bg-gray-700/50 text-blue-700 dark:text-white shadow-none dark:border-gray-200"
+                      : "border-transparent text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-500"
                   )}
+                  style={{
+                    borderBottomWidth: "2px",
+                  }}
                 >
                   <item.icon className="w-4 h-4" />
                   <span className="hidden lg:inline">{item.label}</span>
@@ -158,10 +161,10 @@ const Header = ({
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className={cn(
-                "flex flex-col items-center gap-1 px-1 py-2 text-xs font-medium rounded-lg transition-all duration-200 min-w-0 flex-1",
+                "flex items-center gap-2 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 border-b-2",
                 activeTab === item.id
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  ? "border-blue-600 bg-gray-100 dark:bg-gray-700/50 text-blue-700 dark:text-white shadow-none dark:border-gray-200"
+                  : "border-transparent text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-500"
               )}
             >
               <item.icon className="w-5 h-5" />

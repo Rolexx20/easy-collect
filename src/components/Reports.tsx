@@ -388,60 +388,60 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">{t.title}</h1>
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-        <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+        <Card className="bg-gradient-to-br from-blue-100/20 to-blue-200 dark:from-blue-900 dark:to-blue-800/20 border-blue-200 dark:border-blue-700 hover:shadow-lg dark:hover:shadow-blue-900/40 transition-shadow">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
+                <div className="text-sm font-semibold text-blue-700 dark:text-blue-200 mb-3">
+                  {t.totalBorrowers}
+                </div>
                 <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                   {borrowers.length}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  {t.totalBorrowers}
                 </div>
               </div>
               <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+        <Card className="bg-gradient-to-br from-green-100/20 to-green-200 dark:from-green-900 dark:to-green-800/20 border-green-200 dark:border-green-700 hover:shadow-lg dark:hover:shadow-green-900/40 transition-shadow">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
+                <div className="text-sm font-semibold text-green-700 dark:text-green-200 mb-3">
+                  {t.totalLoans}
+                </div>
                 <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                   {loans.length}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  {t.totalLoans}
                 </div>
               </div>
               <FileText className="w-8 h-8 text-green-600 dark:text-green-400" />
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-          <CardContent className="p-4 md:p-6">
+        <Card className="bg-gradient-to-br from-purple-100/20 to-purple-200 dark:from-purple-900 dark:to-purple-800/20 border-purple-200 dark:border-purple-700 hover:shadow-lg dark:hover:shadow-purple-900/40 transition-shadow">
+          <CardContent className="p-4 md:p-4">
             <div className="flex items-center justify-between">
               <div>
+                <div className="text-sm font-semibold text-purple-700 dark:text-purple-200 mb-3">
+                  {t.totalCollected}
+                </div>
                 <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                   ₹{totalCollected.toLocaleString()}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  {t.totalCollected}
                 </div>
               </div>
               <DollarSign className="w-8 h-8 text-purple-600 dark:text-purple-400" />
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+        <Card className="bg-gradient-to-br from-orange-100/20 to-orange-200 dark:from-orange-900 dark:to-orange-800/20 border-orange-200 dark:border-orange-700 hover:shadow-lg dark:hover:shadow-orange-900/40 transition-shadow">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
+                <div className="text-sm font-semibold text-gray-600 dark:text-orange-200 mb-3">
+                  {t.pendingAmount}
+                </div>
                 <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                   ₹{pendingAmount.toLocaleString()}
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  {t.pendingAmount}
                 </div>
               </div>
               <Calendar className="w-8 h-8 text-orange-600 dark:text-orange-400" />

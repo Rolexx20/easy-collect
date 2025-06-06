@@ -507,11 +507,11 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
 
                   <div className="flex gap-4 items-center">
                     <div className="flex flex-col flex-1">
-                      <span className="text-xs text-green-600">{t.amountPaid}:</span>
-                      <span className="text-sm font-bold text-green-700">₹ {loan.amount_paid.toLocaleString()}</span>
+                      <span className="text-xs text-green-500">{t.amountPaid}:</span>
+                      <span className="text-sm font-bold text-green-600">₹ {loan.amount_paid.toLocaleString()}</span>
                     </div>
                     <div className="flex flex-col flex-4">
-                      <span className="text-xs text-red-600">{t.remainingAmount}:</span>
+                      <span className="text-xs text-red-500">{t.remainingAmount}:</span>
                       <span className="text-right text-sm font-bold text-red-600">₹ {(loan.total_amount - loan.amount_paid).toLocaleString()}</span>
                     </div>
                   </div>
