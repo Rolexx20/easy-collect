@@ -127,17 +127,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 w-full flex">
-      <AppSidebar 
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        language={language}
-        isCollapsed={sidebarCollapsed}
-        setIsCollapsed={setSidebarCollapsed}
-      />
-      
+      {/* Sidebar is hidden */}
       <div className={cn(
-        "flex-1 flex flex-col w-full transition-all duration-300",
-        sidebarCollapsed ? "md:ml-16" : "md:ml-64"
+        "flex-1 flex flex-col w-full transition-all duration-300"
       )}>
         <Header 
           isDark={isDark} 
@@ -149,7 +141,6 @@ const Index = () => {
           sidebarCollapsed={sidebarCollapsed}
           setSidebarCollapsed={setSidebarCollapsed}
         />
-        
         <main className="flex-1 transition-colors duration-200 overflow-auto pt-16 pb-20 md:pb-4">
           {renderContent()}
         </main>

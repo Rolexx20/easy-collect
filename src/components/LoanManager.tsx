@@ -302,7 +302,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
   });
 
   return (
-    <div className="p-6 space-y-6 pt-20">
+    <div className="p-6 space-y-6 pt-5">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold text-left text-gray-800 dark:text-gray-200 flex-1">
           {t.title}
