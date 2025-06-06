@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
@@ -143,11 +144,13 @@ const Index = () => {
           setIsDark={setIsDark} 
           language={language} 
           setLanguage={setLanguage}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
           sidebarCollapsed={sidebarCollapsed}
           setSidebarCollapsed={setSidebarCollapsed}
         />
         
-        <main className="flex-1 transition-colors duration-200 overflow-auto pb-16 md:pb-0">
+        <main className="flex-1 transition-colors duration-200 overflow-auto pt-16 pb-20 md:pb-4">
           {renderContent()}
         </main>
       </div>
