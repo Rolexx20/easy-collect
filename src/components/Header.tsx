@@ -64,13 +64,13 @@ const Header = ({
             </div>
 
             {/* Nav - Center */}
-            <nav className="hidden md:flex flex-1 justify-center items-center space-x-1">
+            <nav className="hidden md:flex flex-1 justify-center items-center space-x-8">
               {navItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 border-b-2",
+                    "flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 border-b-2",
                     activeTab === item.id
                       ? "border-blue-600 bg-gray-100 dark:bg-gray-700/50 text-blue-700 dark:text-white shadow-none dark:border-gray-200"
                       : "border-transparent text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-500"
@@ -79,7 +79,7 @@ const Header = ({
                     borderBottomWidth: "2px",
                   }}
                 >
-                  <item.icon className="w-4 h-4" />
+                  <item.icon className="w-5 h-5" />
                   <span className="hidden lg:inline">{item.label}</span>
                 </button>
               ))}
