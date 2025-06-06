@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Borrower {
@@ -114,6 +113,8 @@ export const getLoans = async (): Promise<Loan[]> => {
 };
 
 export const createLoan = async (loan: Omit<Loan, 'id' | 'amount_paid' | 'borrowerName'>): Promise<Loan> => {
+  console.log('Creating loan with data:', loan);
+  
   // Calculate total amount with interest
   const totalAmount = loan.principal_amount + (loan.principal_amount * loan.interest_rate / 100);
   
@@ -122,18 +123,22 @@ export const createLoan = async (loan: Omit<Loan, 'id' | 'amount_paid' | 'borrow
   const nextPaymentDate = new Date(startDate);
   nextPaymentDate.setDate(nextPaymentDate.getDate() + 30);
   
+  const loanData = {
+    borrower_id: loan.borrower_id,
+    principal_amount: loan.principal_amount,
+    interest_rate: loan.interest_rate,
+    duration_months: loan.duration_months,
+    total_amount: totalAmount,
+    start_date: loan.start_date,
+    status: 'active',
+    next_payment_date: nextPaymentDate.toISOString().split('T')[0]
+  };
+  
+  console.log('Inserting loan data:', loanData);
+  
   const { data, error } = await supabase
     .from('loans')
-    .insert([{
-      borrower_id: loan.borrower_id,
-      principal_amount: loan.principal_amount,
-      interest_rate: loan.interest_rate,
-      duration_months: loan.duration_months,
-      total_amount: totalAmount,
-      start_date: loan.start_date,
-      status: loan.status,
-      next_payment_date: nextPaymentDate.toISOString().split('T')[0]
-    }])
+    .insert([loanData])
     .select(`
       *,
       borrowers!inner(name)

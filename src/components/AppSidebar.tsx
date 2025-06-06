@@ -56,13 +56,9 @@ const AppSidebar = ({
           )}
         </div>
 
-        {/* Content Area - can be used for additional sidebar content in the future */}
+        {/* Empty Content Area for future use */}
         <div className="flex-1 py-6 px-3">
-          {!isCollapsed && (
-            <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
-              Quick access panel
-            </div>
-          )}
+          {/* Removed quick access panel content */}
         </div>
       </div>
     </>
