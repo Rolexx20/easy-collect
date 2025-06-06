@@ -71,3 +71,23 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## APK Export
+### Setup Capacitor for your project
+npm install @capacitor/core @capacitor/cli
+npx cap init
+
+npm install @capacitor/android
+npx cap add android
+
+```python
+cd C:\Users\keliz\Desktop\easy-collect
+Then re-run the Capacitor commands from the root, not from android/ folder:
+npm run build             # builds your frontend into /dist
+npx cap add android       # adds Android if not yet added
+npx cap copy              # copies web assets
+npx cap sync android      # syncs native and web code
+
+You only go into the android/ folder after all the above steps, just to run Gradle:
+cd android
+.\gradlew assembleDebug
