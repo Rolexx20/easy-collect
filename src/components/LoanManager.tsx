@@ -438,7 +438,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredLoans.map((loan) => {
             const progress = calculateProgress(loan.amount_paid, loan.total_amount);
             const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months);
