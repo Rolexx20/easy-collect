@@ -72,8 +72,8 @@ To connect a domain, navigate to Project > Settings > Domains and click Connect 
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
 
-## APK Export
-### Setup Capacitor for your project
+## APK Export: Setup Capacitor for your project
+
 npm install @capacitor/core @capacitor/cli
 npx cap init
 
@@ -91,3 +91,4 @@ npx cap sync android      # syncs native and web code
 You only go into the android/ folder after all the above steps, just to run Gradle:
 cd android
 .\gradlew assembleDebug
+
