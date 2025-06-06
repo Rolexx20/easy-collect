@@ -64,9 +64,9 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       addLoan: 'Add New Loan',
       editLoan: 'Edit Loan',
       borrower: 'Borrower',
-      principalAmount: 'Amount',
-      interestRate: 'Rate(%)',
-      duration: 'L.Term',
+      principalAmount: 'Loan Amount',
+      interestRate: 'Interest Rate(%)',
+      duration: 'Loan Duration (months)',
       startDate: 'Start Date',
       save: 'Save',
       cancel: 'Cancel',
@@ -469,7 +469,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                       <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                         <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                           <DollarSign className="w-2.5 h-2.5" />
-                          {t.principalAmount}
+                          Amount
                         </span>
                         <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 leading-tight truncate">
                           ₹ {loan.principal_amount.toLocaleString()}
@@ -479,7 +479,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                       <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                         <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                           <TrendingUp className="w-2.5 h-2.5" />
-                          {t.interestRate}
+                          Rate (%)
                         </span>
                         <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 leading-tight truncate">
                           {loan.interest_rate} %
@@ -499,7 +499,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                       <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                         <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                           <Calendar className="w-2.5 h-2.5" />
-                          {t.duration}
+                          Duration
                         </span>
                         <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 leading-tight truncate">
                           {loan.duration_months * 30} {`${t.daysRemaining.replace(/[^A-Za-z]/g, '') || 'days'}`}
@@ -509,7 +509,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                       <div className="bg-gray-50  dark:bg-gray-800 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                         <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                           <DollarSign className="w-2.5 h-2.5" />
-                          T.Interest
+                          Interest
                         </span>
                         <span className="text-xs font-semibold  text-gray-900 dark:text-gray-100 leading-tight truncate">
                           ₹ {(loan.total_amount - loan.principal_amount).toLocaleString()}
@@ -521,7 +521,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                           <Clock className="w-2.5 h-2.5" />
                           R.Days
                         </span>
-                        <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 leading-tight truncate">
+                        <span className="text-xs font-semibold text-red-500 dark:text-red-500 leading-tight truncate">
                           {calculateDaysRemaining(loan.start_date, loan.duration_months)}
                         </span>
                       </div>
