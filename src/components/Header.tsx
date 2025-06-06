@@ -58,7 +58,7 @@ const Header = ({
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center flex-shrink-0 relative">
               <img
-                src="/logo.svg"
+                src="src/assets/logo.svg"
                 alt="EasyCollect Logo"
                 className="inline-block w-14 h-14 mr-0 mt-3 align-middle rounded self-center animate-logo-spin"
                 style={{
@@ -74,13 +74,13 @@ const Header = ({
                 className="text-xl sm:text-2xl font-bold tracking-tight self-center bg-clip-text text-transparent drop-shadow-lg"
                 style={{
                   backgroundImage: isDark
-                    ? "linear-gradient(90deg, #FFD700, #FDBD12, #FFEF8B, #FFD700)"
-                    : "linear-gradient(90deg, #B8860B, #FFD700, #B8860B)",
+                    ? "linear-gradient(45deg, #FFD700, #FDBD12, #FFEF8B, #FFD700)"
+                    : "linear-gradient(-45deg, #B8860B, #FFD700, #B8860B, #FFD700)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   textShadow: isDark
                     ? "0 5px 16px rgba(253,215,85,0.28)"
-                    : "0 5px 16px rgba(0,0,0,0.28)",
+                    : "0 5px 16px rgba(253,215,85,0.28)",
                 }}
               >
                 {t.title}
