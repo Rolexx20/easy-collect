@@ -56,28 +56,51 @@ const Header = ({
       <header className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center flex-shrink-0">
+            <div className="flex items-center flex-shrink-0 relative">
               <img
-                src="/logo.png"
+                src="/logo.svg"
                 alt="EasyCollect Logo"
-                className="inline-block w-8 h-8 mr-2 align-middle rounded self-center"
-                style={{ verticalAlign: "middle" }}
+                className="inline-block w-14 h-14 mr-0 mt-3 align-middle rounded self-center animate-logo-spin"
+                style={{
+                  verticalAlign: "middle",
+                  filter: isDark
+                    ? "drop-shadow(0 4px 12px rgba(0,0,0,0.18))"
+                    : "drop-shadow(0 4px 12px rgba(0,0,0,0.28))",
+                  transform: "rotate(-45deg)",
+                }}
               />
+              {/* Title */}
               <h1
-                className="text-xl sm:text-2xl font-bold tracking-tight self-center bg-clip-text text-transparent"
+                className="text-xl sm:text-2xl font-bold tracking-tight self-center bg-clip-text text-transparent drop-shadow-lg"
                 style={{
                   backgroundImage: isDark
-                    ? "linear-gradient(90deg, #FEFEFE 0%, #EC779C 50%, #FF2020 100%)"
-                    : "linear-gradient(90deg, #000000 0%, #7593CB 50%, #EC779C 100%)",
+                    ? "linear-gradient(90deg, #FFD700, #FDBD12, #FFEF8B, #FFD700)"
+                    : "linear-gradient(90deg, #B8860B, #FFD700, #B8860B)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   textShadow: isDark
-                    ? "0 1px 8px rgba(236,119,156,0.18)"
-                    : "0 1px 8px rgba(117,147,203,0.10)",
+                    ? "0 5px 16px rgba(253,215,85,0.28)"
+                    : "0 5px 16px rgba(0,0,0,0.28)",
                 }}
               >
                 {t.title}
               </h1>
+              {/* Animation Style */}
+              {/* <style>
+                {`
+                  @keyframes logo-spin {
+                  0% { transform: rotate(-135deg);}
+                  15% { transform: rotate(0deg);}
+                  30% { transform: rotate(-135deg);}
+                  50% { transform: rotate(0deg);}
+                  80% { transform: rotate(-135deg);}
+                  100% { transform: rotate(0deg);}
+                }
+                  .animate-logo-spin {
+                  animation: logo-spin 8s linear infinite;
+                    }
+            `}
+              </style> */}
             </div>
 
             {/* Nav - Center */}
