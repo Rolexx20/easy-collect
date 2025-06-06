@@ -185,17 +185,20 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
   return (
     <div className="p-6 space-y-6 pt-5">
       <div className="flex justify-between items-center">
-      <h2 className="text-3xl font-bold text-left text-gray-800 dark:text-gray-200 flex-1">
+      <h2 className="text-2xl md:text-3xl font-bold text-left text-gray-800 dark:text-gray-200 flex-1">
         {t.title}
       </h2>
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
         <Button
-          onClick={() => setEditingBorrower(null)}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          onClick={() => {
+            setEditingBorrower(null);
+            setIsDialogOpen(true);
+          }}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-sm md:text-base flex items-center gap-2"
         >
-          <Plus className="w-4 h-4 mr-2" />
-          {t.addBorrower}
+          <Plus className="w-4 h-4 mr-0" />
+          <span className="hidden sm:inline">{t.addBorrower}</span>
         </Button>
         </DialogTrigger>
         <DialogContent className="max-w-md w-full p-0 overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-900 gap-0">

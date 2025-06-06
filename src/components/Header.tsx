@@ -54,36 +54,36 @@ const Header = ({
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Left side - Logo and Navigation */}
-            <div className="flex items-center space-x-8">
+            {/* Title - Left */}
+            <div className="flex-shrink-0">
               <h1 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 tracking-tight">
                 {t.title}
               </h1>
-              
-              {/* Desktop Navigation */}
-              <nav className="hidden md:flex items-center space-x-1">
-                {navItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200",
-                      activeTab === item.id
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400"
-                    )}
-                  >
-                    <item.icon className="w-4 h-4" />
-                    <span className="hidden lg:inline">{item.label}</span>
-                  </button>
-                ))}
-              </nav>
             </div>
 
-            {/* Right side - Theme and Language toggles */}
-            <div className="flex items-center space-x-3">
+            {/* Navigation - Center */}
+            <nav className="hidden md:flex flex-1 justify-center items-center space-x-1">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200",
+                    activeTab === item.id
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400"
+                  )}
+                >
+                  <item.icon className="w-4 h-4" />
+                  <span className="hidden lg:inline">{item.label}</span>
+                </button>
+              ))}
+            </nav>
+
+            {/* Toggles - Right */}
+            <div className="flex items-center space-x-3 flex-shrink-0">
               {/* Theme Toggle */}
               <div
                 onClick={() => setIsDark(!isDark)}
@@ -158,14 +158,13 @@ const Header = ({
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className={cn(
-                "flex flex-col items-center gap-1 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 min-w-0 flex-1",
+                "flex flex-col items-center gap-1 px-1 py-2 text-xs font-medium rounded-lg transition-all duration-200 min-w-0 flex-1",
                 activeTab === item.id
                   ? "bg-blue-600 text-white shadow-md"
                   : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
               )}
             >
               <item.icon className="w-5 h-5" />
-              <span className="truncate">{item.label}</span>
             </button>
           ))}
         </div>
