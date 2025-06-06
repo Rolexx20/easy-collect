@@ -64,7 +64,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       addLoan: 'Add New Loan',
       editLoan: 'Edit Loan',
       borrower: 'Borrower',
-      principalAmount: 'Principal Amount',
+      principalAmount: 'Loan Amount',
       interestRate: 'Interest Rate (%)',
       duration: 'Duration (Months)',
       startDate: 'Start Date',
@@ -77,7 +77,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       amountPaid: 'Amount Paid',
       remainingAmount: 'Remaining Amount',
       status: 'Status',
-      nextPayment: 'Next Payment',
+      nextPayment: 'Next Pay',
       loanAdded: 'Loan added successfully',
       loanUpdated: 'Loan updated successfully',
       loanDeleted: 'Loan deleted successfully',
@@ -443,6 +443,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
             const progress = calculateProgress(loan.amount_paid, loan.total_amount);
             const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months);
             const dailyPayment = calculateDailyPayment(loan.total_amount, loan.duration_months);
+            const totalPayment = loan.principal_amount + (loan.principal_amount * loan.interest_rate / 100);
 
             return (
               <Card key={loan.id} className="hover:shadow-lg transition-shadow">
