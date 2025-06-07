@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { getPayments } from '@/lib/database';
 
 interface ReportsProps {
   language: string;
@@ -20,6 +22,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   const [filterText, setFilterText] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [payments, setPayments] = useState<any[]>([]);
 
   const translations = {
     en: {
@@ -28,15 +31,20 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       collectionReport: 'Collection Report',
       overdueReport: 'Overdue Report',
       borrowerReport: 'Borrower Report',
+      dailyCollectionReport: 'Daily Collection Report',
       date: 'Date',
       borrowerName: 'Borrower Name',
       loanAmount: 'Loan Amount',
       paymentAmount: 'Payment Amount',
       status: 'Status',
       remainingAmount: 'Remaining Amount',
+      paymentDate: 'Payment Date',
+      paymentMethod: 'Payment Method',
+      notes: 'Notes',
       noPaymentData: 'No payment data available',
       noOverdueLoans: 'No overdue loans found',
       noBorrowerData: 'No borrower data available',
+      noDailyCollectionData: 'No daily collection data available',
       totalBorrowers: 'Total Borrowers',
       totalLoans: 'Total Loans',
       totalCollected: 'Total Collected',
@@ -51,15 +59,20 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       collectionReport: 'வசூல் அறிக்கை',
       overdueReport: 'தாமத அறிக்கை',
       borrowerReport: 'கடன் வாங்குபவர் அறிக்கை',
+      dailyCollectionReport: 'தினசரி வசூல் அறிக்கை',
       date: 'தேதி',
       borrowerName: 'கடன் வாங்குபவர் பெயர்',
       loanAmount: 'கடன் தொகை',
       paymentAmount: 'பணம் செலுத்தல் தொகை',
       status: 'நிலை',
       remainingAmount: 'மீதமுள்ள தொகை',
+      paymentDate: 'பணம் செலுத்திய தேதி',
+      paymentMethod: 'பணம் செலுத்தும் முறை',
+      notes: 'குறிப்புகள்',
       noPaymentData: 'பணம் செலுத்தல் தரவு இல்லை',
       noOverdueLoans: 'தாமதமான கடன்கள் இல்லை',
       noBorrowerData: 'கடன் வாங்குபவர் தரவு இல்லை',
+      noDailyCollectionData: 'தினசரி வசூல் தரவு இல்லை',
       totalBorrowers: 'மொத்த கடன் வாங்குபவர்கள்',
       totalLoans: 'மொத்த கடன்கள்',
       totalCollected: 'மொத்த வசூல்',
@@ -80,7 +93,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   const reportTypes = [
     { id: 'collection', label: t.collectionReport },
     { id: 'overdue', label: t.overdueReport },
-    { id: 'borrower', label: t.borrowerReport }
+    { id: 'borrower', label: t.borrowerReport },
+    { id: 'dailyCollection', label: t.dailyCollectionReport }
   ];
 
   const fileTypes = [
@@ -88,6 +102,32 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     { id: 'excel', label: 'Excel' },
     { id: 'csv', label: 'CSV' }
   ];
+
+  // Load payments data when daily collection report is selected
+  const loadPayments = async () => {
+    try {
+      const paymentsData = await getPayments();
+      // Add borrower names to payments by matching loan_id
+      const paymentsWithBorrowerNames = paymentsData.map(payment => {
+        const loan = loans.find(l => l.id === payment.loan_id);
+        return {
+          ...payment,
+          borrowerName: loan?.borrowerName || 'N/A'
+        };
+      });
+      setPayments(paymentsWithBorrowerNames);
+    } catch (error) {
+      console.error('Error loading payments:', error);
+      setPayments([]);
+    }
+  };
+
+  // Load payments when daily collection report is selected
+  useState(() => {
+    if (selectedReportType === 'dailyCollection') {
+      loadPayments();
+    }
+  }, [selectedReportType]);
 
   // Filter logic for export and table
   const getReportData = () => {
@@ -102,18 +142,25 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       case 'borrower':
         data = borrowers;
         break;
+      case 'dailyCollection':
+        data = payments;
+        break;
       default:
         data = [];
     }
-    // Date range filter for collection/overdue
-    if ((selectedReportType === 'collection' || selectedReportType === 'overdue') && (fromDate || toDate)) {
+    
+    // Date range filter for collection/overdue/dailyCollection
+    if ((selectedReportType === 'collection' || selectedReportType === 'overdue' || selectedReportType === 'dailyCollection') && (fromDate || toDate)) {
       data = data.filter(item => {
-        const date = new Date(item.start_date);
+        const date = selectedReportType === 'dailyCollection' 
+          ? new Date(item.payment_date) 
+          : new Date(item.start_date);
         const from = fromDate ? new Date(fromDate) : null;
         const to = toDate ? new Date(toDate) : null;
         return (!from || date >= from) && (!to || date <= to);
       });
     }
+    
     // Text filter
     if (filterText.trim()) {
       const lower = filterText.trim().toLowerCase();
@@ -150,6 +197,11 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       csvContent = 'Created Date,Name,Phone,Address,Total Loans,Total Amount,Total Paid,Remaining Amount\n';
       data.forEach(borrower => {
         csvContent += `${borrower.created_at ? borrower.created_at.split('T')[0] : ''},${borrower.name},${borrower.phone},${borrower.address},${borrower.total_loans || 0},${borrower.total_amount || 0},${borrower.total_paid || 0},${borrower.remaining_amount || 0}\n`;
+      });
+    } else if (selectedReportType === 'dailyCollection') {
+      csvContent = 'Payment Date,Borrower Name,Payment Amount,Payment Method,Notes\n';
+      data.forEach(payment => {
+        csvContent += `${payment.payment_date},${payment.borrowerName || 'N/A'},${payment.amount},${payment.payment_method || 'cash'},${payment.notes || ''}\n`;
       });
     }
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -201,6 +253,17 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           borrower.remaining_amount || 0
         ])
       ];
+    } else if (selectedReportType === 'dailyCollection') {
+      wsData = [
+        ['Payment Date', 'Borrower Name', 'Payment Amount', 'Payment Method', 'Notes'],
+        ...data.map(payment => [
+          payment.payment_date,
+          payment.borrowerName || 'N/A',
+          payment.amount,
+          payment.payment_method || 'cash',
+          payment.notes || ''
+        ])
+      ];
     }
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     const wb = XLSX.utils.book_new();
@@ -247,6 +310,16 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         borrower.remaining_amount || 0
       ]);
       title = t.borrowerReport;
+    } else if (selectedReportType === 'dailyCollection') {
+      head = ['Payment Date', 'Borrower Name', 'Payment Amount', 'Payment Method', 'Notes'];
+      body = data.map(payment => [
+        payment.payment_date,
+        payment.borrowerName || 'N/A',
+        payment.amount,
+        payment.payment_method || 'cash',
+        payment.notes || ''
+      ]);
+      title = t.dailyCollectionReport;
     }
 
     doc.text(title, 14, 16);
@@ -316,6 +389,16 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             <TableHead>{t.remainingAmount}</TableHead>
           </TableRow>
         );
+      case 'dailyCollection':
+        return (
+          <TableRow>
+            <TableHead>{t.paymentDate}</TableHead>
+            <TableHead>{t.borrowerName}</TableHead>
+            <TableHead>{t.paymentAmount}</TableHead>
+            <TableHead>{t.paymentMethod}</TableHead>
+            <TableHead>{t.notes}</TableHead>
+          </TableRow>
+        );
       default:
         return null;
     }
@@ -325,7 +408,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     const data = getReportData();
     if (data.length === 0) {
       const noDataMessage = selectedReportType === 'overdue' ? t.noOverdueLoans :
-        selectedReportType === 'borrower' ? t.noBorrowerData : t.noPaymentData;
+        selectedReportType === 'borrower' ? t.noBorrowerData : 
+        selectedReportType === 'dailyCollection' ? t.noDailyCollectionData : t.noPaymentData;
       return (
         <TableRow>
           <TableCell colSpan={selectedReportType === 'borrower' ? 8 : 5} className="text-center text-gray-500 dark:text-gray-400 py-8">
@@ -377,10 +461,32 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
               <TableCell>₹{(item.remaining_amount || 0).toLocaleString()}</TableCell>
             </TableRow>
           );
+        case 'dailyCollection':
+          return (
+            <TableRow key={index}>
+              <TableCell>{item.payment_date}</TableCell>
+              <TableCell>{item.borrowerName || 'N/A'}</TableCell>
+              <TableCell>₹{item.amount?.toLocaleString()}</TableCell>
+              <TableCell>
+                <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                  {item.payment_method || 'cash'}
+                </span>
+              </TableCell>
+              <TableCell>{item.notes || '-'}</TableCell>
+            </TableRow>
+          );
         default:
           return null;
       }
     });
+  };
+
+  // Load payments when report type changes to dailyCollection
+  const handleReportTypeChange = (reportType: string) => {
+    setSelectedReportType(reportType);
+    if (reportType === 'dailyCollection') {
+      loadPayments();
+    }
   };
 
   return (
@@ -484,7 +590,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           </div>
           {/* Filter input */}
           <div className="mt-4 flex flex-col md:flex-row gap-2">
-            {(selectedReportType === 'collection' || selectedReportType === 'overdue') && (
+            {(selectedReportType === 'collection' || selectedReportType === 'overdue' || selectedReportType === 'dailyCollection') && (
               <>
                 <input
                   type="date"
@@ -516,7 +622,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
               {reportTypes.map((type) => (
                 <button
                   key={type.id}
-                  onClick={() => setSelectedReportType(type.id)}
+                  onClick={() => handleReportTypeChange(type.id)}
                   className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${selectedReportType === type.id
                     ? 'bg-white text-gray-600 dark:text-white shadow dark:bg-gray-900'
                     : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
