@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { createLoan, updateLoan, deleteLoan } from '@/lib/database';
 import PaymentCollectionDialog from './PaymentCollectionDialog';
 import DeleteConfirmationDialog from './DeleteConfirmationDialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Loan {
   id: string;
@@ -57,6 +58,10 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
   });
 
   const [search, setSearch] = useState('');
+
+  // Track original principal for edit validation
+  const [originalPrincipal, setOriginalPrincipal] = useState<number | null>(null);
+  const [editAmountError, setEditAmountError] = useState<string | null>(null);
 
   const translations = {
     en: {
@@ -144,6 +149,19 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       const interestRate = parseFloat(formData.interest_rate);
       const durationInMonths = parseInt(formData.duration_months);
 
+      // If editing and payments have been made, prevent decreasing principal
+      if (editingLoan && editingLoan.amount_paid > 0) {
+        if (principalAmount < (originalPrincipal ?? editingLoan.principal_amount)) {
+          setEditAmountError(
+            language === 'ta'
+              ? 'பணம் செலுத்தல் தொடங்கிய பிறகு கடன் தொகையை குறைக்க முடியாது'
+              : 'Cannot decrease loan amount after payments have started'
+          );
+          return;
+        }
+      }
+      setEditAmountError(null);
+
       const loanData = {
         borrower_id: formData.borrower_id,
         principal_amount: principalAmount,
@@ -177,6 +195,8 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
 
   const handleEdit = (loan: Loan) => {
     setEditingLoan(loan);
+    setOriginalPrincipal(loan.principal_amount);
+    setEditAmountError(null);
     setFormData({
       borrower_id: loan.borrower_id,
       principal_amount: loan.principal_amount.toString(),
@@ -188,6 +208,16 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
   };
 
   const handleDeleteClick = (loan: Loan) => {
+    // Only allow delete if loan is completed
+    if (loan.status !== 'completed') {
+      toast({
+        title: language === 'ta'
+          ? 'முடிக்கப்படாத கடனை நீக்க முடியாது'
+          : 'Cannot delete a loan that is not completed',
+        variant: "destructive"
+      });
+      return;
+    }
     setLoanToDelete(loan);
     setDeleteConfirmOpen(true);
   };
@@ -317,7 +347,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
               <span className="hidden sm:inline">{t.addLoan}</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-0 gap-0 overflow-hidden">
+          <DialogContent className="max-w-md bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-0 gap-0 overflow-hidden dialogContentClassName">
             <DialogHeader className="px-6 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800">
               <DialogTitle className="flex text-xl font-semibold items-center gap-2">
                 <CreditCard className="w-5 h-5 text-blue-600" />
@@ -356,10 +386,25 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                   type="number"
                   step="1000"
                   value={formData.principal_amount}
-                  onChange={(e) => setFormData({ ...formData, principal_amount: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, principal_amount: e.target.value });
+                    // Remove real-time validation here
+                    setEditAmountError(null);
+                  }}
                   placeholder="0"
                   className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                  disabled={false}
                 />
+                {!!editingLoan && editingLoan.amount_paid > 0 && (
+                  <span className="text-xs text-gray-500 mt-1">
+                    {language === 'ta'
+                      ? 'பணம் செலுத்தல் தொடங்கிய பிறகு கடன் தொகையை குறைக்க முடியாது. அதிகரிக்க மட்டும் முடியும்.'
+                      : 'Cannot decrease loan amount after payments have started. You can only increase.'}
+                  </span>
+                )}
+                {editAmountError && (
+                  <span className="text-xs text-red-500 mt-1">{editAmountError}</span>
+                )}
               </div>
               <div className="flex flex-col gap-1 pb-2">
                 <Label htmlFor="interest" className="flex items-center gap-2 pb-1">
@@ -575,15 +620,55 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteClick(loan)}
-                        className="flex-0 text-red-600 hover:text-red-700 text-xs px-2 py-1"
-                        disabled={isLoading}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="flex-0">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteClick(loan)}
+                                className="flex-0 text-red-600 hover:text-red-700 text-xs px-2 py-1"
+                                disabled={
+                                  isLoading ||
+                                  (loan.status === 'active' && loan.amount_paid > 0)
+                                }
+                                style={{ pointerEvents: 'auto' }}
+                              >
+                                <span
+                                  style={{
+                                    display: 'inline-flex',
+                                    pointerEvents: 'auto',
+                                    cursor:
+                                      loan.status === 'active' && loan.amount_paid > 0
+                                        ? 'not-allowed'
+                                        : undefined
+                                  }}
+                                  title={
+                                    loan.status === 'active' && loan.amount_paid > 0
+                                      ? (language === 'ta'
+                                          ? 'நிலுவை பணம் செலுத்துதலுடன் கடனை நீக்க முடியாது.'
+                                          : 'Cannot delete loan with pending payments')
+                                      : undefined
+                                  }
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </span>
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {(loan.status === 'active' && loan.amount_paid > 0) && (
+                            <TooltipContent className='bg-red-700 text-white flex items-center gap-1'>
+                              <AlertTriangle className="w-4 h-4" />
+                              <span className="text-xs">
+                                {language === 'ta'
+                                  ? 'நிலுவை பணம் செலுத்துதலுடன் கடனை நீக்க முடியாது.'
+                                  : 'Cannot delete loan with pending payments'}
+                              </span>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
 
                 </CardContent>
