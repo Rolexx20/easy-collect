@@ -41,6 +41,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       paymentDate: 'Payment Date',
       paymentMethod: 'Payment Method',
       notes: 'Notes',
+      remainingLoanAmount: 'Remaining Loan Amount',
+      totalLoanAmount: 'Total Loan Amount',
       noPaymentData: 'No payment data available',
       noOverdueLoans: 'No overdue loans found',
       noBorrowerData: 'No borrower data available',
@@ -69,6 +71,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       paymentDate: 'பணம் செலுத்திய தேதி',
       paymentMethod: 'பணம் செலுத்தும் முறை',
       notes: 'குறிப்புகள்',
+      remainingLoanAmount: 'மீதமுள்ள கடன் தொகை',
+      totalLoanAmount: 'மொத்த கடன் தொகை',
       noPaymentData: 'பணம் செலுத்தல் தரவு இல்லை',
       noOverdueLoans: 'தாமதமான கடன்கள் இல்லை',
       noBorrowerData: 'கடன் வாங்குபவர் தரவு இல்லை',
@@ -107,15 +111,17 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   const loadPayments = async () => {
     try {
       const paymentsData = await getPayments();
-      // Add borrower names to payments by matching loan_id
-      const paymentsWithBorrowerNames = paymentsData.map(payment => {
+      // Add borrower names and loan details to payments by matching loan_id
+      const paymentsWithLoanDetails = paymentsData.map(payment => {
         const loan = loans.find(l => l.id === payment.loan_id);
         return {
           ...payment,
-          borrowerName: loan?.borrowerName || 'N/A'
+          borrowerName: loan?.borrowerName || 'N/A',
+          totalLoanAmount: loan?.total_amount || 0,
+          remainingLoanAmount: loan ? (loan.total_amount - loan.amount_paid) : 0
         };
       });
-      setPayments(paymentsWithBorrowerNames);
+      setPayments(paymentsWithLoanDetails);
     } catch (error) {
       console.error('Error loading payments:', error);
       setPayments([]);
@@ -199,9 +205,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         csvContent += `${borrower.created_at ? borrower.created_at.split('T')[0] : ''},${borrower.name},${borrower.phone},${borrower.address},${borrower.total_loans || 0},${borrower.total_amount || 0},${borrower.total_paid || 0},${borrower.remaining_amount || 0}\n`;
       });
     } else if (selectedReportType === 'dailyCollection') {
-      csvContent = 'Payment Date,Borrower Name,Payment Amount,Payment Method,Notes\n';
+      csvContent = 'Payment Date,Borrower Name,Payment Amount,Payment Method,Remaining Loan Amount,Total Loan Amount\n';
       data.forEach(payment => {
-        csvContent += `${payment.payment_date},${payment.borrowerName || 'N/A'},${payment.amount},${payment.payment_method || 'cash'},${payment.notes || ''}\n`;
+        csvContent += `${payment.payment_date},${payment.borrowerName || 'N/A'},${payment.amount},${payment.payment_method || 'cash'},${payment.remainingLoanAmount || 0},${payment.totalLoanAmount || 0}\n`;
       });
     }
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -255,13 +261,14 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       ];
     } else if (selectedReportType === 'dailyCollection') {
       wsData = [
-        ['Payment Date', 'Borrower Name', 'Payment Amount', 'Payment Method', 'Notes'],
+        ['Payment Date', 'Borrower Name', 'Payment Amount', 'Payment Method', 'Remaining Loan Amount', 'Total Loan Amount'],
         ...data.map(payment => [
           payment.payment_date,
           payment.borrowerName || 'N/A',
           payment.amount,
           payment.payment_method || 'cash',
-          payment.notes || ''
+          payment.remainingLoanAmount || 0,
+          payment.totalLoanAmount || 0
         ])
       ];
     }
@@ -311,13 +318,14 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       ]);
       title = t.borrowerReport;
     } else if (selectedReportType === 'dailyCollection') {
-      head = ['Payment Date', 'Borrower Name', 'Payment Amount', 'Payment Method', 'Notes'];
+      head = ['Payment Date', 'Borrower Name', 'Payment Amount', 'Payment Method', 'Remaining Loan Amount', 'Total Loan Amount'];
       body = data.map(payment => [
         payment.payment_date,
         payment.borrowerName || 'N/A',
         payment.amount,
         payment.payment_method || 'cash',
-        payment.notes || ''
+        payment.remainingLoanAmount || 0,
+        payment.totalLoanAmount || 0
       ]);
       title = t.dailyCollectionReport;
     }
@@ -396,7 +404,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             <TableHead>{t.borrowerName}</TableHead>
             <TableHead>{t.paymentAmount}</TableHead>
             <TableHead>{t.paymentMethod}</TableHead>
-            <TableHead>{t.notes}</TableHead>
+            <TableHead>{t.remainingLoanAmount}</TableHead>
+            <TableHead>{t.totalLoanAmount}</TableHead>
           </TableRow>
         );
       default:
@@ -412,7 +421,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         selectedReportType === 'dailyCollection' ? t.noDailyCollectionData : t.noPaymentData;
       return (
         <TableRow>
-          <TableCell colSpan={selectedReportType === 'borrower' ? 8 : 5} className="text-center text-gray-500 dark:text-gray-400 py-8">
+          <TableCell colSpan={selectedReportType === 'borrower' ? 8 : selectedReportType === 'dailyCollection' ? 6 : 5} className="text-center text-gray-500 dark:text-gray-400 py-8">
             {noDataMessage}
           </TableCell>
         </TableRow>
@@ -472,7 +481,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
                   {item.payment_method || 'cash'}
                 </span>
               </TableCell>
-              <TableCell>{item.notes || '-'}</TableCell>
+              <TableCell>₹{(item.remainingLoanAmount || 0).toLocaleString()}</TableCell>
+              <TableCell>₹{(item.totalLoanAmount || 0).toLocaleString()}</TableCell>
             </TableRow>
           );
         default:
