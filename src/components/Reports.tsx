@@ -23,6 +23,10 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   const [toDate, setToDate] = useState('');
   const [payments, setPayments] = useState<any[]>([]);
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 10;
+
   const translations = {
     en: {
       title: 'Reports',
@@ -96,10 +100,10 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   const pendingAmount = totalLoanAmount - totalCollected;
 
   const reportTypes = [
-    { id: 'collection', label: t.collectionReport },
+    { id: 'dailyCollection', label: t.dailyCollectionReport },
     { id: 'overdue', label: t.overdueReport },
-    { id: 'borrower', label: t.borrowerReport },
-    { id: 'dailyCollection', label: t.dailyCollectionReport }
+    { id: 'collection', label: 'Borrower Collection Report' },
+    { id: 'borrower', label: t.borrowerReport }
   ];
 
   const fileTypes = [
@@ -135,6 +139,11 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       loadPayments();
     }
   }, [selectedReportType]);
+
+  // Reset page when report type or filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [selectedReportType, filterText, fromDate, toDate]);
 
   // Filter logic for export and table
   const getReportData = () => {
@@ -371,8 +380,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             <TableHead>{t.date}</TableHead>
             <TableHead>{t.borrowerName}</TableHead>
             <TableHead>{t.loanAmount}</TableHead>
-            <TableHead>{t.paymentAmount}</TableHead>
-            <TableHead>{t.remainingAmount}</TableHead>
+            <TableHead>Total Remaining Amount</TableHead>
+            <TableHead>Total Collected Amount</TableHead>
           </TableRow>
         );
       case 'overdue':
@@ -393,9 +402,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             <TableHead>Phone</TableHead>
             <TableHead>Address</TableHead>
             <TableHead>Total Loans</TableHead>
-            <TableHead>Total Amount</TableHead>
             <TableHead>Total Paid</TableHead>
             <TableHead>{t.remainingAmount}</TableHead>
+            <TableHead>Total Amount</TableHead>
           </TableRow>
         );
       case 'dailyCollection':
@@ -403,10 +412,10 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           <TableRow>
             <TableHead>{t.paymentDate}</TableHead>
             <TableHead>{t.borrowerName}</TableHead>
-            <TableHead>{t.paymentAmount}</TableHead>
             <TableHead>{t.paymentMethod}</TableHead>
-            <TableHead>{t.remainingLoanAmount}</TableHead>
             <TableHead>{t.totalLoanAmount}</TableHead>
+            <TableHead>{t.remainingLoanAmount}</TableHead>
+            <TableHead>{t.paymentAmount}</TableHead>
           </TableRow>
         );
       default:
@@ -428,16 +437,32 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         </TableRow>
       );
     }
-    return data.map((item, index) => {
+    // Pagination logic
+    const startIdx = (page - 1) * rowsPerPage;
+    const paginatedData = data.slice(startIdx, startIdx + rowsPerPage);
+
+    return paginatedData.map((item, index) => {
       switch (selectedReportType) {
         case 'collection':
           return (
             <TableRow key={index}>
               <TableCell>{item.start_date}</TableCell>
               <TableCell>{item.borrowerName || 'N/A'}</TableCell>
-              <TableCell>₹{item.total_amount?.toLocaleString()}</TableCell>
-              <TableCell>₹{item.amount_paid?.toLocaleString()}</TableCell>
-              <TableCell>₹{(item.total_amount - item.amount_paid)?.toLocaleString()}</TableCell>
+              <TableCell>
+                <span className="text-purple-700 dark:text-purple-500 font-bold">
+                  ₹ {item.total_amount?.toLocaleString()}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span className="text-red-600 dark:text-red-500 font-bold">
+                  ₹ {(item.total_amount - item.amount_paid)?.toLocaleString()}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span className="text-green-700 dark:text-green-500 font-bold">
+                  ₹ {item.amount_paid?.toLocaleString()}
+                </span>
+              </TableCell>
             </TableRow>
           );
         case 'overdue':
@@ -445,8 +470,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             <TableRow key={index}>
               <TableCell>{item.start_date}</TableCell>
               <TableCell>{item.borrowerName || 'N/A'}</TableCell>
-              <TableCell>₹{item.total_amount?.toLocaleString()}</TableCell>
-              <TableCell>₹{item.amount_paid?.toLocaleString()}</TableCell>
+              <TableCell>₹ {item.total_amount?.toLocaleString()}</TableCell>
+              <TableCell>₹ {item.amount_paid?.toLocaleString()}</TableCell>
               <TableCell>
                 <span className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
                   {item.status}
@@ -465,10 +490,26 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
               <TableCell>{item.name}</TableCell>
               <TableCell>{item.phone}</TableCell>
               <TableCell>{item.address}</TableCell>
-              <TableCell>{item.total_loans || 0}</TableCell>
-              <TableCell>₹{(item.total_amount || 0).toLocaleString()}</TableCell>
-              <TableCell>₹{(item.total_paid || 0).toLocaleString()}</TableCell>
-              <TableCell>₹{(item.remaining_amount || 0).toLocaleString()}</TableCell>
+              <TableCell>
+                <span className="text-blue-700 dark:text-blue-500 font-bold">
+                  {item.total_loans || 0}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span className="text-green-700 dark:text-green-500 font-bold">
+                  ₹ {(item.total_paid || 0).toLocaleString()}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span className="text-red-600 dark:text-red-500 font-bold">
+                  ₹ {(item.remaining_amount || 0).toLocaleString()}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span className="text-purple-700 dark:text-purple-500 font-bold">
+                  ₹ {(item.total_amount || 0).toLocaleString()}
+                </span>
+              </TableCell>
             </TableRow>
           );
         case 'dailyCollection':
@@ -476,20 +517,102 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             <TableRow key={index}>
               <TableCell>{item.payment_date}</TableCell>
               <TableCell>{item.borrowerName || 'N/A'}</TableCell>
-              <TableCell>₹{item.amount?.toLocaleString()}</TableCell>
               <TableCell>
                 <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                   {item.payment_method || 'cash'}
                 </span>
               </TableCell>
-              <TableCell>₹{(item.remainingLoanAmount || 0).toLocaleString()}</TableCell>
-              <TableCell>₹{(item.totalLoanAmount || 0).toLocaleString()}</TableCell>
+              <TableCell className="text-purple-700 dark:text-purple-500 font-bold">
+                ₹ {(item.totalLoanAmount || 0).toLocaleString()}
+              </TableCell>
+              <TableCell>
+                <span className="text-red-600 dark:text-red-500 font-semibold">
+                  ₹ {(item.remainingLoanAmount || 0).toLocaleString()}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span className="text-green-700 dark:text-green-500 font-bold">
+                  ₹ {item.amount?.toLocaleString()}
+                </span>
+              </TableCell>
             </TableRow>
           );
         default:
           return null;
       }
     });
+  };
+
+  // Pagination controls
+  const renderPagination = () => {
+    const data = getReportData();
+    const totalPages = Math.ceil(data.length / rowsPerPage);
+    if (totalPages <= 1) return null;
+    const pageNumbers = [];
+    for (let i = 1; i <= totalPages; i++) {
+      // Show first, last, current, and neighbors; use ... for gaps
+      if (
+        i === 1 ||
+        i === totalPages ||
+        (i >= page - 1 && i <= page + 1)
+      ) {
+        pageNumbers.push(i);
+      } else if (
+        (i === page - 2 && page - 2 > 1) ||
+        (i === page + 2 && page + 2 < totalPages)
+      ) {
+        pageNumbers.push('...');
+      }
+    }
+    // Remove duplicate ellipsis
+    const filteredPages = pageNumbers.filter((v, i, arr) => v !== '...' || arr[i - 1] !== '...');
+
+    return (
+      <div className="flex justify-end items-center gap-2 mt-4 select-none">
+        <button
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page === 1}
+          className={`h-9 w-9 flex items-center justify-center rounded-full border transition-colors ${
+            page === 1
+              ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+              : 'bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-600 dark:text-blue-300 border-blue-200 dark:border-blue-700'
+          }`}
+          aria-label="Previous page"
+        >
+          <span className="font-bold">&lt;</span>
+        </button>
+        {filteredPages.map((p, idx) =>
+          p === '...' ? (
+            <span key={idx} className="px-2 text-gray-400">…</span>
+          ) : (
+            <button
+              key={p}
+              onClick={() => setPage(Number(p))}
+              className={`h-9 w-9 flex items-center justify-center rounded-full border transition-colors ${
+                page === p
+                  ? 'bg-blue-600 text-white border-blue-600 shadow'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900'
+              }`}
+              aria-current={page === p ? "page" : undefined}
+            >
+              {p}
+            </button>
+          )
+        )}
+        <button
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          disabled={page === totalPages}
+          className={`h-9 w-9 flex items-center justify-center rounded-full border transition-colors ${
+            page === totalPages
+              ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+              : 'bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-600 dark:text-blue-300 border-blue-200 dark:border-blue-700'
+          }`}
+          aria-label="Next page"
+        >
+          <span className="font-bold">&gt;</span>
+        </button>
+      </div>
+    );
   };
 
   // Load payments when report type changes to dailyCollection
@@ -607,14 +730,14 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
                   type="date"
                   value={fromDate}
                   onChange={e => setFromDate(e.target.value)}
-                  className="px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  className="px-5 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   placeholder="From date"
                 />
                 <input
                   type="date"
                   value={toDate}
                   onChange={e => setToDate(e.target.value)}
-                  className="px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  className="px-5 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   placeholder="To date"
                 />
               </>
@@ -624,27 +747,30 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
               value={filterText}
               onChange={e => setFilterText(e.target.value)}
               placeholder={t.filterPlaceholder}
-              className="w-full md:w-1/3 px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className="w-full md:w-3/3 px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             />
           </div>
           {/* Report Type Selection */}
           <div className="mt-4">
-            <div className="flex w-full bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+            <div className="flex w-full bg-gray-300/70 dark:bg-gray-900/70 rounded-lg p-1 gap-2">
               {reportTypes.map((type) => (
                 <button
                   key={type.id}
                   onClick={() => handleReportTypeChange(type.id)}
-                  className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${selectedReportType === type.id
-                    ? 'bg-white text-gray-600 dark:text-white shadow dark:bg-gray-900'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                  style={{ minWidth: 0 }}
+                  className={
+                    "flex-1 flex items-center justify-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 border-b-2 " +
+                    (selectedReportType === type.id
+                      ? "border-black bg-white/80 dark:bg-gray-800 text-black dark:text-white shadow-none dark:border-gray-200"
+                      : "border-transparent text-gray-700 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-600")
+                  }
+                  style={{
+                    borderBottomWidth: "2px",
+                  }}
                 >
                   {type.label}
                 </button>
               ))}
             </div>
-
             {/* Data Table */}
             <div className="mt-4 overflow-x-auto">
               <Table>
@@ -655,6 +781,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
                   {renderTableRows()}
                 </TableBody>
               </Table>
+              {renderPagination()}
             </div>
             <style>{`
               .ec-table-header-row {
@@ -672,6 +799,13 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
               .ec-table-header-cell {
                 color: #fff !important;
               }
+              }
+              /* Add row border for dark mode */
+              .dark tr, .dark .ec-table-header-row, .dark .ec-table-row {
+                border-bottom: 1px solid #444 !important;
+              }
+              tr, .ec-table-row {
+                border-bottom: 1px solid #e5e7eb !important;
               }
             `}</style>
           </div>
