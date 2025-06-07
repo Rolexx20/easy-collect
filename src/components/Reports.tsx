@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, Download, Calendar, DollarSign, Users } from 'lucide-react';
@@ -123,7 +123,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   };
 
   // Load payments when daily collection report is selected
-  useState(() => {
+  useEffect(() => {
     if (selectedReportType === 'dailyCollection') {
       loadPayments();
     }
