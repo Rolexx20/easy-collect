@@ -120,9 +120,9 @@ const PaymentCollectionDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-xs w-full p-5 m-0 rounded-2xl shadow-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
+      <DialogContent className="max-w-xs w-full p-5 m-0 rounded-2xl shadow-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base font-semibold text-neutral-800 dark:text-neutral-100">
+          <DialogTitle className="flex items-center gap-2 text-base font-semibold text-gray-800 dark:text-gray-100">
             <DollarSign className="w-5 h-5 text-green-500" />
             {t.title}
           </DialogTitle>
@@ -130,9 +130,9 @@ const PaymentCollectionDialog = ({
         
         <div className="space-y-4">
           {/* Borrower Info */}
-          <div className="bg-neutral-100 dark:bg-neutral-800 rounded-xl px-3 py-2 flex flex-col items-start">
-            <div className="text-xs text-neutral-500">{t.borrower}</div>
-            <div className="font-semibold text-base text-neutral-800 dark:text-neutral-100">{loan.borrowerName}</div>
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-xl px-3 py-2 flex flex-col items-start">
+            <div className="text-xs text-gray-500">{t.borrower}</div>
+            <div className="font-semibold text-base text-gray-800 dark:text-gray-100">{loan.borrowerName}</div>
           </div>
 
           {/* Loan Details */}
@@ -149,11 +149,11 @@ const PaymentCollectionDialog = ({
 
           {/* Payment Progress */}
           <div>
-            <div className="flex justify-between text-xs mb-1 text-neutral-500">
+            <div className="flex justify-between text-xs mb-1 text-gray-500">
               <span>{t.progress}</span>
               <span>{paymentProgress.toFixed(1)}%</span>
             </div>
-            <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
               <div 
                 className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full transition-all duration-300" 
                 style={{width: `${paymentProgress}%`}}
@@ -163,18 +163,18 @@ const PaymentCollectionDialog = ({
 
           {/* Daily Payment & Remaining */}
           <div className="grid grid-cols-2 gap-2">
-            <div className="flex items-center gap-2 p-2 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-800">
+            <div className="flex items-center gap-2 p-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800">
               <Clock className="w-4 h-4 text-orange-500" />
               <div>
-                <div className="text-xs text-neutral-500">{t.dailyPayment}</div>
-                <div className="font-semibold text-sm text-neutral-800 dark:text-neutral-100">₹{dailyPaymentAmount.toFixed(2)}</div>
+                <div className="text-xs text-gray-500">{t.dailyPayment}</div>
+                <div className="font-semibold text-sm text-gray-800 dark:text-gray-100">₹{dailyPaymentAmount.toFixed(2)}</div>
               </div>
             </div>
-            <div className="flex items-center gap-2 p-2 border border-neutral-200 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-800">
+            <div className="flex items-center gap-2 p-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800">
               <Calendar className="w-4 h-4 text-purple-500" />
               <div>
-                <div className="text-xs text-neutral-500">{t.loanPeriod}</div>
-                <div className="font-semibold text-sm text-neutral-800 dark:text-neutral-100">{loanDays} {t.days}</div>
+                <div className="text-xs text-gray-500">{t.loanPeriod}</div>
+                <div className="font-semibold text-sm text-gray-800 dark:text-gray-100">{loanDays} {t.days}</div>
               </div>
             </div>
           </div>
@@ -187,7 +187,7 @@ const PaymentCollectionDialog = ({
 
           {/* Payment Input */}
           <div>
-            <Label htmlFor="paymentAmount" className="text-xs text-neutral-600 dark:text-neutral-300">{t.paymentAmount}</Label>
+            <Label htmlFor="paymentAmount" className="text-xs text-gray-600 dark:text-gray-300">{t.paymentAmount}</Label>
             <Input
               id="paymentAmount"
               type="number"
@@ -195,7 +195,7 @@ const PaymentCollectionDialog = ({
               onChange={(e) => setPaymentAmount(e.target.value)}
               placeholder={`Max: ₹${remainingAmount.toLocaleString()}`}
               max={remainingAmount}
-              className="mt-1 text-sm rounded-lg border-neutral-300 dark:border-neutral-700 focus:ring-2 focus:ring-green-400"
+              className="mt-1 text-sm rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800 focus:ring-1 focus:ring-green-400"
             />
           </div>
 
@@ -211,7 +211,7 @@ const PaymentCollectionDialog = ({
             <Button 
               variant="outline" 
               onClick={onClose} 
-              className="flex-1 py-2 text-sm font-semibold rounded-lg border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-200 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              className="flex-1 py-2 text-sm font-semibold rounded-lg border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
               disabled={isLoading}
             >
               {t.cancel}

@@ -341,7 +341,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
           <DialogTrigger asChild>
             <Button
               onClick={() => setEditingLoan(null)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-sm md:text-base flex items-center gap-2"
+              className="bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white px-3 py-2 text-sm md:text-base flex items-center gap-2"
             >
               <Plus className="w-4 h-4 mr-0" />
               <span className="hidden sm:inline">{t.addLoan}</span>
@@ -470,7 +470,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
           placeholder="Search by borrower, amount, or status"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full focus-visible:ring-0 focus-visible:border-blue-600 dark:focus-visible:border-blue-600"
+          className="w-full focus-visible:ring-0 focus-visible:border-green-600 dark:focus-visible:border-green-800"
         />
       </div>
 
@@ -524,7 +524,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                 <CardContent className="p-3 pt-1 space-y-3">
                   <div className="grid grid-cols-3 gap-2 mt-2 mb-1 text-left">
                     {/* Principal Amount */}
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
+                    <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                       <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                         <DollarSign className="w-2.5 h-2.5" />
                         Amount
@@ -534,7 +534,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                       </span>
                     </div>
                     {/* Interest Rate */}
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
+                    <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                       <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                         <TrendingUp className="w-2.5 h-2.5" />
                         Rate (%)
@@ -544,7 +544,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                       </span>
                     </div>
                     {/* Daily Payment */}
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
+                    <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                       <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                         <Clock10 className="w-2.5 h-2.5" />
                         {t.dailyPayment}
@@ -554,7 +554,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                       </span>
                     </div>
                     {/* Duration in Days */}
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
+                    <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                       <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                         <Calendar className="w-2.5 h-2.5" />
                         Duration
@@ -564,7 +564,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                       </span>
                     </div>
                     {/* Total Interest */}
-                    <div className="bg-gray-50  dark:bg-gray-800 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
+                    <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                       <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                         <DollarSign className="w-2.5 h-2.5" />
                         Interest
@@ -574,7 +574,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                       </span>
                     </div>
                     {/* Remaining Day */}
-                    <div className="bg-gray-50  dark:bg-gray-800 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
+                    <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                       <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                         <Clock className="w-2.5 h-2.5" />
                         R.Days
@@ -599,7 +599,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                   {/* Progress bar with percentage label */}
                   <div className="relative flex items-center">
                     <Progress value={progress} className="h-2 mt-0 mb-0 flex-1" />
-                    <span className="ml-2 text-xs font-bold text-blue-600 dark:text-blue-400 z-10">
+                    <span className="ml-2 text-xs font-bold text-blue-600 dark:text-green-500 z-10">
                       {progress}%
                     </span>
                   </div>
@@ -625,9 +625,10 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                       <Button
                         size="sm"
                         onClick={() => handleCollectPayment(loan)}
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-xs px-2 py-1"
+                        className="flex-1 bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-semibold rounded-lg shadow-sm transition-all duration-150 text-xs px-2 py-1 flex items-center gap-1"
+                        style={{ minWidth: 0 }}
                       >
-                        <DollarSign className="w-4 h-4 text-left" />
+                        <DollarSign className="w-4 h-4" />
                         {t.collectPayment}
                       </Button>
                     )}
@@ -635,10 +636,11 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                       variant="outline"
                       size="sm"
                       onClick={() => handleEdit(loan)}
-                      className="flex-0 text-xs px-2 py-1"
+                      className="flex-0 text-xs px-2 py-1 border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:bg-blue-50 dark:hover:bg-blue-900 hover:border-blue-400 dark:hover:border-blue-400 transition-all duration-150"
                       disabled={isLoading}
+                      style={{ minWidth: 0 }}
                     >
-                      <Edit className="w-4 h-4" />
+                      <Edit className="w-4 h-4 text-blue-600 dark:text-blue-300" />
                     </Button>
                     <TooltipProvider>
                       <Tooltip>
@@ -648,32 +650,18 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                               variant="outline"
                               size="sm"
                               onClick={() => handleDeleteClick(loan)}
-                              className="flex-0 text-red-600 hover:text-red-700 text-xs px-2 py-1"
+                              className={`flex-0 text-xs px-2 py-1 border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:bg-red-50 dark:hover:bg-red-900 hover:border-red-400 dark:hover:border-red-400 transition-all duration-150 ${
+                                isLoading || (loan.status === 'active' && loan.amount_paid > 0)
+                                  ? 'opacity-50 cursor-not-allowed'
+                                  : ''
+                              }`}
                               disabled={
                                 isLoading ||
                                 (loan.status === 'active' && loan.amount_paid > 0)
                               }
-                              style={{ pointerEvents: 'auto' }}
+                              style={{ minWidth: 0, pointerEvents: 'auto' }}
                             >
-                              <span
-                                style={{
-                                  display: 'inline-flex',
-                                  pointerEvents: 'auto',
-                                  cursor:
-                                    loan.status === 'active' && loan.amount_paid > 0
-                                      ? 'not-allowed'
-                                      : undefined
-                                }}
-                                title={
-                                  loan.status === 'active' && loan.amount_paid > 0
-                                    ? (language === 'ta'
-                                        ? 'நிலுவை பணம் செலுத்துதலுடன் கடனை நீக்க முடியாது.'
-                                        : 'Cannot delete loan with pending payments')
-                                    : undefined
-                                }
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </span>
+                              <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
                             </Button>
                           </span>
                         </TooltipTrigger>
