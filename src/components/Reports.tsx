@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,7 +52,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       pendingAmount: 'Pending Amount',
       exportSuccess: 'Report exported successfully',
       noData: 'No data available for export',
-      filterPlaceholder: 'Filter by name or phone...'
+      filterPlaceholder: 'Filter by name or phone...',
+      createdDate: 'Created Date'
     },
     ta: {
       title: 'அறிக்கைகள்',
@@ -83,7 +83,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       pendingAmount: 'நிலுவையில் உள்ள தொகை',
       exportSuccess: 'அறிக்கை வெற்றிகரமாக ஏற்றுமதி செய்யப்பட்டது',
       noData: 'ஏற்றுமதிக்கு தரவு இல்லை',
-      filterPlaceholder: 'பெயர் அல்லது தொலைபேசி மூலம் வடிகட்டி...'
+      filterPlaceholder: 'பெயர் அல்லது தொலைபேசி மூலம் வடிகட்டி...',
+      createdDate: 'உருவாக்கப்பட்ட தேதி'
     }
   };
 
@@ -387,7 +388,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       case 'borrower':
         return (
           <TableRow>
-            <TableHead>Date</TableHead>
+            <TableHead>{t.createdDate}</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Phone</TableHead>
             <TableHead>Address</TableHead>
@@ -458,8 +459,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             <TableRow key={index}>
               <TableCell>
                 {item.created_at
-                  ? new Date(item.created_at).toISOString().split('T')[0]
-                  : ''}
+                  ? new Date(item.created_at).toLocaleDateString()
+                  : 'N/A'}
               </TableCell>
               <TableCell>{item.name}</TableCell>
               <TableCell>{item.phone}</TableCell>
