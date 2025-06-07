@@ -496,19 +496,19 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                 className="transition-all border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm hover:shadow-xl
                   bg-gradient-to-br
                   from-green-100 via-white to-red-100
-                  dark:from-green-950/60 dark:via-gray-900/85 dark:to-red-950/60
+                  dark:from-green-950/30 dark:via-gray-900/95 dark:to-red-950/30
                   group"
               >
                 <CardHeader className="pb-2 pt-2 border-gray-100 dark:border-gray-800
                   bg-gradient-to-r
                   from-green-100/80 to-transparent
-                  dark:from-green-900/15"
+                  dark:from-green-900/5"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {/* Small user icon before borrower name */}
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800">
-                        <User className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                      {/* Small user icon before borrower name, green bg always */}
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 dark:bg-green-900">
+                        <User className="w-4 h-4 text-green-700 dark:text-green-300" />
                       </span>
                       <span className="truncate text-lg font-bold text-gray-800 dark:text-gray-100">{loan.borrowerName || 'Unknown'}</span>
                     </div>
@@ -521,7 +521,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="p-3 pt-1 space-y-3">
                   <div className="grid grid-cols-3 gap-2 mt-2 mb-1 text-left">
                     {/* Principal Amount */}
                     <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
