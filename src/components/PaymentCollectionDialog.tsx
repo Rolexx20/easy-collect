@@ -87,9 +87,17 @@ const PaymentCollectionDialog = ({
       });
       
       toast({ title: t.paymentSuccess });
-      onPaymentCollect();
+      
+      // Reset form and close dialog first
       setPaymentAmount('');
       onClose();
+      
+      // Then refresh the data to show updated amounts
+      // Add a small delay to ensure the trigger has processed
+      setTimeout(() => {
+        onPaymentCollect();
+      }, 100);
+      
     } catch (error) {
       console.error('Error creating payment:', error);
       toast({ 
