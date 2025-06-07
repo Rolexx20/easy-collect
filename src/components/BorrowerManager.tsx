@@ -282,72 +282,86 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredBorrowers.map((borrower) => (
-            <Card key={borrower.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5 text-blue-600" />
-                  {borrower.name}
-                </CardTitle>
+            <Card
+              key={borrower.id}
+              className="transition-all border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm hover:shadow-xl bg-gradient-to-br from-white via-gray-50 to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-950 group"
+            >
+              <CardHeader className="pb-2 pt-2 border-gray-100 dark:border-gray-800 bg-gradient-to-r from-blue-50/60 to-transparent dark:from-blue-900/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 group-hover:scale-105 transition-transform">
+                      <User className="w-6 h-6 text-blue-600 dark:text-blue-300" />
+                    </span>
+                    <span className="truncate text-lg font-bold text-gray-800 dark:text-gray-100">{borrower.name}</span>
+                  </div>
+                  <div className="flex gap-2 ml-2">
+                    <span className="border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 flex items-center h-7 w-7 justify-center transition-colors duration-150 hover:border-blue-400 dark:hover:border-blue-400">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(borrower)}
+                        className="p-0.5 hover:bg-blue-100 dark:hover:bg-blue-900 rounded h-6 w-6"
+                        disabled={isLoading}
+                        aria-label={t.edit}
+                      >
+                        <Edit className="w-4 h-4 text-blue-600 dark:text-blue-300" />
+                      </Button>
+                    </span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 flex items-center h-7 w-7 justify-center transition-colors duration-150 hover:border-red-400 dark:hover:border-red-400">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteClick(borrower)}
+                              className={`p-0.5 hover:bg-red-100 dark:hover:bg-red-900 rounded h-6 w-6 ${hasPendingLoans(borrower) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              disabled={isLoading || hasPendingLoans(borrower)}
+                              aria-label={t.delete}
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        {hasPendingLoans(borrower) && (
+                          <TooltipContent className='bg-red-700 text-white flex items-center gap-1'>
+                            <CircleAlert className="w-4 h-4" />
+                            <span className="text-xs">{t.deleteWarning}</span>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <Phone className="w-4 h-4" />
-                  {borrower.phone}
+              <CardContent className="space-y-3 pt-3">
+                <div className="flex flex-col gap-2 text-sm text-gray-700 dark:text-gray-300">
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-blue-500" />
+                    <span className="truncate">{borrower.phone}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-purple-500" />
+                    <span className="truncate">{borrower.address}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <MapPin className="w-4 h-4" />
-                  {borrower.address}
-                </div>
-                <div className="grid grid-cols-3 gap-2 pt-2">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-blue-600">{borrower.total_loans || 0}</div>
+                <div className="flex justify-between items-center gap-2 pt-0">
+                  <div className="flex flex-col items-center flex-1 bg-blue-50 dark:bg-blue-950/30 rounded-lg py-2">
+                    <div className="text-lg font-bold text-blue-700 dark:text-blue-300">{borrower.total_loans || 0}</div>
                     <div className="text-xs text-gray-500">{t.totalLoans}</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-green-600">{borrower.active_loans || 0}</div>
+                  <div className="flex flex-col items-center flex-1 bg-green-50 dark:bg-green-950/30 rounded-lg py-2">
+                    <div className="text-lg font-bold text-green-700 dark:text-green-300">{borrower.active_loans || 0}</div>
                     <div className="text-xs text-gray-500">{t.activeLoans}</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-purple-600">₹{(borrower.total_amount || 0).toLocaleString()}</div>
+                  <div className="flex flex-col items-center flex-1 bg-purple-50 dark:bg-purple-950/30 rounded-lg py-2">
+                    <div className="text-lg font-bold text-purple-700 dark:text-purple-300">
+                      ₹{(borrower.total_amount || 0).toLocaleString()}
+                    </div>
                     <div className="text-xs text-gray-500">{t.totalAmount}</div>
                   </div>
                 </div>
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(borrower)}
-                    className="flex-1"
-                    disabled={isLoading}
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    {t.edit}
-                  </Button>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="flex-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteClick(borrower)}
-                            className={`w-full text-red-600 hover:text-red-700 ${hasPendingLoans(borrower) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            disabled={isLoading || hasPendingLoans(borrower)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            {t.delete}
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      {hasPendingLoans(borrower) && (
-                        <TooltipContent className='bg-red-700 text-white flex items-center gap-1'>
-                          <CircleAlert className="w-4 h-4" />
-                          <span className="text-xs">{t.deleteWarning}</span>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
+                {/* Remove bottom edit/delete buttons */}
               </CardContent>
             </Card>
           ))}
