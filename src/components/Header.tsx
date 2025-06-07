@@ -104,7 +104,7 @@ const Header = ({
             </div>
 
             {/* Nav - Center */}
-            <nav className="hidden md:flex flex-1 justify-center items-center space-x-6">
+            <nav className="hidden md:flex flex-1 justify-center items-center space-x-1">
               {navItems.map((item) => (
                 <button
                   key={item.id}
