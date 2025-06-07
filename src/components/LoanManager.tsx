@@ -583,7 +583,13 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                       </div>
                     </div>
 
-                    <Progress value={progress} className="h-2 mt-1 mb-2" />
+                    {/* Progress bar with percentage label */}
+                    <div className="relative flex items-center">
+                      <Progress value={progress} className="h-2 mt-0 mb-0 flex-1" />
+                      <span className="ml-2 text-xs font-bold text-blue-600 dark:text-blue-400 z-10">
+                        {progress}%
+                      </span>
+                    </div>
 
                     <div className="flex justify-between items-center gap-2 text-[11px] text-gray-600 dark:text-gray-400 truncate">
                       <div className="flex items-center gap-1">

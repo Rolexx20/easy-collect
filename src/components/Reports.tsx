@@ -752,7 +752,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           </div>
           {/* Report Type Selection */}
           <div className="mt-4">
-            <div className="flex w-full bg-gray-300/70 dark:bg-gray-900/70 rounded-lg p-1 gap-2">
+            <div className="flex w-full bg-gray-200/70 dark:bg-gray-700/70 rounded-lg p-1 gap-2">
               {reportTypes.map((type) => (
                 <button
                   key={type.id}
