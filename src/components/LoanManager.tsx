@@ -82,7 +82,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       amountPaid: 'Paid Amount',
       remainingAmount: 'Remain Amount',
       status: 'Status',
-      nextPayment: 'Next Pay',
+      nextPayment: 'End Date',
       loanAdded: 'Loan added successfully',
       loanUpdated: 'Loan updated successfully',
       loanDeleted: 'Loan deleted successfully',
@@ -116,7 +116,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       amountPaid: 'செலுத்திய தொகை',
       remainingAmount: 'மீதமுள்ள தொகை',
       status: 'நிலை',
-      nextPayment: 'அடுத்த பணம் செலுத்தல்',
+      nextPayment: 'கடன் முடிவு தேதி',
       loanAdded: 'கடன் வெற்றிகரமாக சேர்க்கப்பட்டது',
       loanUpdated: 'கடன் வெற்றிகரமாக புதுப்பிக்கப்பட்டது',
       loanDeleted: 'கடன் வெற்றிகரமாக நீக்கப்பட்டது',
@@ -320,6 +320,13 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
     return totalAmount / actualDays;
   };
 
+  const calculateLoanEndDate = (startDate: string, durationMonths: number) => {
+    const start = new Date(startDate);
+    const end = new Date(start);
+    end.setMonth(end.getMonth() + durationMonths);
+    return end.toISOString().split('T')[0];
+  };
+
   const filteredLoans = loans.filter((loan) => {
     const borrowerName = loan.borrowerName || '';
     const principal = loan.principal_amount.toString();
@@ -489,6 +496,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
             const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months);
             const dailyPayment = calculateDailyPayment(loan.total_amount, loan.duration_months);
             const totalPayment = loan.principal_amount + (loan.principal_amount * loan.interest_rate / 100);
+            const loanEndDate = calculateLoanEndDate(loan.start_date, loan.duration_months);
 
             return (
               <Card
@@ -608,13 +616,13 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                     <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       <span>
-                        {t.startDate}: {new Date(loan.start_date).toLocaleDateString(undefined, { month: 'short', day: '2-digit' })}
+                        {t.startDate}: {new Date(loan.start_date).toLocaleDateString(undefined, { year: '2-digit', month: 'short', day: '2-digit' })}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       <span>
-                        {t.nextPayment}: {loan.next_payment_date ? new Date(loan.next_payment_date).toLocaleDateString(undefined, { month: 'short', day: '2-digit' }) : '-'}
+                        {t.nextPayment}: {new Date(loanEndDate).toLocaleDateString(undefined, { year: '2-digit', month: 'short', day: '2-digit' })}
                       </span>
                     </div>
                   </div>
