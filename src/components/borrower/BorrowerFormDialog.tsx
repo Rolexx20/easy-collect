@@ -93,7 +93,7 @@ const BorrowerFormDialog = ({ isOpen, onClose, editingBorrower, onDataChange, la
 
     setIsLoading(true);
     try {
-      const fullName = `${formData.title} ${formData.first_name} ${formData.last_name}`;
+      const fullName = `${formData.title} ${formData.first_name.charAt(0).toUpperCase()}. ${formData.last_name}`;
       const phoneWithCountryCode = formData.phone.startsWith('+94') ? formData.phone : `+94${formData.phone.replace(/^0+/, '')}`;
       
       const borrowerData = {
