@@ -1,11 +1,13 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, DollarSign, Clock } from 'lucide-react';
+import { Calendar, DollarSign, Clock, Printer } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { createPayment, type Loan } from '@/lib/database';
+import { bluetoothPrinter, type ReceiptData } from '@/utils/bluetoothPrinter';
 
 interface PaymentCollectionDialogProps {
   isOpen: boolean;
@@ -24,6 +26,8 @@ const PaymentCollectionDialog = ({
 }: PaymentCollectionDialogProps) => {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [printerConnected, setPrinterConnected] = useState(false);
 
   const translations = {
     en: {
@@ -39,7 +43,13 @@ const PaymentCollectionDialog = ({
       loanPeriod: 'Loan Period',
       days: 'days',
       progress: 'Payment Progress',
-      paymentSuccess: 'Payment collected successfully'
+      paymentSuccess: 'Payment collected successfully',
+      connectPrinter: 'Connect Printer',
+      printReceipt: 'Print Receipt',
+      printerConnected: 'Printer Connected',
+      printerConnectionFailed: 'Failed to connect printer',
+      printSuccess: 'Receipt printed successfully',
+      printFailed: 'Failed to print receipt'
     },
     ta: {
       title: 'பணம் வசூலிக்கவும்',
@@ -54,7 +64,13 @@ const PaymentCollectionDialog = ({
       loanPeriod: 'கடன் காலம்',
       days: 'நாட்கள்',
       progress: 'பணம் செலுத்தல் முன்னேற்றம்',
-      paymentSuccess: 'பணம் வெற்றிகரமாக வசூலிக்கப்பட்டது'
+      paymentSuccess: 'பணம் வெற்றிகரமாக வசூலிக்கப்பட்டது',
+      connectPrinter: 'பிரிண்டர் இணைக்கவும்',
+      printReceipt: 'ரசீது அச்சிடவும்',
+      printerConnected: 'பிரிண்டர் இணைக்கப்பட்டது',
+      printerConnectionFailed: 'பிரிண்டர் இணைப்பு தோல்வி',
+      printSuccess: 'ரசீது வெற்றிகரமாக அச்சிடப்பட்டது',
+      printFailed: 'ரசீது அச்சிட முடியவில்லை'
     }
   };
 
@@ -73,6 +89,74 @@ const PaymentCollectionDialog = ({
     }
   // Only run when dialog opens or dailyPaymentAmount changes
   }, [isOpen, dailyPaymentAmount]);
+
+  const handleConnectPrinter = async () => {
+    setIsPrinting(true);
+    try {
+      const connected = await bluetoothPrinter.connect();
+      if (connected) {
+        setPrinterConnected(true);
+        toast({ title: t.printerConnected });
+      } else {
+        toast({ 
+          title: t.printerConnectionFailed,
+          variant: "destructive" 
+        });
+      }
+    } catch (error) {
+      console.error('Printer connection error:', error);
+      toast({ 
+        title: t.printerConnectionFailed,
+        variant: "destructive" 
+      });
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+  const handlePrintReceipt = async (paymentData: { amount: number; newTotalPaid: number }) => {
+    if (!printerConnected) {
+      toast({ 
+        title: "Printer not connected",
+        description: "Please connect a printer first",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setIsPrinting(true);
+    try {
+      const receiptData: ReceiptData = {
+        loanNumber: loan.id.slice(-5).toUpperCase(),
+        customerName: loan.borrowerName || 'Unknown',
+        loanAmount: Number(loan.total_amount),
+        paymentAmount: paymentData.amount,
+        totalPaid: paymentData.newTotalPaid,
+        totalDue: Number(loan.total_amount) - paymentData.newTotalPaid,
+        closingBalance: Number(loan.total_amount) - paymentData.newTotalPaid,
+        date: loan.start_date,
+        route: 'BATTICALOA 01'
+      };
+
+      const printed = await bluetoothPrinter.printReceipt(receiptData);
+      if (printed) {
+        toast({ title: t.printSuccess });
+      } else {
+        toast({ 
+          title: t.printFailed,
+          variant: "destructive" 
+        });
+      }
+    } catch (error) {
+      console.error('Print error:', error);
+      toast({ 
+        title: t.printFailed,
+        variant: "destructive" 
+      });
+    } finally {
+      setIsPrinting(false);
+    }
+  };
 
   const handleCollectPayment = async () => {
     const amount = parseFloat(paymentAmount);
@@ -95,6 +179,14 @@ const PaymentCollectionDialog = ({
       });
       
       toast({ title: t.paymentSuccess });
+      
+      // Calculate new total paid amount
+      const newTotalPaid = Number(loan.amount_paid) + amount;
+      
+      // Print receipt if printer is connected
+      if (printerConnected) {
+        await handlePrintReceipt({ amount, newTotalPaid });
+      }
       
       // Reset form and close dialog first
       setPaymentAmount('');
@@ -197,6 +289,26 @@ const PaymentCollectionDialog = ({
               max={remainingAmount}
               className="mt-1 text-sm rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800 focus:ring-1 focus:ring-green-400"
             />
+          </div>
+
+          {/* Printer Controls */}
+          <div className="flex gap-2">
+            {!printerConnected ? (
+              <Button
+                onClick={handleConnectPrinter}
+                disabled={isPrinting}
+                variant="outline"
+                className="flex-1 py-2 text-sm font-semibold rounded-lg border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900"
+              >
+                <Printer className="w-4 h-4 mr-2" />
+                {isPrinting ? "Connecting..." : t.connectPrinter}
+              </Button>
+            ) : (
+              <div className="flex-1 py-2 text-sm font-semibold rounded-lg border border-green-300 dark:border-green-700 text-green-700 dark:text-green-200 bg-green-50 dark:bg-green-900/30 flex items-center justify-center">
+                <Printer className="w-4 h-4 mr-2" />
+                {t.printerConnected}
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}
