@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Phone, MapPin, User, AlertCircleIcon, CircleAlert } from 'lucide-react';
+import { Plus, Edit, Trash2, Phone, MapPin, User, AlertCircleIcon, CircleAlert, CreditCard } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { createBorrower, updateBorrower, deleteBorrower } from '@/lib/database';
@@ -12,12 +13,18 @@ import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 
 interface Borrower {
   id: string;
+  title?: string;
+  first_name?: string;
+  last_name?: string;
   name: string;
+  nic_number?: string;
   phone: string;
   address: string;
   total_loans?: number;
   active_loans?: number;
   total_amount?: number;
+  pending_payment?: number;
+  created_at?: string;
 }
 
 interface BorrowerManagerProps {
@@ -33,20 +40,32 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
   const [borrowerToDelete, setBorrowerToDelete] = useState<Borrower | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
+    title: '',
+    first_name: '',
+    last_name: '',
+    nic_number: '',
     phone: '',
     address: ''
   });
 
-  // --- Search filter state ---
   const [search, setSearch] = useState('');
-  // --- End search filter state ---
+
+  const titleOptions = [
+    { value: 'Mr.', label: 'Mr.' },
+    { value: 'Mrs.', label: 'Mrs.' },
+    { value: 'Miss.', label: 'Miss.' },
+    { value: 'Master.', label: 'Master.' }
+  ];
 
   const translations = {
     en: {
       title: 'Borrower Management',
       addBorrower: 'Add New Borrower',
       editBorrower: 'Edit Borrower',
+      titleField: 'Title',
+      firstName: 'First Name',
+      lastName: 'Last Name',
+      nicNumber: 'NIC Number',
       name: 'Full Name',
       phone: 'Phone Number',
       address: 'Address',
@@ -57,18 +76,24 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
       totalLoans: 'Total Loans',
       activeLoans: 'Active Loans',
       totalAmount: 'Total Amount',
+      pendingPayment: 'Pending Payment',
       borrowerAdded: 'Borrower added successfully',
       borrowerUpdated: 'Borrower updated successfully',
       borrowerDeleted: 'Borrower deleted successfully',
-      fillAllFields: 'Please fill all fields',
+      fillAllFields: 'Please fill all required fields',
       noBorrowers: 'No borrowers registered yet',
       confirmDelete: 'Are you sure you want to delete this borrower?',
-      deleteWarning: 'Cannot undo. Settle loans to delete.'
+      deleteWarning: 'Cannot undo. Settle loans to delete.',
+      searchPlaceholder: 'Search by name, phone, NIC, or address'
     },
     ta: {
       title: 'கடன் வாங்குபவர் மேலாண்மை',
       addBorrower: 'புதிய கடன் வாங்குபவரைச் சேர்க்கவும்',
       editBorrower: 'கடன் வாங்குபவரைத் திருத்தவும்',
+      titleField: 'பட்டம்',
+      firstName: 'முதல் பெயர்',
+      lastName: 'கடைசி பெயர்',
+      nicNumber: 'அடையாள அட்டை எண்',
       name: 'முழு பெயர்',
       phone: 'தொலைபேசி எண்',
       address: 'முகவரி',
@@ -79,31 +104,53 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
       totalLoans: 'மொத்த கடன்கள்',
       activeLoans: 'செயலில் உள்ள கடன்கள்',
       totalAmount: 'மொத்த தொகை',
+      pendingPayment: 'நிலுவையில் உள்ள பணம்',
       borrowerAdded: 'கடன் வாங்குபவர் வெற்றிகரமாக சேர்க்கப்பட்டார்',
       borrowerUpdated: 'கடன் வாங்குபவர் வெற்றிகரமாக புதுப்பிக்கப்பட்டார்',
       borrowerDeleted: 'கடன் வாங்குபவர் வெற்றிகரமாக நீக்கப்பட்டார்',
-      fillAllFields: 'தயவுசெய்து அனைத்து புலங்களையும் நிரப்பவும்',
+      fillAllFields: 'தயவுசெய்து அனைத்து தேவையான புலங்களையும் நிரப்பவும்',
       noBorrowers: 'இதுவரை கடன் வாங்குபவர்கள் பதிவு செய்யப்படவில்லை',
       confirmDelete: 'இந்த கடன் வாங்குபவரை நீக்க விரும்புகிறீர்களா?',
-      deleteWarning: 'செயல்தவிர்க்க முடியாது. நீக்க வேண்டிய கடன்களைத் தீர்க்கவும்.'
+      deleteWarning: 'செயல்தவிர்க்க முடியாது. நீக்க வேண்டிய கடன்களைத் தீர்க்கவும்.',
+      searchPlaceholder: 'பெயர், தொலைபேசி, அடையாள அட்டை அல்லது முகவரி மூலம் தேடுங்கள்'
     }
   };
 
   const t = translations[language as keyof typeof translations];
 
+  const formatDisplayName = (borrower: Borrower) => {
+    if (borrower.title && borrower.first_name && borrower.last_name) {
+      return `${borrower.title} ${borrower.first_name.charAt(0)}. ${borrower.last_name}`;
+    }
+    return borrower.name;
+  };
+
   const handleSubmit = async () => {
-    if (!formData.name || !formData.phone || !formData.address) {
+    if (!formData.title || !formData.first_name || !formData.last_name || !formData.nic_number || !formData.phone || !formData.address) {
       toast({ title: t.fillAllFields, variant: "destructive" });
       return;
     }
 
     setIsLoading(true);
     try {
+      const fullName = `${formData.title} ${formData.first_name} ${formData.last_name}`;
+      const phoneWithCountryCode = formData.phone.startsWith('+94') ? formData.phone : `+94${formData.phone.replace(/^0+/, '')}`;
+      
+      const borrowerData = {
+        title: formData.title,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        name: fullName,
+        nic_number: formData.nic_number,
+        phone: phoneWithCountryCode,
+        address: formData.address
+      };
+
       if (editingBorrower) {
-        await updateBorrower(editingBorrower.id, formData);
+        await updateBorrower(editingBorrower.id, borrowerData);
         toast({ title: t.borrowerUpdated });
       } else {
-        await createBorrower(formData);
+        await createBorrower(borrowerData);
         toast({ title: t.borrowerAdded });
       }
       onDataChange();
@@ -122,9 +169,13 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
 
   const handleEdit = (borrower: Borrower) => {
     setEditingBorrower(borrower);
+    const phoneWithoutCountryCode = borrower.phone.startsWith('+94') ? borrower.phone.replace('+94', '0') : borrower.phone;
     setFormData({
-      name: borrower.name,
-      phone: borrower.phone,
+      title: borrower.title || '',
+      first_name: borrower.first_name || '',
+      last_name: borrower.last_name || '',
+      nic_number: borrower.nic_number || '',
+      phone: phoneWithoutCountryCode,
       address: borrower.address
     });
     setIsDialogOpen(true);
@@ -158,118 +209,156 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
   };
 
   const resetForm = () => {
-    setFormData({ name: '', phone: '', address: '' });
+    setFormData({ title: '', first_name: '', last_name: '', nic_number: '', phone: '', address: '' });
     setEditingBorrower(null);
     setIsDialogOpen(false);
   };
 
-  // --- Filter borrowers by search ---
   const filteredBorrowers = borrowers.filter((borrower) => {
     const name = borrower.name || '';
     const phone = borrower.phone || '';
     const address = borrower.address || '';
+    const nicNumber = borrower.nic_number || '';
     return (
       name.toLowerCase().includes(search.toLowerCase()) ||
       phone.toLowerCase().includes(search.toLowerCase()) ||
-      address.toLowerCase().includes(search.toLowerCase())
+      address.toLowerCase().includes(search.toLowerCase()) ||
+      nicNumber.toLowerCase().includes(search.toLowerCase())
     );
   });
-  // --- End filter borrowers by search ---
 
-  // --- Helper: Check if borrower has pending (active) loans ---
   const hasPendingLoans = (borrower: Borrower) => {
     return (borrower.active_loans ?? 0) > 0;
   };
-  // --- End helper ---
 
   return (
     <div className="p-6 space-y-6 pt-5">
       <div className="flex justify-between items-center">
-      <h2 className="text-2xl md:text-3xl font-bold text-left text-gray-800 dark:text-gray-200 flex-1">
-        {t.title}
-      </h2>
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogTrigger asChild>
-        <Button
-          onClick={() => {
-            setEditingBorrower(null);
-            setIsDialogOpen(true);
-          }}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-sm md:text-base flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4 mr-0" />
-          <span className="hidden sm:inline">{t.addBorrower}</span>
-        </Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-md w-full p-0 overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-900 gap-0">
-        <DialogHeader className="px-6 pt-2 pb-2 border-b dark:border-gray-800">
-          <DialogTitle className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
-          {editingBorrower ? t.editBorrower : t.addBorrower}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="px-6 py-6 space-y-5">
-          <div className="flex flex-col gap-2">
-          <Label htmlFor="name" className="pb-1 text-gray-700 dark:text-gray-300">{t.name}</Label>
-          <Input
-            id="name"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder={t.name}
-            className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
-          />
-          </div>
-          <div className="flex flex-col gap-2">
-          <Label htmlFor="phone" className="pb-1 text-gray-700 dark:text-gray-300">{t.phone}</Label>
-          <Input
-            id="phone"
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            placeholder={t.phone}
-            className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
-          />
-          </div>
-          <div className="flex flex-col gap-2">
-          <Label htmlFor="address" className="pb-1 text-gray-700 dark:text-gray-300">{t.address}</Label>
-          <Input
-            id="address"
-            value={formData.address}
-            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-            placeholder={t.address}
-            className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
-          />
-          </div>
-          <div className="flex gap-2 pt-2">
-          <Button
-            onClick={handleSubmit}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-            disabled={isLoading}
-          >
-            {isLoading ? "Saving..." : t.save}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={resetForm}
-            className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300"
-          >
-            {t.cancel}
-          </Button>
-          </div>
-        </div>
-        </DialogContent>
-      </Dialog>
+        <h2 className="text-2xl md:text-3xl font-bold text-left text-gray-800 dark:text-gray-200 flex-1">
+          {t.title}
+        </h2>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              onClick={() => {
+                setEditingBorrower(null);
+                setIsDialogOpen(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-sm md:text-base flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4 mr-0" />
+              <span className="hidden sm:inline">{t.addBorrower}</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md w-full p-0 overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-900 gap-0">
+            <DialogHeader className="px-6 pt-2 pb-2 border-b dark:border-gray-800">
+              <DialogTitle className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
+                {editingBorrower ? t.editBorrower : t.addBorrower}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="px-6 py-6 space-y-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="title" className="pb-1 text-gray-700 dark:text-gray-300">{t.titleField}</Label>
+                <Select value={formData.title} onValueChange={(value) => setFormData({ ...formData, title: value })}>
+                  <SelectTrigger className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                    <SelectValue placeholder="Select title" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 z-50">
+                    {titleOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value} className="hover:bg-gray-100 dark:hover:bg-gray-700">
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <div className="flex flex-col gap-2 flex-1">
+                  <Label htmlFor="first_name" className="pb-1 text-gray-700 dark:text-gray-300">{t.firstName}</Label>
+                  <Input
+                    id="first_name"
+                    value={formData.first_name}
+                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                    placeholder={t.firstName}
+                    className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+                <div className="flex flex-col gap-2 flex-1">
+                  <Label htmlFor="last_name" className="pb-1 text-gray-700 dark:text-gray-300">{t.lastName}</Label>
+                  <Input
+                    id="last_name"
+                    value={formData.last_name}
+                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                    placeholder={t.lastName}
+                    className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="nic_number" className="pb-1 text-gray-700 dark:text-gray-300">{t.nicNumber}</Label>
+                <Input
+                  id="nic_number"
+                  value={formData.nic_number}
+                  onChange={(e) => setFormData({ ...formData, nic_number: e.target.value })}
+                  placeholder={t.nicNumber}
+                  className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="phone" className="pb-1 text-gray-700 dark:text-gray-300">{t.phone}</Label>
+                <div className="flex">
+                  <div className="flex items-center px-3 bg-gray-100 dark:bg-gray-700 border border-r-0 border-gray-200 dark:border-gray-700 rounded-l-md text-gray-600 dark:text-gray-300 text-sm">
+                    +94
+                  </div>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="771234567"
+                    className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-l-none"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="address" className="pb-1 text-gray-700 dark:text-gray-300">{t.address}</Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder={t.address}
+                  className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button
+                  onClick={handleSubmit}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Saving..." : t.save}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={resetForm}
+                  className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300"
+                >
+                  {t.cancel}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* --- Search filter input --- */}
       <div className="mb-1">
         <Input
           type="text"
-          placeholder="Search by borrower, name, or address"
+          placeholder={t.searchPlaceholder}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full focus-visible:ring-0 focus-visible:border-blue-600 dark:focus-visible:border-blue-600"
         />
       </div>
-      {/* --- End search filter input --- */}
 
       {filteredBorrowers.length === 0 ? (
         <Card>
@@ -292,7 +381,7 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
                     <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 group-hover:scale-105 transition-transform">
                       <User className="w-6 h-6 text-blue-600 dark:text-blue-300" />
                     </span>
-                    <span className="truncate text-lg font-bold text-gray-800 dark:text-gray-100">{borrower.name}</span>
+                    <span className="truncate text-lg font-bold text-gray-800 dark:text-gray-100">{formatDisplayName(borrower)}</span>
                   </div>
                   <div className="flex gap-2 ml-2">
                     <span className="border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 flex items-center h-7 w-7 justify-center transition-colors duration-150 hover:border-blue-400 dark:hover:border-blue-400">
@@ -340,6 +429,12 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
                     <Phone className="w-4 h-4 text-blue-500" />
                     <span className="truncate">{borrower.phone}</span>
                   </div>
+                  {borrower.nic_number && (
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-4 h-4 text-green-500" />
+                      <span className="truncate">{borrower.nic_number}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-purple-500" />
                     <span className="truncate">{borrower.address}</span>
@@ -356,12 +451,11 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
                   </div>
                   <div className="flex flex-col items-center flex-1 bg-purple-50 dark:bg-purple-950/30 rounded-lg py-2">
                     <div className="text-lg font-bold text-purple-700 dark:text-purple-300">
-                      ₹{(borrower.total_amount || 0).toLocaleString()}
+                      ₹{(borrower.pending_payment || 0).toLocaleString()}
                     </div>
-                    <div className="text-xs text-gray-500">{t.totalAmount}</div>
+                    <div className="text-xs text-gray-500">{t.pendingPayment}</div>
                   </div>
                 </div>
-                {/* Remove bottom edit/delete buttons */}
               </CardContent>
             </Card>
           ))}

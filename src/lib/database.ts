@@ -2,7 +2,11 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface Borrower {
   id: string;
+  title?: string;
+  first_name?: string;
+  last_name?: string;
   name: string;
+  nic_number?: string;
   phone: string;
   address: string;
   total_loans?: number;
@@ -10,6 +14,8 @@ export interface Borrower {
   total_amount?: number;
   total_paid?: number;
   remaining_amount?: number;
+  pending_payment?: number;
+  created_at?: string;
 }
 
 export interface Loan {
