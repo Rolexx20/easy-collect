@@ -143,6 +143,18 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       return;
     }
 
+    // Check if a loan already exists for the selected borrower
+    const existingLoan = loans.find((loan) => loan.borrower_id === formData.borrower_id);
+    if (existingLoan && !editingLoan) {
+      toast({
+        title: language === 'ta'
+          ? 'இந்த கடன் வாங்குபவருக்கு ஏற்கனவே ஒரு கடன் உள்ளது'
+          : 'A loan already exists for this borrower',
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const principalAmount = parseFloat(formData.principal_amount);

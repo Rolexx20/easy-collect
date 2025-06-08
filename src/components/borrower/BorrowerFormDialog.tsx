@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -91,10 +90,22 @@ const BorrowerFormDialog = ({ isOpen, onClose, editingBorrower, onDataChange, la
       return;
     }
 
+    // Validate phone number length and format
+    const phoneWithoutCountryCode = formData.phone.replace(/^0+/, '');
+    if (phoneWithoutCountryCode.length !== 9 || !/^\d{9}$/.test(phoneWithoutCountryCode)) {
+      toast({
+        title: language === 'ta'
+          ? 'தொலைபேசி எண் 9 இலக்கமாக இருக்க வேண்டும் மற்றும் முதல் இலக்கம் 0 இல்லாமல் இருக்க வேண்டும்'
+          : 'Phone number must be 9 digits long and should not start with 0',
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const fullName = `${formData.title} ${formData.first_name.charAt(0).toUpperCase()}. ${formData.last_name}`;
-      const phoneWithCountryCode = formData.phone.startsWith('+94') ? formData.phone : `+94${formData.phone.replace(/^0+/, '')}`;
+      const phoneWithCountryCode = `+94${phoneWithoutCountryCode}`;
       
       const borrowerData = {
         title: formData.title,

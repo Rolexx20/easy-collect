@@ -66,7 +66,14 @@ const BorrowerCard = ({ borrower, onEdit, onDelete, isLoading, language }: Borro
             <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 group-hover:scale-105 transition-transform">
               <User className="w-6 h-6 text-blue-600 dark:text-blue-300" />
             </span>
-            <span className="truncate text-lg font-bold text-gray-800 dark:text-gray-100">{formatDisplayName(borrower)}</span>
+            <span 
+              className="truncate text-lg font-bold text-gray-800 dark:text-gray-100 cursor-pointer"
+              title={formatDisplayName(borrower)}
+            >
+              {formatDisplayName(borrower).length > 15 
+              ? `${formatDisplayName(borrower).slice(0, 15)}...` 
+              : formatDisplayName(borrower)}
+            </span>
           </div>
           <div className="flex gap-2 ml-2">
             <span className="border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 flex items-center h-7 w-7 justify-center transition-colors duration-150 hover:border-blue-400 dark:hover:border-blue-400">
@@ -130,8 +137,8 @@ const BorrowerCard = ({ borrower, onEdit, onDelete, isLoading, language }: Borro
             </div>
             <div className="text-xs text-gray-500">{t.totalLoans}</div>
           </div>
-          <div className="flex flex-col items-center flex-1 bg-purple-50 dark:bg-purple-950/30 rounded-lg py-2">
-            <div className="text-lg font-bold text-purple-700 dark:text-purple-300">
+          <div className="flex flex-col items-center flex-1 bg-red-50 dark:bg-red-950/30 rounded-lg py-2">
+            <div className="text-lg font-bold text-red-700 dark:text-red-300">
               ₹{(borrower.remaining_amount || 0).toLocaleString()}
             </div>
             <div className="text-xs text-gray-500">{t.pendingPayment}</div>
