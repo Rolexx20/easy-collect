@@ -154,10 +154,6 @@ export type Database = {
           address: string | null
           id: string | null
           name: string | null
-          nic_number: string | null
-          title: string | null
-          first_name: string | null
-          last_name: string | null
           phone: string | null
           remaining_amount: number | null
           total_amount: number | null
@@ -193,7 +189,7 @@ export type Tables<
   }
     ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
   ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
