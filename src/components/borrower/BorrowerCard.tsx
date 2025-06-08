@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Edit, Trash2, Phone, MapPin, User, CircleAlert, CreditCard, MapIcon } from 'lucide-react';
+import { Edit, Trash2, Phone, MapPin, User, CircleAlert, CreditCard } from 'lucide-react';
 
 interface Borrower {
   id: string;
