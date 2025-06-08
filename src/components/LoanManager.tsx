@@ -669,17 +669,25 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleDeleteClick(loan)}
+                              onClick={() => {
+                                if (loan.status === 'active' && loan.amount_paid > 0) {
+                                  toast({
+                                    title: language === 'ta'
+                                      ? 'நிலுவை பணம் செலுத்துதலுடன் கடனை நீக்க முடியாது.'
+                                      : 'Cannot delete loan with pending payments',
+                                    variant: "destructive"
+                                  });
+                                } else {
+                                  handleDeleteClick(loan);
+                                }
+                              }}
                               className={`flex-0 text-xs px-2 py-1 border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:bg-red-50 dark:hover:bg-red-900 hover:border-red-400 dark:hover:border-red-400 transition-all duration-150 ${
                                 isLoading || (loan.status === 'active' && loan.amount_paid > 0)
                                   ? 'opacity-50 cursor-not-allowed'
                                   : ''
                               }`}
-                              disabled={
-                                isLoading ||
-                                (loan.status === 'active' && loan.amount_paid > 0)
-                              }
-                              style={{ minWidth: 0, pointerEvents: 'auto' }}
+                              disabled={isLoading}
+                              style={{ minWidth: 0 }}
                             >
                               <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
                             </Button>
