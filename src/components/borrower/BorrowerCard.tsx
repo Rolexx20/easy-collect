@@ -1,8 +1,7 @@
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Edit, Trash2, Phone, MapPin, User, CircleAlert, CreditCard } from 'lucide-react';
+import { Edit, Trash2, Phone, MapPin, User, CircleAlert, CreditCard, MapIcon } from 'lucide-react';
 
 interface Borrower {
   id: string;
@@ -112,21 +111,25 @@ const BorrowerCard = ({ borrower, onEdit, onDelete, isLoading, language }: Borro
       <CardContent className="space-y-3 pt-3">
         <div className="flex flex-col gap-2 text-sm text-gray-700 dark:text-gray-300">
           <div className="flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-green-500" />
+            <span className="truncate">{borrower.nic_number}</span>
+          </div>
+          <div className="flex items-center gap-2">
             <Phone className="w-4 h-4 text-blue-500" />
             <span className="truncate">{borrower.phone}</span>
           </div>
-          {borrower.nic_number && (
-            <div className="flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-green-500" />
-              <span className="truncate">{borrower.nic_number}</span>
-            </div>
-          )}
           <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-purple-500" />
+            <MapPin className="w-4 h-4 text-blue-500" />
             <span className="truncate">{borrower.address}</span>
           </div>
         </div>
-        <div className="flex justify-center items-center gap-2 pt-0">
+        <div className="grid grid-cols-2 gap-2 pt-0">
+          <div className="flex flex-col items-center flex-1 bg-purple-50 dark:bg-purple-950/30 rounded-lg py-2">
+            <div className="text-lg font-bold text-purple-700 dark:text-purple-300">
+              ₹{(borrower.total_amount || 0).toLocaleString()}
+            </div>
+            <div className="text-xs text-gray-500">{t.totalLoans}</div>
+          </div>
           <div className="flex flex-col items-center flex-1 bg-purple-50 dark:bg-purple-950/30 rounded-lg py-2">
             <div className="text-lg font-bold text-purple-700 dark:text-purple-300">
               ₹{(borrower.remaining_amount || 0).toLocaleString()}
