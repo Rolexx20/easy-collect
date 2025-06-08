@@ -154,6 +154,10 @@ export type Database = {
           address: string | null
           id: string | null
           name: string | null
+          nic_number: string | null
+          title: string | null
+          first_name: string | null
+          last_name: string | null
           phone: string | null
           remaining_amount: number | null
           total_amount: number | null
