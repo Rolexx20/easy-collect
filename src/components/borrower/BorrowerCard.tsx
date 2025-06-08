@@ -16,7 +16,7 @@ interface Borrower {
   total_loans?: number;
   active_loans?: number;
   total_amount?: number;
-  pending_payment?: number;
+  remaining_amount?: number;
   created_at?: string;
 }
 
@@ -126,14 +126,10 @@ const BorrowerCard = ({ borrower, onEdit, onDelete, isLoading, language }: Borro
             <span className="truncate">{borrower.address}</span>
           </div>
         </div>
-        <div className="flex justify-between items-center gap-2 pt-0">
-          <div className="flex flex-col items-center flex-1 bg-blue-50 dark:bg-blue-950/30 rounded-lg py-2">
-            <div className="text-lg font-bold text-blue-700 dark:text-blue-300">{borrower.total_loans || 0}</div>
-            <div className="text-xs text-gray-500">{t.totalLoans}</div>
-          </div>
+        <div className="flex justify-center items-center gap-2 pt-0">
           <div className="flex flex-col items-center flex-1 bg-purple-50 dark:bg-purple-950/30 rounded-lg py-2">
             <div className="text-lg font-bold text-purple-700 dark:text-purple-300">
-              ₹{(borrower.pending_payment || 0).toLocaleString()}
+              ₹{(borrower.remaining_amount || 0).toLocaleString()}
             </div>
             <div className="text-xs text-gray-500">{t.pendingPayment}</div>
           </div>
