@@ -1,7 +1,23 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Edit, Trash2, Phone, MapPin, User, CircleAlert, CreditCard, History, Undo2 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Edit,
+  Trash2,
+  Phone,
+  MapPin,
+  User,
+  CircleAlert,
+  CreditCard,
+  History,
+  Undo2,
+} from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface Borrower {
   id: string;
@@ -29,43 +45,46 @@ interface BorrowerCardProps {
   language: string;
 }
 
-const BorrowerCard = ({ 
-  borrower, 
-  onEdit, 
-  onDelete, 
+const BorrowerCard = ({
+  borrower,
+  onEdit,
+  onDelete,
   onViewPaymentHistory,
   onReversePayment,
-  isLoading, 
-  language 
+  isLoading,
+  language,
 }: BorrowerCardProps) => {
   const translations = {
     en: {
-      edit: 'Edit',
-      delete: 'Delete',
-      totalLoans: 'Total Loans',
-      pendingPayment: 'Pending Payment',
-      deleteWarning: 'Cannot undo. Settle loans to delete.',
-      paymentHistory: 'Payment History',
-      reversePayment: 'Reverse Payment',
-      paymentProgress: 'Payment Progress'
+      edit: "Edit",
+      delete: "Delete",
+      totalLoans: "Total Loans",
+      pendingPayment: "Pending Payment",
+      deleteWarning: "Cannot undo. Settle loans to delete.",
+      paymentHistory: "Payment History",
+      reversePayment: "Reverse Payment",
+      paymentProgress: "Payment Progress",
     },
     ta: {
-      edit: 'திருத்து',
-      delete: 'நீக்கு',
-      totalLoans: 'மொத்த கடன்கள்',
-      pendingPayment: 'நிலுவையில் உள்ள பணம்',
-      deleteWarning: 'செயல்தவிர்க்க முடியாது. நீக்க வேண்டிய கடன்களைத் தீர்க்கவும்.',
-      paymentHistory: 'பணம் செலுத்தல் வரலாறு',
-      reversePayment: 'பணம் செலுத்தல் திரும்பப் பெறுதல்',
-      paymentProgress: 'பணம் செலுத்தல் முன்னேற்றம்'
-    }
+      edit: "திருத்து",
+      delete: "நீக்கு",
+      totalLoans: "மொத்த கடன்கள்",
+      pendingPayment: "நிலுவையில் உள்ள பணம்",
+      deleteWarning:
+        "செயல்தவிர்க்க முடியாது. நீக்க வேண்டிய கடன்களைத் தீர்க்கவும்.",
+      paymentHistory: "பணம் செலுத்தல் வரலாறு",
+      reversePayment: "பணம் செலுத்தல் திரும்பப் பெறுதல்",
+      paymentProgress: "பணம் செலுத்தல் முன்னேற்றம்",
+    },
   };
 
   const t = translations[language as keyof typeof translations];
 
   const formatDisplayName = (borrower: Borrower) => {
     if (borrower.title && borrower.first_name && borrower.last_name) {
-      return `${borrower.title} ${borrower.first_name.charAt(0)}. ${borrower.last_name}`;
+      return `${borrower.title} ${borrower.first_name.charAt(0)}. ${
+        borrower.last_name
+      }`;
     }
     return borrower.name;
   };
@@ -82,53 +101,70 @@ const BorrowerCard = ({
             <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 group-hover:scale-105 transition-transform">
               <User className="w-6 h-6 text-blue-600 dark:text-blue-300" />
             </span>
-            <span 
+            <span
               className="truncate text-lg font-bold text-gray-800 dark:text-gray-100 cursor-pointer"
               title={formatDisplayName(borrower)}
             >
-              {formatDisplayName(borrower).length > 15 
-              ? `${formatDisplayName(borrower).slice(0, 15)}...` 
-              : formatDisplayName(borrower)}
+              {formatDisplayName(borrower).length > 15
+                ? `${formatDisplayName(borrower).slice(0, 15)}...`
+                : formatDisplayName(borrower)}
             </span>
           </div>
-          <div className="flex gap-2 ml-2">
-            <span className="border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 flex items-center h-7 w-7 justify-center transition-colors duration-150 hover:border-blue-400 dark:hover:border-blue-400">
+            <div className="flex gap-2 ml-2">
+            <span className="border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 flex items-center h-8 w-8 justify-center transition-colors duration-150 hover:border-blue-400 dark:hover:border-blue-400">
               <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onEdit(borrower)}
-                className="p-0.5 hover:bg-blue-100 dark:hover:bg-blue-900 rounded h-6 w-6"
-                disabled={isLoading}
-                aria-label={t.edit}
+              variant="ghost"
+              size="icon"
+              onClick={() => onEdit(borrower)}
+              className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900 rounded h-8 w-8"
+              disabled={isLoading}
+              aria-label={t.edit}
               >
-                <Edit className="w-4 h-4 text-blue-600 dark:text-blue-300" />
+              <Edit className="w-4 h-4 text-blue-600 dark:text-blue-300" />
               </Button>
             </span>
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 flex items-center h-7 w-7 justify-center transition-colors duration-150 hover:border-red-400 dark:hover:border-red-400">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onDelete(borrower)}
-                      className={`p-0.5 hover:bg-red-100 dark:hover:bg-red-900 rounded h-6 w-6 ${hasPendingLoans(borrower) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      disabled={isLoading || hasPendingLoans(borrower)}
-                      aria-label={t.delete}
-                    >
-                      <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                {hasPendingLoans(borrower) && (
-                  <TooltipContent className='bg-red-700 text-white flex items-center gap-1'>
-                    <CircleAlert className="w-4 h-4" />
-                    <span className="text-xs">{t.deleteWarning}</span>
-                  </TooltipContent>
-                )}
+              <TooltipTrigger asChild>
+                <span className="flex-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                  if (hasPendingLoans(borrower)) {
+                    toast({
+                    title:
+                      language === "ta"
+                      ? t.deleteWarning
+                      : t.deleteWarning,
+                    variant: "destructive",
+                    });
+                  } else {
+                    onDelete(borrower);
+                  }
+                  }}
+                  className={`p-0.5 hover:bg-red-100 dark:hover:bg-red-900 rounded h-8 w-8 ${
+                  hasPendingLoans(borrower)
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                  }`}
+                  disabled={isLoading}
+                  style={{ minWidth: 0 }}
+                  aria-label={t.delete}
+                >
+                  <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+                </Button>
+                </span>
+              </TooltipTrigger>
+              {hasPendingLoans(borrower) && (
+                <TooltipContent className="bg-red-700 text-white flex items-center gap-1">
+                <CircleAlert className="w-4 h-4" />
+                <span className="text-xs">{t.deleteWarning}</span>
+                </TooltipContent>
+              )}
               </Tooltip>
             </TooltipProvider>
-          </div>
+            </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3 pt-3">
