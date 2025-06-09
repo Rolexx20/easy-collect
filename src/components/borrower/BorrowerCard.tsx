@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Progress } from '@/components/ui/progress';
 import { Edit, Trash2, Phone, MapPin, User, CircleAlert, CreditCard, History, Undo2 } from 'lucide-react';
 
 interface Borrower {
@@ -47,7 +48,8 @@ const BorrowerCard = ({
       pendingPayment: 'Pending Payment',
       deleteWarning: 'Cannot undo. Settle loans to delete.',
       paymentHistory: 'Payment History',
-      reversePayment: 'Reverse Payment'
+      reversePayment: 'Reverse Payment',
+      paymentProgress: 'Payment Progress'
     },
     ta: {
       edit: 'திருத்து',
@@ -56,7 +58,8 @@ const BorrowerCard = ({
       pendingPayment: 'நிலுவையில் உள்ள பணம்',
       deleteWarning: 'செயல்தவிர்க்க முடியாது. நீக்க வேண்டிய கடன்களைத் தீர்க்கவும்.',
       paymentHistory: 'பணம் செலுத்தல் வரலாறு',
-      reversePayment: 'பணம் செலுத்தல் திரும்பப் பெறுதல்'
+      reversePayment: 'பணம் செலுத்தல் திரும்பப் பெறுதல்',
+      paymentProgress: 'பணம் செலுத்தல் முன்னேற்றம்'
     }
   };
 
@@ -72,6 +75,12 @@ const BorrowerCard = ({
   const hasPendingLoans = (borrower: Borrower) => {
     return (borrower.active_loans ?? 0) > 0;
   };
+
+  // Calculate payment progress
+  const totalAmount = borrower.total_amount || 0;
+  const remainingAmount = borrower.remaining_amount || 0;
+  const paidAmount = totalAmount - remainingAmount;
+  const paymentProgress = totalAmount > 0 ? (paidAmount / totalAmount) * 100 : 0;
 
   return (
     <Card className="transition-all border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm hover:shadow-xl bg-gradient-to-br from-white via-gray-50 to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-950 group">
@@ -173,6 +182,22 @@ const BorrowerCard = ({
             <span className="truncate">{borrower.address}</span>
           </div>
         </div>
+
+        {/* Payment Progress */}
+        {totalAmount > 0 && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+              <span>{t.paymentProgress}</span>
+              <span>{paymentProgress.toFixed(1)}%</span>
+            </div>
+            <Progress value={paymentProgress} className="h-2" />
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>₹{paidAmount.toLocaleString()}</span>
+              <span>₹{totalAmount.toLocaleString()}</span>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-2 pt-0">
           <div className="flex flex-col items-center flex-1 bg-purple-50 dark:bg-purple-950/30 rounded-lg py-2">
             <div className="text-lg font-bold text-purple-700 dark:text-purple-300">
