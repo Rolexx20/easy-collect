@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Edit, Trash2, Phone, MapPin, User, CircleAlert, CreditCard, History } from 'lucide-react';
+import { Edit, Trash2, Phone, MapPin, User, CircleAlert, CreditCard, History, Undo2 } from 'lucide-react';
 
 interface Borrower {
   id: string;
@@ -25,6 +25,7 @@ interface BorrowerCardProps {
   onEdit: (borrower: Borrower) => void;
   onDelete: (borrower: Borrower) => void;
   onViewPaymentHistory?: (borrower: Borrower) => void;
+  onReversePayment?: (borrower: Borrower) => void;
   isLoading: boolean;
   language: string;
 }
@@ -34,6 +35,7 @@ const BorrowerCard = ({
   onEdit, 
   onDelete, 
   onViewPaymentHistory,
+  onReversePayment,
   isLoading, 
   language 
 }: BorrowerCardProps) => {
@@ -44,7 +46,8 @@ const BorrowerCard = ({
       totalLoans: 'Total Loans',
       pendingPayment: 'Pending Payment',
       deleteWarning: 'Cannot undo. Settle loans to delete.',
-      paymentHistory: 'Payment History'
+      paymentHistory: 'Payment History',
+      reversePayment: 'Reverse Payment'
     },
     ta: {
       edit: 'திருத்து',
@@ -52,7 +55,8 @@ const BorrowerCard = ({
       totalLoans: 'மொத்த கடன்கள்',
       pendingPayment: 'நிலுவையில் உள்ள பணம்',
       deleteWarning: 'செயல்தவிர்க்க முடியாது. நீக்க வேண்டிய கடன்களைத் தீர்க்கவும்.',
-      paymentHistory: 'பணம் செலுத்தல் வரலாறு'
+      paymentHistory: 'பணம் செலுத்தல் வரலாறு',
+      reversePayment: 'பணம் செலுத்தல் திரும்பப் பெறுதல்'
     }
   };
 
@@ -110,6 +114,20 @@ const BorrowerCard = ({
                   aria-label={t.paymentHistory}
                 >
                   <History className="w-4 h-4 text-purple-600 dark:text-purple-300" />
+                </Button>
+              </span>
+            )}
+            {onReversePayment && (
+              <span className="border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 flex items-center h-7 w-7 justify-center transition-colors duration-150 hover:border-orange-400 dark:hover:border-orange-400">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onReversePayment(borrower)}
+                  className="p-0.5 hover:bg-orange-100 dark:hover:bg-orange-900 rounded h-6 w-6"
+                  disabled={isLoading}
+                  aria-label={t.reversePayment}
+                >
+                  <Undo2 className="w-4 h-4 text-orange-600 dark:text-orange-300" />
                 </Button>
               </span>
             )}

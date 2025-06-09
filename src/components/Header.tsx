@@ -1,7 +1,11 @@
-import { Moon, Sun, Globe, LanguagesIcon, MoonStar, Home, Users, FileText, BarChart3, Settings } from "lucide-react";
+
+import { Moon, Sun, Globe, LanguagesIcon, MoonStar, Home, Users, FileText, BarChart3, Settings, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.svg";
+import { useState } from "react";
+import { bluetoothPrinter } from "@/utils/bluetoothPrinter";
+import { toast } from "@/hooks/use-toast";
 
 interface HeaderProps {
   isDark: boolean;
@@ -22,6 +26,9 @@ const Header = ({
   activeTab,
   setActiveTab,
 }: HeaderProps) => {
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [printerConnected, setPrinterConnected] = useState(false);
+
   const translations = {
     en: {
       title: "EasyCollect",
@@ -30,6 +37,9 @@ const Header = ({
       loans: "Loans",
       reports: "Reports",
       settings: "Settings",
+      connectPrinter: "Connect Printer",
+      printerConnected: "Printer Connected",
+      printerConnectionFailed: "Failed to connect printer",
     },
     ta: {
       title: "EasyCollect",
@@ -38,6 +48,9 @@ const Header = ({
       loans: "கடன்கள்",
       reports: "அறிக்கைகள்",
       settings: "அமைப்புகள்",
+      connectPrinter: "பிரிண்டர் இணைக்கவும்",
+      printerConnected: "பிரிண்டர் இணைக்கப்பட்டது",
+      printerConnectionFailed: "பிரிண்டர் இணைப்பு தோல்வி",
     },
   };
 
@@ -51,11 +64,36 @@ const Header = ({
     { id: "settings", label: t.settings, icon: Settings },
   ];
 
+  const handleConnectPrinter = async () => {
+    setIsPrinting(true);
+    try {
+      const connected = await bluetoothPrinter.connect();
+      if (connected) {
+        setPrinterConnected(true);
+        toast({ title: t.printerConnected });
+      } else {
+        toast({ 
+          title: t.printerConnectionFailed,
+          variant: "destructive" 
+        });
+      }
+    } catch (error) {
+      console.error('Printer connection error:', error);
+      toast({ 
+        title: t.printerConnectionFailed,
+        variant: "destructive" 
+      });
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
+            {/* Logo and Title - Left */}
             <div className="flex items-center flex-shrink-0 relative">
               <img
                 src={logo}
@@ -69,7 +107,6 @@ const Header = ({
                   transform: "rotate(-45deg)",
                 }}
               />
-              {/* Title */}
               <h1
                 className="text-xl sm:text-2xl font-bold tracking-tight self-center bg-clip-text text-transparent drop-shadow-lg"
                 style={{
@@ -85,22 +122,6 @@ const Header = ({
               >
                 {t.title}
               </h1>
-              {/* Animation Style */}
-              {/* <style>
-                {`
-                  @keyframes logo-spin {
-                  0% { transform: rotate(-135deg);}
-                  15% { transform: rotate(0deg);}
-                  30% { transform: rotate(-135deg);}
-                  50% { transform: rotate(0deg);}
-                  80% { transform: rotate(-135deg);}
-                  100% { transform: rotate(0deg);}
-                }
-                  .animate-logo-spin {
-                  animation: logo-spin 8s linear infinite;
-                    }
-            `}
-              </style> */}
             </div>
 
             {/* Nav - Center */}
@@ -127,6 +148,35 @@ const Header = ({
 
             {/* Toggles - Right */}
             <div className="flex items-center space-x-3 flex-shrink-0">
+              {/* Printer Button */}
+              {!printerConnected ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleConnectPrinter}
+                  disabled={isPrinting}
+                  className={cn(
+                    "flex items-center gap-2 border-2 rounded-full transition-all duration-300 hover:scale-105 h-7 px-3",
+                    isDark
+                      ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                      : "bg-gray-100 border-gray-300 text-blue-700 hover:bg-gray-200"
+                  )}
+                >
+                  <Printer className="w-3 h-3" />
+                  <span className="text-xs font-medium hidden sm:inline">
+                    {isPrinting ? "..." : t.connectPrinter}
+                  </span>
+                </Button>
+              ) : (
+                <div className={cn(
+                  "flex items-center gap-2 border-2 rounded-full h-7 px-3",
+                  "bg-green-100 border-green-300 text-green-700 dark:bg-green-900 dark:border-green-700 dark:text-green-300"
+                )}>
+                  <Printer className="w-3 h-3" />
+                  <span className="text-xs font-medium hidden sm:inline">{t.printerConnected}</span>
+                </div>
+              )}
+
               {/* Theme Toggle */}
               <div
                 onClick={() => setIsDark(!isDark)}

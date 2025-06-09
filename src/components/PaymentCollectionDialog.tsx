@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, DollarSign, Clock, Printer, History } from 'lucide-react';
+import { Calendar, DollarSign, Clock, History } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { createPayment, type Loan } from '@/lib/database';
 import { bluetoothPrinter, type ReceiptData } from '@/utils/bluetoothPrinter';
@@ -27,7 +28,6 @@ const PaymentCollectionDialog = ({
   const [paymentAmount, setPaymentAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
-  const [printerConnected, setPrinterConnected] = useState(false);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
 
   const translations = {
@@ -45,14 +45,9 @@ const PaymentCollectionDialog = ({
       days: 'days',
       progress: 'Payment Progress',
       paymentSuccess: 'Payment collected successfully',
-      connectPrinter: 'Connect Printer',
-      printReceipt: 'Print Receipt',
-      printerConnected: 'Printer Connected',
-      printerConnectionFailed: 'Failed to connect printer',
       printSuccess: 'Receipt printed successfully',
       printFailed: 'Failed to print receipt',
-      paymentHistory: 'Payment History',
-      reversePayment: 'Reverse Payment'
+      paymentHistory: 'Payment History'
     },
     ta: {
       title: 'பணம் வசூலிக்கவும்',
@@ -68,14 +63,9 @@ const PaymentCollectionDialog = ({
       days: 'நாட்கள்',
       progress: 'பணம் செலுத்தல் முன்னேற்றம்',
       paymentSuccess: 'பணம் வெற்றிகரமாக வசூலிக்கப்பட்டது',
-      connectPrinter: 'பிரிண்டர் இணைக்கவும்',
-      printReceipt: 'ரசீது அச்சிடவும்',
-      printerConnected: 'பிரிண்டர் இணைக்கப்பட்டது',
-      printerConnectionFailed: 'பிரிண்டர் இணைப்பு தோல்வி',
       printSuccess: 'ரசீது வெற்றிகரமாக அச்சிடப்பட்டது',
       printFailed: 'ரசீது அச்சிட முடியவில்லை',
-      paymentHistory: 'பணம் செலுத்தல் வரலாறு',
-      reversePayment: 'பணம் செலுத்தல் திரும்பப் பெறுதல்'
+      paymentHistory: 'பணம் செலுத்தல் வரலாறு'
     }
   };
 
@@ -95,40 +85,7 @@ const PaymentCollectionDialog = ({
   // Only run when dialog opens or dailyPaymentAmount changes
   }, [isOpen, dailyPaymentAmount]);
 
-  const handleConnectPrinter = async () => {
-    setIsPrinting(true);
-    try {
-      const connected = await bluetoothPrinter.connect();
-      if (connected) {
-        setPrinterConnected(true);
-        toast({ title: t.printerConnected });
-      } else {
-        toast({ 
-          title: t.printerConnectionFailed,
-          variant: "destructive" 
-        });
-      }
-    } catch (error) {
-      console.error('Printer connection error:', error);
-      toast({ 
-        title: t.printerConnectionFailed,
-        variant: "destructive" 
-      });
-    } finally {
-      setIsPrinting(false);
-    }
-  };
-
   const handlePrintReceipt = async (paymentData: { amount: number; newTotalPaid: number }) => {
-    if (!printerConnected) {
-      toast({ 
-        title: "Printer not connected",
-        description: "Please connect a printer first",
-        variant: "destructive" 
-      });
-      return;
-    }
-
     setIsPrinting(true);
     try {
       const receiptData: ReceiptData = {
@@ -188,9 +145,11 @@ const PaymentCollectionDialog = ({
       // Calculate new total paid amount
       const newTotalPaid = Number(loan.amount_paid) + amount;
       
-      // Print receipt if printer is connected
-      if (printerConnected) {
+      // Try to print receipt automatically
+      try {
         await handlePrintReceipt({ amount, newTotalPaid });
+      } catch (printError) {
+        console.log('Auto-print failed, continuing without printing:', printError);
       }
       
       // Reset form and close dialog first
@@ -295,26 +254,6 @@ const PaymentCollectionDialog = ({
                 max={remainingAmount}
                 className="mt-1 text-sm rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800 focus:ring-1 focus:ring-green-400"
               />
-            </div>
-
-            {/* Printer Controls */}
-            <div className="flex gap-2">
-              {!printerConnected ? (
-                <Button
-                  onClick={handleConnectPrinter}
-                  disabled={isPrinting}
-                  variant="outline"
-                  className="flex-1 py-2 text-sm font-semibold rounded-lg border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900"
-                >
-                  <Printer className="w-4 h-4 mr-2" />
-                  {isPrinting ? "Connecting..." : t.connectPrinter}
-                </Button>
-              ) : (
-                <div className="flex-1 py-2 text-sm font-semibold rounded-lg border border-green-300 dark:border-green-700 text-green-700 dark:text-green-200 bg-green-50 dark:bg-green-900/30 flex items-center justify-center">
-                  <Printer className="w-4 h-4 mr-2" />
-                  {t.printerConnected}
-                </div>
-              )}
             </div>
 
             {/* Payment History Button */}
