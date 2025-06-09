@@ -23,7 +23,6 @@ const PaymentHistoryDialog = ({
 }: PaymentHistoryDialogProps) => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [isReverseDialogOpen, setIsReverseDialogOpen] = useState(false);
 
   const translations = {
@@ -69,14 +68,12 @@ const PaymentHistoryDialog = ({
     }
   };
 
-  const handleReverseClick = (payment: Payment) => {
-    setSelectedPayment(payment);
+  const handleReverseClick = () => {
     setIsReverseDialogOpen(true);
   };
 
   const handlePaymentReversed = () => {
     setIsReverseDialogOpen(false);
-    setSelectedPayment(null);
     loadPayments();
     onPaymentReversed();
   };
@@ -127,7 +124,7 @@ const PaymentHistoryDialog = ({
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleReverseClick(payment)}
+                        onClick={handleReverseClick}
                         className="ml-2 text-orange-600 border-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20"
                       >
                         <Undo2 className="w-3 h-3" />
@@ -152,7 +149,7 @@ const PaymentHistoryDialog = ({
       <ReversePaymentDialog
         isOpen={isReverseDialogOpen}
         onClose={() => setIsReverseDialogOpen(false)}
-        payment={selectedPayment}
+        loan={loan}
         onPaymentReversed={handlePaymentReversed}
         language={language}
       />
