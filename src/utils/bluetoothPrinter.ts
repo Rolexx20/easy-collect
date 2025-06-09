@@ -85,8 +85,6 @@ Installment Receipt
 Tel :
 Bill Date : ${date} ${time}
 
-${data.route ? `Route : ${data.route}` : ''}
-Loan No : ${data.loanNumber}
 Customer : ${data.customerName}
 Loan Amount : ${data.loanAmount.toLocaleString()}
 Rental : ${(data.loanAmount / 60).toFixed(0)}
