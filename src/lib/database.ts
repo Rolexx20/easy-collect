@@ -232,6 +232,32 @@ export const getPayments = async (loanId?: string): Promise<Payment[]> => {
   return data || [];
 };
 
+export const reversePayment = async (paymentId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('payments')
+    .delete()
+    .eq('id', paymentId);
+    
+  if (error) {
+    console.error('Error reversing payment:', error);
+    throw error;
+  }
+};
+
+export const getPaymentsByLoanId = async (loanId: string): Promise<Payment[]> => {
+  const { data, error } = await supabase
+    .from('payments')
+    .select('*')
+    .eq('loan_id', loanId)
+    .order('payment_date', { ascending: false });
+    
+  if (error) {
+    console.error('Error fetching payments for loan:', error);
+    throw error;
+  }
+  return data || [];
+};
+
 // Dashboard statistics
 export const getDashboardStats = async () => {
   const borrowers = await getBorrowers();
