@@ -92,7 +92,8 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
         toast({ 
           title: "No active loans", 
           description: "This borrower has no active loans to show payment history for.",
-          variant: "destructive" 
+          variant: "destructive",
+          duration: 3000
         });
       }
     } catch (error) {
@@ -100,7 +101,8 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
       toast({ 
         title: "Error", 
         description: "Failed to load payment history. Please try again.",
-        variant: "destructive" 
+        variant: "destructive",
+        duration: 3000
       });
     }
   };
@@ -118,7 +120,8 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
       toast({ 
         title: "Error", 
         description: "Failed to delete borrower. Please try again.",
-        variant: "destructive" 
+        variant: "destructive",
+        duration: 3000
       });
     } finally {
       setIsLoading(false);

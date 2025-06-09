@@ -18,7 +18,7 @@ export class BluetoothPrinter {
 
   async connect(): Promise<boolean> {
     try {
-      // Request Bluetooth device
+      console.log("Requesting Bluetooth device...");
       this.device = await navigator.bluetooth.requestDevice({
         filters: [
           { services: ['000018f0-0000-1000-8000-00805f9b34fb'] }, // Common printer service
@@ -33,15 +33,16 @@ export class BluetoothPrinter {
         throw new Error('GATT not available');
       }
 
-      // Connect to GATT server
+      console.log("Connecting to GATT server...");
       const server = await this.device.gatt.connect();
-      
-      // Get primary service
+
+      console.log("Getting primary service...");
       const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
-      
-      // Get characteristic for writing
+
+      console.log("Getting characteristic...");
       this.characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
-      
+
+      console.log("Bluetooth device connected successfully!");
       return true;
     } catch (error) {
       console.error('Bluetooth connection failed:', error);

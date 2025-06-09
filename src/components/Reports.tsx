@@ -352,7 +352,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   const handleExport = () => {
     const data = getReportData();
     if (data.length === 0) {
-      toast({ title: t.noData, variant: "destructive" });
+      toast({ title: t.noData, variant: "destructive", duration: 3000 }); // Close after 3 seconds
       return;
     }
     const reportName = reportTypes.find(rt => rt.id === selectedReportType)?.label || 'report';
@@ -361,13 +361,13 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     if (selectedFileType === 'excel') {
       filename = `${reportName}_${timestamp}.xlsx`;
       exportToExcel(data, filename);
-      toast({ title: `${reportName} exported as Excel successfully` });
+      toast({ title: `${reportName} exported as Excel successfully`, duration: 3000 }); // Close after 3 seconds
     } else if (selectedFileType === 'csv') {
       exportToCSV(data, filename);
-      toast({ title: `${reportName} exported as CSV successfully` });
+      toast({ title: `${reportName} exported as CSV successfully`, duration: 3000 }); // Close after 3 seconds
     } else if (selectedFileType === 'pdf') {
       exportToPDF(data, filename);
-      toast({ title: `${reportName} exported as PDF successfully` });
+      toast({ title: `${reportName} exported as PDF successfully`, duration: 3000 }); // Close after 3 seconds
     }
   };
 

@@ -122,7 +122,8 @@ const PaymentCollectionDialog = ({
       toast({ 
         title: "Error", 
         description: "Failed to collect payment. Please try again.",
-        variant: "destructive" 
+        variant: "destructive",
+        duration: 3000
       });
     } finally {
       setIsLoading(false);

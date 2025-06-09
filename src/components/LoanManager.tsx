@@ -154,7 +154,8 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
         title: language === 'ta'
           ? 'இந்த கடன் வாங்குபவருக்கு ஏற்கனவே ஒரு கடன் உள்ளது'
           : 'A loan already exists for this borrower',
-        variant: "destructive"
+        variant: "destructive",
+        duration: 3000
       });
       return;
     }
@@ -202,7 +203,8 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       toast({
         title: "Error",
         description: "Failed to save loan. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
+        duration: 3000
       });
     } finally {
       setIsLoading(false);
@@ -230,7 +232,8 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
         title: language === 'ta'
           ? 'முடிக்கப்படாத கடனை நீக்க முடியாது'
           : 'Cannot delete a loan that is not completed',
-        variant: "destructive"
+        variant: "destructive",
+        duration: 3000
       });
       return;
     }
@@ -251,7 +254,8 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       toast({
         title: "Error",
         description: "Failed to delete loan. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
+        duration: 3000
       });
     } finally {
       setIsLoading(false);
@@ -687,7 +691,8 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                                     title: language === 'ta'
                                       ? 'நிலுவை பணம் செலுத்துதலுடன் கடனை நீக்க முடியாது.'
                                       : 'Cannot delete loan with pending payments',
-                                    variant: "destructive"
+                                    variant: "destructive",
+                                    duration: 3000
                                   });
                                 } else {
                                   handleDeleteClick(loan);
