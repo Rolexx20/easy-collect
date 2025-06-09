@@ -278,8 +278,8 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
     setFormData({
       borrower_id: '',
       principal_amount: '',
-      interest_rate: '',
-      duration_months: '',
+      interest_rate: '15',
+      duration_months: '1',
       start_date: new Date().toISOString().split('T')[0]
     });
     setEditingLoan(null);
@@ -445,14 +445,14 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                 <Input
                   id="interest"
                   type="number"
-                  step="1"
+                  step="15"
                   value={formData.interest_rate}
                   onChange={(e) => setFormData({ ...formData, interest_rate: e.target.value })}
-                  placeholder="0"
+                  placeholder="15"
                   className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                 />
               </div>
-              <div className="flex flex-col gap-1 pb-2">
+                <div className="flex flex-col gap-1 pb-2">
                 <Label htmlFor="duration" className="flex items-center gap-2 pb-1">
                   <Clock className="w-4 h-4" />
                   {t.duration}
@@ -462,10 +462,10 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                   type="number"
                   value={formData.duration_months}
                   onChange={(e) => setFormData({ ...formData, duration_months: e.target.value })}
-                  placeholder="6"
+                  placeholder="1"
                   className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                 />
-              </div>
+                </div>
               <div className="flex flex-col gap-1 pb-2">
                 <Label htmlFor="startDate" className="flex items-center gap-2 pb-1">
                   <Calendar className="w-4 h-4" />

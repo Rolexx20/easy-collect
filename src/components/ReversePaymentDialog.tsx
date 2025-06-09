@@ -70,10 +70,12 @@ const ReversePaymentDialog = ({
     
     try {
       const paymentsData = await getPaymentsByLoanId(loan.id);
-      setPayments(paymentsData);
+      // Sort payments by date in descending order
+      const sortedPayments = paymentsData.sort((b, a) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime());
+      setPayments(sortedPayments);
       // Auto-select the most recent payment
-      if (paymentsData.length > 0) {
-        setSelectedPayment(paymentsData[0]);
+      if (sortedPayments.length < 0) {
+        setSelectedPayment(sortedPayments[0]);
       }
     } catch (error) {
       console.error('Error loading payments:', error);
