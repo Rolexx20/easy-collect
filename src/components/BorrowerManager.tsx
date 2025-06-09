@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,6 @@ import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 import BorrowerFormDialog from './borrower/BorrowerFormDialog';
 import BorrowerCard from './borrower/BorrowerCard';
 import PaymentHistoryDialog from './PaymentHistoryDialog';
-import ReversePaymentDialog from './ReversePaymentDialog';
 
 interface Borrower {
   id: string;
@@ -43,7 +41,6 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
-  const [isReversePaymentOpen, setIsReversePaymentOpen] = useState(false);
   const [selectedBorrowerLoan, setSelectedBorrowerLoan] = useState<any>(null);
 
   const translations = {
@@ -103,35 +100,6 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
       toast({ 
         title: "Error", 
         description: "Failed to load payment history. Please try again.",
-        variant: "destructive" 
-      });
-    }
-  };
-
-  const handleReversePayment = async (borrower: Borrower) => {
-    try {
-      // Get the borrower's active loan
-      const loans = await getLoans();
-      const borrowerLoan = loans.find(loan => loan.borrower_id === borrower.id && loan.status === 'active');
-      
-      if (borrowerLoan) {
-        setSelectedBorrowerLoan({
-          ...borrowerLoan,
-          borrowerName: borrower.name
-        });
-        setIsReversePaymentOpen(true);
-      } else {
-        toast({ 
-          title: "No active loans", 
-          description: "This borrower has no active loans to reverse payments for.",
-          variant: "destructive" 
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching loan data:', error);
-      toast({ 
-        title: "Error", 
-        description: "Failed to load reverse payment dialog. Please try again.",
         variant: "destructive" 
       });
     }
@@ -221,7 +189,6 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
               onEdit={handleEdit}
               onDelete={handleDeleteClick}
               onViewPaymentHistory={handleViewPaymentHistory}
-              onReversePayment={handleReversePayment}
               isLoading={isLoading}
               language={language}
             />
@@ -256,17 +223,6 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
             isOpen={isPaymentHistoryOpen}
             onClose={() => {
               setIsPaymentHistoryOpen(false);
-              setSelectedBorrowerLoan(null);
-            }}
-            loan={selectedBorrowerLoan}
-            onPaymentReversed={onDataChange}
-            language={language}
-          />
-          
-          <ReversePaymentDialog
-            isOpen={isReversePaymentOpen}
-            onClose={() => {
-              setIsReversePaymentOpen(false);
               setSelectedBorrowerLoan(null);
             }}
             loan={selectedBorrowerLoan}

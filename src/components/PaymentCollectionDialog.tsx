@@ -1,10 +1,8 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { DollarSign, Calendar, CreditCard, FileText } from 'lucide-react';
@@ -42,8 +40,7 @@ const PaymentCollectionDialog = ({
 }: PaymentCollectionDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    amount: '',
-    payment_method: 'cash',
+    amount: loan ? (loan.total_amount / loan.duration_months / 30).toFixed(2) : '',
     notes: ''
   });
 
@@ -51,7 +48,6 @@ const PaymentCollectionDialog = ({
     en: {
       title: 'Collect Payment',
       amount: 'Payment Amount',
-      method: 'Payment Method',
       notes: 'Notes (Optional)',
       collect: 'Collect Payment',
       cancel: 'Cancel',
@@ -72,7 +68,6 @@ const PaymentCollectionDialog = ({
     ta: {
       title: 'பணம் வசூலிக்கவும்',
       amount: 'பணம் செலுத்தும் தொகை',
-      method: 'பணம் செலுத்தும் முறை',
       notes: 'குறிப்புகள் (விருப்பமான)',
       collect: 'பணம் வசூலிக்கவும்',
       cancel: 'ரத்து செய்யவும்',
@@ -114,14 +109,14 @@ const PaymentCollectionDialog = ({
         loan_id: loan!.id,
         amount: paymentAmount,
         payment_date: new Date().toISOString().split('T')[0],
-        payment_method: formData.payment_method,
-        notes: formData.notes
+        notes: formData.notes,
+        payment_method: ''
       });
       
       toast({ title: t.paymentCollected });
       onPaymentCollect();
       onClose();
-      setFormData({ amount: '', payment_method: 'cash', notes: '' });
+      setFormData({ amount: '', notes: '' });
     } catch (error) {
       console.error('Error collecting payment:', error);
       toast({ 
@@ -190,16 +185,17 @@ const PaymentCollectionDialog = ({
               <Progress value={progress} className="h-2" />
             </div>
 
-            {/* Simulated Progress (if amount is entered) */}
-            {formData.amount && parseFloat(formData.amount) > 0 && (
-              <div className="space-y-2 border-t border-gray-200 dark:border-gray-700 pt-3">
-                <div className="flex justify-between text-xs text-blue-600 dark:text-blue-400">
-                  <span>After Payment</span>
-                  <span>{simulatedProgress}%</span>
-                </div>
-                <Progress value={simulatedProgress} className="h-2" />
+            {/* Additional Loan Details */}
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Daily Payment Amount</span>
+                <p className="font-bold text-gray-800 dark:text-gray-200">₹{(loan.total_amount / loan.duration_months / 30).toFixed(2)}</p>
               </div>
-            )}
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Loan Period</span>
+                <p className="font-bold text-gray-800 dark:text-gray-200">{loan.duration_months * 30} days</p>
+              </div>
+            </div>
           </div>
 
           {/* Payment Form */}
@@ -219,28 +215,6 @@ const PaymentCollectionDialog = ({
                 className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                 max={remainingAmount}
               />
-            </div>
-
-            <div>
-              <Label htmlFor="method" className="flex items-center gap-2 mb-2">
-                <CreditCard className="w-4 h-4" />
-                {t.method}
-              </Label>
-              <Select
-                value={formData.payment_method}
-                onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
-              >
-                <SelectTrigger className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-                  <SelectItem value="cash">{t.cash}</SelectItem>
-                  <SelectItem value="bank">{t.bank}</SelectItem>
-                  <SelectItem value="card">{t.card}</SelectItem>
-                  <SelectItem value="upi">{t.upi}</SelectItem>
-                  <SelectItem value="other">{t.other}</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             <div>

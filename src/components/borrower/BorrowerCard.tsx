@@ -1,8 +1,6 @@
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Progress } from '@/components/ui/progress';
 import { Edit, Trash2, Phone, MapPin, User, CircleAlert, CreditCard, History, Undo2 } from 'lucide-react';
 
 interface Borrower {
@@ -76,12 +74,6 @@ const BorrowerCard = ({
     return (borrower.active_loans ?? 0) > 0;
   };
 
-  // Calculate payment progress
-  const totalAmount = borrower.total_amount || 0;
-  const remainingAmount = borrower.remaining_amount || 0;
-  const paidAmount = totalAmount - remainingAmount;
-  const paymentProgress = totalAmount > 0 ? (paidAmount / totalAmount) * 100 : 0;
-
   return (
     <Card className="transition-all border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm hover:shadow-xl bg-gradient-to-br from-white via-gray-50 to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-950 group">
       <CardHeader className="pb-2 pt-2 border-gray-100 dark:border-gray-800 bg-gradient-to-r from-blue-50/60 to-transparent dark:from-blue-900/30">
@@ -112,34 +104,6 @@ const BorrowerCard = ({
                 <Edit className="w-4 h-4 text-blue-600 dark:text-blue-300" />
               </Button>
             </span>
-            {onViewPaymentHistory && (
-              <span className="border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 flex items-center h-7 w-7 justify-center transition-colors duration-150 hover:border-purple-400 dark:hover:border-purple-400">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onViewPaymentHistory(borrower)}
-                  className="p-0.5 hover:bg-purple-100 dark:hover:bg-purple-900 rounded h-6 w-6"
-                  disabled={isLoading}
-                  aria-label={t.paymentHistory}
-                >
-                  <History className="w-4 h-4 text-purple-600 dark:text-purple-300" />
-                </Button>
-              </span>
-            )}
-            {onReversePayment && (
-              <span className="border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 flex items-center h-7 w-7 justify-center transition-colors duration-150 hover:border-orange-400 dark:hover:border-orange-400">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onReversePayment(borrower)}
-                  className="p-0.5 hover:bg-orange-100 dark:hover:bg-orange-900 rounded h-6 w-6"
-                  disabled={isLoading}
-                  aria-label={t.reversePayment}
-                >
-                  <Undo2 className="w-4 h-4 text-orange-600 dark:text-orange-300" />
-                </Button>
-              </span>
-            )}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -182,21 +146,6 @@ const BorrowerCard = ({
             <span className="truncate">{borrower.address}</span>
           </div>
         </div>
-
-        {/* Payment Progress */}
-        {totalAmount > 0 && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
-              <span>{t.paymentProgress}</span>
-              <span>{paymentProgress.toFixed(1)}%</span>
-            </div>
-            <Progress value={paymentProgress} className="h-2" />
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>₹{paidAmount.toLocaleString()}</span>
-              <span>₹{totalAmount.toLocaleString()}</span>
-            </div>
-          </div>
-        )}
 
         <div className="grid grid-cols-2 gap-2 pt-0">
           <div className="flex flex-col items-center flex-1 bg-purple-50 dark:bg-purple-950/30 rounded-lg py-2">
