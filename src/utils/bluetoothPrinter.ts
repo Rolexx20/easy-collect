@@ -1,4 +1,3 @@
-
 // Bluetooth printer utility for printing receipts
 export interface ReceiptData {
   loanNumber: string;
@@ -18,7 +17,13 @@ export class BluetoothPrinter {
 
   async connect(): Promise<boolean> {
     try {
+      if (!navigator.bluetooth) {
+        console.error('Bluetooth API is not supported in this environment');
+        return false;
+      }
+
       console.log("Requesting Bluetooth device...");
+      // Prompt user for permission to access Bluetooth devices
       this.device = await navigator.bluetooth.requestDevice({
         filters: [
           { services: ['000018f0-0000-1000-8000-00805f9b34fb'] }, // Common printer service
@@ -45,7 +50,11 @@ export class BluetoothPrinter {
       console.log("Bluetooth device connected successfully!");
       return true;
     } catch (error) {
-      console.error('Bluetooth connection failed:', error);
+      if (error.name === 'NotFoundError') {
+        console.error('No Bluetooth devices found or permission denied. Please ensure Bluetooth is enabled and grant access.');
+      } else {
+        console.error('Bluetooth connection failed:', error.message || error);
+      }
       return false;
     }
   }
