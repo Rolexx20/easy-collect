@@ -180,9 +180,9 @@ const PaymentCollectionDialog = ({
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
                 <span>{t.paymentProgress}</span>
-                <span>{progress}%</span>
+                <span>{simulatedProgress}%</span>
               </div>
-              <Progress value={progress} className="h-2" />
+              <Progress value={simulatedProgress} className="h-2" />
             </div>
 
             {/* Additional Loan Details */}
@@ -202,18 +202,20 @@ const PaymentCollectionDialog = ({
           <div className="space-y-4">
             <div>
               <Label htmlFor="amount" className="flex items-center gap-2 mb-2">
-                <DollarSign className="w-4 h-4" />
-                {t.amount}
+              <DollarSign className="w-4 h-4" />
+              {t.amount}
               </Label>
               <Input
-                id="amount"
-                type="number"
-                step="100"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                placeholder="0"
-                className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                max={remainingAmount}
+              id="amount"
+              type="number"
+              step="1"
+              value={formData.amount}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData({ ...formData, amount: value });
+              }}
+              placeholder={(loan.total_amount / loan.duration_months / 30).toFixed(2)}
+              className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
               />
             </div>
 
