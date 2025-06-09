@@ -6,10 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Edit, Trash2, Calendar, DollarSign, User, CreditCard, Clock, TrendingUp, AlertTriangle, Clock10, ThumbsUp, Lightbulb } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, DollarSign, User, CreditCard, Clock, TrendingUp, AlertTriangle, Clock10, ThumbsUp, Lightbulb, History } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { createLoan, updateLoan, deleteLoan } from '@/lib/database';
 import PaymentCollectionDialog from './PaymentCollectionDialog';
+import PaymentHistoryDialog from './PaymentHistoryDialog';
 import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -47,13 +48,14 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [loanToDelete, setLoanToDelete] = useState<Loan | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentHistoryOpen, setPaymentHistoryOpen] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     borrower_id: '',
     principal_amount: '',
     interest_rate: '',
-    duration_months: '', // Changed from duration_days to duration_months
+    duration_months: '',
     start_date: new Date().toISOString().split('T')[0]
   });
 
@@ -78,6 +80,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       edit: 'Edit',
       delete: 'Delete',
       collectPayment: 'Collect Payment',
+      paymentHistory: 'Payment History',
       totalAmount: 'Total Amount',
       amountPaid: 'Paid Amount',
       remainingAmount: 'Remain Amount',
@@ -112,6 +115,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       edit: 'திருத்து',
       delete: 'நீக்கு',
       collectPayment: 'பணம் வசூலிக்கவும்',
+      paymentHistory: 'பணம் செலுத்தல் வரலாறு',
       totalAmount: 'மொத்த தொகை',
       amountPaid: 'செலுத்திய தொகை',
       remainingAmount: 'மீதமுள்ள தொகை',
@@ -261,6 +265,11 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
     setPaymentDialogOpen(true);
   };
 
+  const handleViewPaymentHistory = (loan: Loan) => {
+    setSelectedLoan(loan);
+    setPaymentHistoryOpen(true);
+  };
+
   const resetForm = () => {
     setFormData({
       borrower_id: '',
@@ -407,7 +416,6 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                   value={formData.principal_amount}
                   onChange={(e) => {
                     setFormData({ ...formData, principal_amount: e.target.value });
-                    // Remove real-time validation here
                     setEditAmountError(null);
                   }}
                   placeholder="0"
@@ -526,14 +534,12 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {/* Small user icon before borrower name, green bg always */}
                       <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 dark:bg-green-900">
                         <User className="w-4 h-4 text-green-700 dark:text-green-300" />
                       </span>
                       <span className="truncate text-lg font-bold text-gray-800 dark:text-gray-100">{loan.borrowerName || 'Unknown'}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {/* Loan status badge at top right */}
                       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${getStatusColor(loan.status)}`}>
                         {getStatusIcon(loan.status)}
                         {getStatusText(loan.status)}
@@ -543,7 +549,6 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                 </CardHeader>
                 <CardContent className="p-3 pt-1 space-y-3">
                   <div className="grid grid-cols-3 gap-2 mt-2 mb-1 text-left">
-                    {/* Principal Amount */}
                     <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                       <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                         <DollarSign className="w-2.5 h-2.5" />
@@ -553,7 +558,6 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                         ₹ {loan.principal_amount.toLocaleString()}
                       </span>
                     </div>
-                    {/* Interest Rate */}
                     <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                       <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                         <TrendingUp className="w-2.5 h-2.5" />
@@ -563,7 +567,6 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                         {loan.interest_rate} %
                       </span>
                     </div>
-                    {/* Daily Payment */}
                     <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                       <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                         <Clock10 className="w-2.5 h-2.5" />
@@ -573,7 +576,6 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                         ₹ {dailyPayment.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                       </span>
                     </div>
-                    {/* Duration in Days */}
                     <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                       <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                         <Calendar className="w-2.5 h-2.5" />
@@ -583,7 +585,6 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                         {loan.duration_months * 30} {`${t.daysRemaining.replace(/[^A-Za-z]/g, '') || 'days'}`}
                       </span>
                     </div>
-                    {/* Total Interest */}
                     <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                       <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                         <DollarSign className="w-2.5 h-2.5" />
@@ -593,7 +594,6 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                         ₹ {(loan.total_amount - loan.principal_amount).toLocaleString()}
                       </span>
                     </div>
-                    {/* Remaining Day */}
                     <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                       <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                         <Clock className="w-2.5 h-2.5" />
@@ -616,7 +616,6 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                     </div>
                   </div>
 
-                  {/* Progress bar with percentage label */}
                   <div className="relative flex items-center">
                     <Progress value={progress} className="h-2 mt-0 mb-0 flex-1" />
                     <span className="ml-2 text-xs font-bold text-green-600 dark:text-green-500 z-10">
@@ -639,7 +638,6 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                     </div>
                   </div>
 
-                  {/* Action buttons row (collect payment, edit, delete) */}
                   <div className="flex gap-2 mt-1">
                     {loan.status === 'active' && (
                       <Button
@@ -652,6 +650,16 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                         {t.collectPayment}
                       </Button>
                     )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewPaymentHistory(loan)}
+                      className="flex-0 text-xs px-2 py-1 border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:bg-purple-50 dark:hover:bg-purple-900 hover:border-purple-400 dark:hover:border-purple-400 transition-all duration-150"
+                      disabled={isLoading}
+                      style={{ minWidth: 0 }}
+                    >
+                      <History className="w-4 h-4 text-purple-600 dark:text-purple-300" />
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
@@ -714,16 +722,29 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       )}
 
       {selectedLoan && (
-        <PaymentCollectionDialog
-          isOpen={paymentDialogOpen}
-          onClose={() => {
-            setPaymentDialogOpen(false);
-            setSelectedLoan(null);
-          }}
-          loan={selectedLoan}
-          onPaymentCollect={onDataChange}
-          language={language}
-        />
+        <>
+          <PaymentCollectionDialog
+            isOpen={paymentDialogOpen}
+            onClose={() => {
+              setPaymentDialogOpen(false);
+              setSelectedLoan(null);
+            }}
+            loan={selectedLoan}
+            onPaymentCollect={onDataChange}
+            language={language}
+          />
+
+          <PaymentHistoryDialog
+            isOpen={paymentHistoryOpen}
+            onClose={() => {
+              setPaymentHistoryOpen(false);
+              setSelectedLoan(null);
+            }}
+            loan={selectedLoan}
+            onPaymentReversed={onDataChange}
+            language={language}
+          />
+        </>
       )}
 
       <DeleteConfirmationDialog

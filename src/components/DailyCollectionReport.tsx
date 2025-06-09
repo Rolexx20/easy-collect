@@ -160,7 +160,7 @@ const DailyCollectionReport = ({ language }: DailyCollectionReportProps) => {
                         ₹{Number(payment.amount).toLocaleString()}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {new Date(payment.payment_date + 'T' + (payment.created_at ? new Date(payment.created_at).toTimeString().split(' ')[0] : '00:00:00')).toLocaleTimeString()}
+                        {new Date().toLocaleTimeString()}
                       </div>
                     </div>
                   </div>

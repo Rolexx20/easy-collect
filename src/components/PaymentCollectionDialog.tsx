@@ -1,19 +1,34 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, DollarSign, Clock } from 'lucide-react';
+import { DollarSign, Calendar, CreditCard, FileText } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { createPayment, type Loan } from '@/lib/database';
-import { bluetoothPrinter, type ReceiptData } from '@/utils/bluetoothPrinter';
+import { createPayment } from '@/lib/database';
+
+interface Loan {
+  id: string;
+  borrower_id: string;
+  borrowerName?: string;
+  principal_amount: number;
+  interest_rate: number;
+  duration_months: number;
+  total_amount: number;
+  amount_paid: number;
+  start_date: string;
+  status: 'active' | 'completed' | 'overdue';
+  next_payment_date?: string;
+}
 
 interface PaymentCollectionDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  loan: Loan;
+  loan: Loan | null;
   onPaymentCollect: () => void;
   language: string;
 }
@@ -25,142 +40,93 @@ const PaymentCollectionDialog = ({
   onPaymentCollect, 
   language 
 }: PaymentCollectionDialogProps) => {
-  const [paymentAmount, setPaymentAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isPrinting, setIsPrinting] = useState(false);
+  const [formData, setFormData] = useState({
+    amount: '',
+    payment_method: 'cash',
+    notes: ''
+  });
 
   const translations = {
     en: {
       title: 'Collect Payment',
-      borrower: 'Borrower',
-      totalLoan: 'Total Loan Amount',
-      paidAmount: 'Amount Paid',
-      remainingAmount: 'Remaining Amount',
-      dailyPayment: 'Daily Payment Amount',
-      paymentAmount: 'Payment Amount',
+      amount: 'Payment Amount',
+      method: 'Payment Method',
+      notes: 'Notes (Optional)',
       collect: 'Collect Payment',
       cancel: 'Cancel',
-      loanPeriod: 'Loan Period',
-      days: 'days',
-      progress: 'Payment Progress',
-      paymentSuccess: 'Payment collected successfully',
-      printSuccess: 'Receipt printed successfully',
-      printFailed: 'Failed to print receipt'
+      totalAmount: 'Total Loan Amount',
+      paidAmount: 'Already Paid',
+      remainingAmount: 'Remaining Amount',
+      paymentProgress: 'Payment Progress',
+      paymentCollected: 'Payment collected successfully',
+      enterAmount: 'Please enter payment amount',
+      invalidAmount: 'Payment amount cannot exceed remaining amount',
+      collecting: 'Collecting...',
+      cash: 'Cash',
+      bank: 'Bank Transfer',
+      card: 'Card',
+      upi: 'UPI',
+      other: 'Other'
     },
     ta: {
       title: 'பணம் வசூலிக்கவும்',
-      borrower: 'கடன் வாங்குபவர்',
-      totalLoan: 'மொத்த கடன் தொகை',
-      paidAmount: 'செலுத்தப்பட்ட தொகை',
-      remainingAmount: 'மீதமுள்ள தொகை',
-      dailyPayment: 'தினசரி பணம்',
-      paymentAmount: 'பணம் தொகை',
+      amount: 'பணம் செலுத்தும் தொகை',
+      method: 'பணம் செலுத்தும் முறை',
+      notes: 'குறிப்புகள் (விருப்பமான)',
       collect: 'பணம் வசூலிக்கவும்',
       cancel: 'ரத்து செய்யவும்',
-      loanPeriod: 'கடன் காலம்',
-      days: 'நாட்கள்',
-      progress: 'பணம் செலுத்தல் முன்னேற்றம்',
-      paymentSuccess: 'பணம் வெற்றிகரமாக வசூலிக்கப்பட்டது',
-      printSuccess: 'ரசீது வெற்றிகரமாக அச்சிடப்பட்டது',
-      printFailed: 'ரசீது அச்சிட முடியவில்லை'
+      totalAmount: 'மொத்த கடன் தொகை',
+      paidAmount: 'ஏற்கனவே செலுத்தப்பட்டது',
+      remainingAmount: 'மீதமுள்ள தொகை',
+      paymentProgress: 'பணம் செலுத்தல் முன்னேற்றம்',
+      paymentCollected: 'பணம் வெற்றிகரமாக வசூலிக்கப்பட்டது',
+      enterAmount: 'தயவுசெய்து பணம் செலுத்தும் தொகையை உள்ளிடவும்',
+      invalidAmount: 'பணம் செலுத்தும் தொகை மீதமுள்ள தொகையை விட அதிகமாக இருக்க முடியாது',
+      collecting: 'வசூலிக்கிறது...',
+      cash: 'பணம்',
+      bank: 'வங்கி பரிமாற்றம்',
+      card: 'அட்டை',
+      upi: 'UPI',
+      other: 'மற்றவை'
     }
   };
 
   const t = translations[language as keyof typeof translations];
 
-  const remainingAmount = Number(loan.total_amount) - Number(loan.amount_paid);
-  const loanDays = loan.duration_months * 30; // Convert months to days
-  const dailyPaymentAmount = Number(loan.total_amount) / loanDays;
-  const paymentProgress = (Number(loan.amount_paid) / Number(loan.total_amount)) * 100;
-
-  // Set default payment amount to daily payment when dialog opens
-  useEffect(() => {
-    if (isOpen) {
-      setPaymentAmount(dailyPaymentAmount.toFixed(2));
+  const handleSubmit = async () => {
+    if (!formData.amount) {
+      toast({ title: t.enterAmount, variant: "destructive" });
+      return;
     }
-  }, [isOpen, dailyPaymentAmount]);
 
-  const handlePrintReceipt = async (paymentData: { amount: number; newTotalPaid: number }) => {
-    setIsPrinting(true);
-    try {
-      const receiptData: ReceiptData = {
-        loanNumber: loan.id.slice(-5).toUpperCase(),
-        customerName: loan.borrowerName || 'Unknown',
-        loanAmount: Number(loan.total_amount),
-        paymentAmount: paymentData.amount,
-        totalPaid: paymentData.newTotalPaid,
-        totalDue: Number(loan.total_amount) - paymentData.newTotalPaid,
-        closingBalance: Number(loan.total_amount) - paymentData.newTotalPaid,
-        date: loan.start_date,
-        route: 'BATTICALOA 01'
-      };
+    const paymentAmount = parseFloat(formData.amount);
+    const remainingAmount = loan ? loan.total_amount - loan.amount_paid : 0;
 
-      const printed = await bluetoothPrinter.printReceipt(receiptData);
-      if (printed) {
-        toast({ title: t.printSuccess });
-      } else {
-        toast({ 
-          title: t.printFailed,
-          variant: "destructive" 
-        });
-      }
-    } catch (error) {
-      console.error('Print error:', error);
-      toast({ 
-        title: t.printFailed,
-        variant: "destructive" 
-      });
-    } finally {
-      setIsPrinting(false);
-    }
-  };
-
-  const handleCollectPayment = async () => {
-    const amount = parseFloat(paymentAmount);
-    if (amount <= 0 || amount > remainingAmount) {
-      toast({ 
-        title: "Invalid amount", 
-        description: `Please enter an amount between ₹1 and ₹${remainingAmount.toLocaleString()}`,
-        variant: "destructive" 
-      });
+    if (paymentAmount > remainingAmount) {
+      toast({ title: t.invalidAmount, variant: "destructive" });
       return;
     }
 
     setIsLoading(true);
     try {
       await createPayment({
-        loan_id: loan.id,
-        amount: amount,
+        loan_id: loan!.id,
+        amount: paymentAmount,
         payment_date: new Date().toISOString().split('T')[0],
-        payment_method: 'cash'
+        payment_method: formData.payment_method,
+        notes: formData.notes
       });
       
-      toast({ title: t.paymentSuccess });
-      
-      // Calculate new total paid amount
-      const newTotalPaid = Number(loan.amount_paid) + amount;
-      
-      // Try to print receipt automatically
-      try {
-        await handlePrintReceipt({ amount, newTotalPaid });
-      } catch (printError) {
-        console.log('Auto-print failed, continuing without printing:', printError);
-      }
-      
-      // Reset form and close dialog first
-      setPaymentAmount('');
+      toast({ title: t.paymentCollected });
+      onPaymentCollect();
       onClose();
-      
-      // Then refresh the data to show updated amounts
-      setTimeout(() => {
-        onPaymentCollect();
-      }, 100);
-      
+      setFormData({ amount: '', payment_method: 'cash', notes: '' });
     } catch (error) {
-      console.error('Error creating payment:', error);
+      console.error('Error collecting payment:', error);
       toast({ 
         title: "Error", 
-        description: "Failed to record payment. Please try again.",
+        description: "Failed to collect payment. Please try again.",
         variant: "destructive" 
       });
     } finally {
@@ -168,95 +134,143 @@ const PaymentCollectionDialog = ({
     }
   };
 
+  if (!loan) return null;
+
+  const remainingAmount = loan.total_amount - loan.amount_paid;
+  const progress = Math.round((loan.amount_paid / loan.total_amount) * 100);
+  
+  // Calculate what the progress would be after this payment
+  const simulatedPaid = loan.amount_paid + (parseFloat(formData.amount) || 0);
+  const simulatedProgress = Math.min(100, Math.round((simulatedPaid / loan.total_amount) * 100));
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-xs w-full p-5 m-0 rounded-2xl shadow-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+      <DialogContent className="max-w-md w-full p-6 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base font-semibold text-gray-800 dark:text-gray-100">
+          <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-gray-800 dark:text-gray-100">
             <DollarSign className="w-5 h-5 text-green-500" />
             {t.title}
           </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
-          {/* Borrower Info */}
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-xl px-3 py-2 flex flex-col items-start">
-            <div className="text-xs text-gray-500">{t.borrower}</div>
-            <div className="font-semibold text-base text-gray-800 dark:text-gray-100">{loan.borrowerName}</div>
-          </div>
-
-          {/* Loan Details */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="text-center p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
-              <div className="text-xs text-blue-700 dark:text-blue-300">{t.totalLoan}</div>
-              <div className="font-bold text-blue-700 dark:text-blue-300 text-base">₹{Number(loan.total_amount).toLocaleString()}</div>
+          {/* Loan Summary */}
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              {loan.borrowerName}
+            </h3>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600 dark:text-gray-400">{t.totalAmount}</span>
+              <span className="font-bold text-gray-800 dark:text-gray-200">
+                ₹{loan.total_amount.toLocaleString()}
+              </span>
             </div>
-            <div className="text-center p-2 bg-green-100 dark:bg-green-900/30 rounded-xl">
-              <div className="text-xs text-green-700 dark:text-green-300">{t.paidAmount}</div>
-              <div className="font-bold text-green-700 dark:text-green-300 text-base">₹{Number(loan.amount_paid).toLocaleString()}</div>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600 dark:text-gray-400">{t.paidAmount}</span>
+              <span className="font-bold text-green-600 dark:text-green-400">
+                ₹{loan.amount_paid.toLocaleString()}
+              </span>
             </div>
-          </div>
-
-          {/* Payment Progress */}
-          <div>
-            <div className="flex justify-between text-xs mb-1 text-gray-500">
-              <span>{t.progress}</span>
-              <span>{paymentProgress.toFixed(1)}%</span>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600 dark:text-gray-400">{t.remainingAmount}</span>
+              <span className="font-bold text-red-600 dark:text-red-400">
+                ₹{remainingAmount.toLocaleString()}
+              </span>
             </div>
-            <Progress value={paymentProgress} className="h-2" />
-          </div>
-
-          {/* Daily Payment & Remaining */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex items-center gap-2 p-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800">
-              <Clock className="w-4 h-4 text-orange-500" />
-              <div>
-                <div className="text-xs text-gray-500">{t.dailyPayment}</div>
-                <div className="font-semibold text-sm text-gray-800 dark:text-gray-100">₹{dailyPaymentAmount.toFixed(2)}</div>
+            
+            {/* Current Progress */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                <span>{t.paymentProgress}</span>
+                <span>{progress}%</span>
               </div>
+              <Progress value={progress} className="h-2" />
             </div>
-            <div className="flex items-center gap-2 p-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800">
-              <Calendar className="w-4 h-4 text-purple-500" />
-              <div>
-                <div className="text-xs text-gray-500">{t.loanPeriod}</div>
-                <div className="font-semibold text-sm text-gray-800 dark:text-gray-100">{loanDays} {t.days}</div>
+
+            {/* Simulated Progress (if amount is entered) */}
+            {formData.amount && parseFloat(formData.amount) > 0 && (
+              <div className="space-y-2 border-t border-gray-200 dark:border-gray-700 pt-3">
+                <div className="flex justify-between text-xs text-blue-600 dark:text-blue-400">
+                  <span>After Payment</span>
+                  <span>{simulatedProgress}%</span>
+                </div>
+                <Progress value={simulatedProgress} className="h-2" />
               </div>
+            )}
+          </div>
+
+          {/* Payment Form */}
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="amount" className="flex items-center gap-2 mb-2">
+                <DollarSign className="w-4 h-4" />
+                {t.amount}
+              </Label>
+              <Input
+                id="amount"
+                type="number"
+                step="100"
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                placeholder="0"
+                className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                max={remainingAmount}
+              />
             </div>
-          </div>
 
-          {/* Remaining Amount */}
-          <div className="text-center p-2 bg-red-100 dark:bg-red-900/30 rounded-xl">
-            <div className="text-xs text-red-700 dark:text-red-300">{t.remainingAmount}</div>
-            <div className="font-bold text-red-700 dark:text-red-300 text-lg">₹{remainingAmount.toLocaleString()}</div>
-          </div>
+            <div>
+              <Label htmlFor="method" className="flex items-center gap-2 mb-2">
+                <CreditCard className="w-4 h-4" />
+                {t.method}
+              </Label>
+              <Select
+                value={formData.payment_method}
+                onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
+              >
+                <SelectTrigger className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+                  <SelectItem value="cash">{t.cash}</SelectItem>
+                  <SelectItem value="bank">{t.bank}</SelectItem>
+                  <SelectItem value="card">{t.card}</SelectItem>
+                  <SelectItem value="upi">{t.upi}</SelectItem>
+                  <SelectItem value="other">{t.other}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Payment Input */}
-          <div>
-            <Label htmlFor="paymentAmount" className="text-xs text-gray-600 dark:text-gray-300">{t.paymentAmount}</Label>
-            <Input
-              id="paymentAmount"
-              type="number"
-              value={paymentAmount}
-              onChange={(e) => setPaymentAmount(e.target.value)}
-              placeholder={`Max: ₹${remainingAmount.toLocaleString()}`}
-              max={remainingAmount}
-              className="mt-1 text-sm rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800 focus:ring-1 focus:ring-green-400"
-            />
+            <div>
+              <Label htmlFor="notes" className="flex items-center gap-2 mb-2">
+                <FileText className="w-4 h-4" />
+                {t.notes}
+              </Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder=""
+                className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 min-h-[60px]"
+              />
+            </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <Button 
-              onClick={handleCollectPayment}
-              disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || parseFloat(paymentAmount) > remainingAmount || isLoading}
-              className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-lg shadow-sm py-2 text-sm"
+              onClick={handleSubmit}
+              disabled={isLoading || !formData.amount}
+              className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-lg"
             >
-              {isLoading ? "Processing..." : t.collect}
+              {isLoading ? t.collecting : t.collect}
             </Button>
             <Button 
               variant="outline" 
               onClick={onClose} 
-              className="flex-1 py-2 text-sm font-semibold rounded-lg border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="flex-1 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200"
               disabled={isLoading}
             >
               {t.cancel}
