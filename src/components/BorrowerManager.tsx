@@ -6,10 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { deleteBorrower } from '@/lib/database';
+import { deleteBorrower, getLoans } from '@/lib/database';
 import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 import BorrowerFormDialog from './borrower/BorrowerFormDialog';
 import BorrowerCard from './borrower/BorrowerCard';
+import PaymentHistoryDialog from './PaymentHistoryDialog';
 
 interface Borrower {
   id: string;
@@ -40,6 +41,8 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
   const [borrowerToDelete, setBorrowerToDelete] = useState<Borrower | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
+  const [selectedBorrowerLoan, setSelectedBorrowerLoan] = useState<any>(null);
 
   const translations = {
     en: {
@@ -72,6 +75,35 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
   const handleDeleteClick = (borrower: Borrower) => {
     setBorrowerToDelete(borrower);
     setDeleteConfirmOpen(true);
+  };
+
+  const handleViewPaymentHistory = async (borrower: Borrower) => {
+    try {
+      // Get the borrower's active loan
+      const loans = await getLoans();
+      const borrowerLoan = loans.find(loan => loan.borrower_id === borrower.id && loan.status === 'active');
+      
+      if (borrowerLoan) {
+        setSelectedBorrowerLoan({
+          ...borrowerLoan,
+          borrowerName: borrower.name
+        });
+        setIsPaymentHistoryOpen(true);
+      } else {
+        toast({ 
+          title: "No active loans", 
+          description: "This borrower has no active loans to show payment history for.",
+          variant: "destructive" 
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching loan data:', error);
+      toast({ 
+        title: "Error", 
+        description: "Failed to load payment history. Please try again.",
+        variant: "destructive" 
+      });
+    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -157,6 +189,7 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
               borrower={borrower}
               onEdit={handleEdit}
               onDelete={handleDeleteClick}
+              onViewPaymentHistory={handleViewPaymentHistory}
               isLoading={isLoading}
               language={language}
             />
@@ -184,6 +217,19 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
         itemName={borrowerToDelete?.name}
         language={language}
       />
+
+      {selectedBorrowerLoan && (
+        <PaymentHistoryDialog
+          isOpen={isPaymentHistoryOpen}
+          onClose={() => {
+            setIsPaymentHistoryOpen(false);
+            setSelectedBorrowerLoan(null);
+          }}
+          loan={selectedBorrowerLoan}
+          onPaymentReversed={onDataChange}
+          language={language}
+        />
+      )}
     </div>
   );
 };

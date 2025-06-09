@@ -1,7 +1,8 @@
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Edit, Trash2, Phone, MapPin, User, CircleAlert, CreditCard } from 'lucide-react';
+import { Edit, Trash2, Phone, MapPin, User, CircleAlert, CreditCard, History } from 'lucide-react';
 
 interface Borrower {
   id: string;
@@ -23,25 +24,35 @@ interface BorrowerCardProps {
   borrower: Borrower;
   onEdit: (borrower: Borrower) => void;
   onDelete: (borrower: Borrower) => void;
+  onViewPaymentHistory?: (borrower: Borrower) => void;
   isLoading: boolean;
   language: string;
 }
 
-const BorrowerCard = ({ borrower, onEdit, onDelete, isLoading, language }: BorrowerCardProps) => {
+const BorrowerCard = ({ 
+  borrower, 
+  onEdit, 
+  onDelete, 
+  onViewPaymentHistory,
+  isLoading, 
+  language 
+}: BorrowerCardProps) => {
   const translations = {
     en: {
       edit: 'Edit',
       delete: 'Delete',
       totalLoans: 'Total Loans',
       pendingPayment: 'Pending Payment',
-      deleteWarning: 'Cannot undo. Settle loans to delete.'
+      deleteWarning: 'Cannot undo. Settle loans to delete.',
+      paymentHistory: 'Payment History'
     },
     ta: {
       edit: 'திருத்து',
       delete: 'நீக்கு',
       totalLoans: 'மொத்த கடன்கள்',
       pendingPayment: 'நிலுவையில் உள்ள பணம்',
-      deleteWarning: 'செயல்தவிர்க்க முடியாது. நீக்க வேண்டிய கடன்களைத் தீர்க்கவும்.'
+      deleteWarning: 'செயல்தவிர்க்க முடியாது. நீக்க வேண்டிய கடன்களைத் தீர்க்கவும்.',
+      paymentHistory: 'பணம் செலுத்தல் வரலாறு'
     }
   };
 
@@ -88,6 +99,20 @@ const BorrowerCard = ({ borrower, onEdit, onDelete, isLoading, language }: Borro
                 <Edit className="w-4 h-4 text-blue-600 dark:text-blue-300" />
               </Button>
             </span>
+            {onViewPaymentHistory && (
+              <span className="border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 flex items-center h-7 w-7 justify-center transition-colors duration-150 hover:border-purple-400 dark:hover:border-purple-400">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onViewPaymentHistory(borrower)}
+                  className="p-0.5 hover:bg-purple-100 dark:hover:bg-purple-900 rounded h-6 w-6"
+                  disabled={isLoading}
+                  aria-label={t.paymentHistory}
+                >
+                  <History className="w-4 h-4 text-purple-600 dark:text-purple-300" />
+                </Button>
+              </span>
+            )}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
