@@ -270,6 +270,10 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
     setPaymentHistoryOpen(true);
   };
 
+  const handlePaymentReversed = () => {
+    onDataChange(); // Refresh loan data to update the table
+  };
+
   const resetForm = () => {
     setFormData({
       borrower_id: '',
@@ -741,7 +745,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
               setSelectedLoan(null);
             }}
             loan={selectedLoan}
-            onPaymentReversed={onDataChange}
+            onPaymentReversed={handlePaymentReversed} // Pass handler to refresh loan table
             language={language}
           />
         </>

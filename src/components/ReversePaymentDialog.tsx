@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -88,8 +87,8 @@ const ReversePaymentDialog = ({
     try {
       await reversePayment(selectedPayment.id);
       toast({ title: t.reverseSuccess });
+      onPaymentReversed(); // Notify parent to refresh loan details
       onClose();
-      onPaymentReversed();
       setSelectedPayment(null);
     } catch (error) {
       console.error('Error reversing payment:', error);
