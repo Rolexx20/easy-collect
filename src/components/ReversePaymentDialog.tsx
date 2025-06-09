@@ -178,13 +178,6 @@ const ReversePaymentDialog = ({
                       {new Date(selectedPayment.payment_date).toLocaleDateString()}
                     </span>
                   </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">{t.method}</span>
-                    <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                      {selectedPayment.payment_method || 'cash'}
-                    </span>
-                  </div>
                 </div>
               )}
 

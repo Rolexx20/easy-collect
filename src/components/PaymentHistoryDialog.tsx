@@ -91,7 +91,7 @@ const PaymentHistoryDialog = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl w-full p-6 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+        <DialogContent className="max-w-md w-full p-6 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl font-semibold text-gray-800 dark:text-gray-100">
               <History className="w-5 h-5 text-blue-500" />
