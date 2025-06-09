@@ -16,7 +16,7 @@ interface ReportsProps {
 }
 
 const Reports = ({ language, borrowers, loans }: ReportsProps) => {
-  const [selectedReportType, setSelectedReportType] = useState('collection');
+  const [selectedReportType, setSelectedReportType] = useState('dailyCollection'); // Default to dailyCollection
   const [selectedFileType, setSelectedFileType] = useState('pdf');
   const [filterText, setFilterText] = useState('');
   const [fromDate, setFromDate] = useState('');
@@ -315,9 +315,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       ]);
       title = t.overdueReport;
     } else if (selectedReportType === 'borrower') {
-      head = ['Created Date', 'Name', 'Phone', 'Address', 'Total Loans', 'Total Amount', 'Total Paid', 'Remaining Amount'];
+      head = ['Name', 'Phone', 'Address', 'Total Loans', 'Total Amount', 'Total Paid', 'Remaining Amount'];
       body = data.map(borrower => [
-        borrower.created_at ? borrower.created_at.split('T')[0] : '',
         borrower.name,
         borrower.phone,
         borrower.address,
@@ -397,7 +396,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       case 'borrower':
         return (
           <TableRow>
-            <TableHead>{t.createdDate}</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Phone</TableHead>
             <TableHead>Address</TableHead>
@@ -482,11 +480,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         case 'borrower':
           return (
             <TableRow key={index}>
-              <TableCell>
-                {item.created_at
-                  ? new Date(item.created_at).toLocaleDateString()
-                  : 'N/A'}
-              </TableCell>
               <TableCell>{item.name}</TableCell>
               <TableCell>{item.phone}</TableCell>
               <TableCell>{item.address}</TableCell>

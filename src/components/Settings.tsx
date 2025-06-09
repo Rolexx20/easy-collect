@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { User, Download, Upload, Save, Camera, Database } from 'lucide-react';
+import { User, Download, Upload, Save, Camera, Database, Printer, Cross, CroissantIcon, PlusCircle, DollarSignIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,6 +19,8 @@ const Settings = ({ language }: SettingsProps) => {
     phone: '+91 9876543210',
     company: 'EasyCollect Finance'
   });
+  const [printerConnected, setPrinterConnected] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const translations = {
     en: {
@@ -39,7 +40,9 @@ const Settings = ({ language }: SettingsProps) => {
       importDesc: 'Restore data from backup file',
       profileUpdated: 'Profile updated successfully',
       dataExported: 'Data exported successfully',
-      dataImported: 'Data imported successfully'
+      dataImported: 'Data imported successfully',
+      connectPrinter: 'Connect Printer',
+      printerConnected: 'Printer Connected'
     },
     ta: {
       settings: 'அமைப்புகள்',
@@ -58,7 +61,9 @@ const Settings = ({ language }: SettingsProps) => {
       importDesc: 'காப்புப்படுத்தல் கோப்பிலிருந்து தரவை மீட்டமைக்கவும்',
       profileUpdated: 'சுயவிவரம் வெற்றிகரமாக புதுப்பிக்கப்பட்டது',
       dataExported: 'தரவு வெற்றிகரமாக ஏற்றுமதி செய்யப்பட்டது',
-      dataImported: 'தரவு வெற்றிகரமாக இறக்குமதி செய்யப்பட்டது'
+      dataImported: 'தரவு வெற்றிகரமாக இறக்குமதி செய்யப்பட்டது',
+      connectPrinter: 'அச்சுப்பொறியை இணைக்கவும்',
+      printerConnected: 'அச்சுப்பொறி இணைக்கப்பட்டது'
     }
   };
 
@@ -105,10 +110,60 @@ const Settings = ({ language }: SettingsProps) => {
     }
   };
 
+  const handleConnectPrinter = () => {
+    setIsPrinting(true);
+    setTimeout(() => {
+      setPrinterConnected(true);
+      setIsPrinting(false);
+      toast({
+        title: t.printerConnected,
+        description: "Your printer has been connected.",
+      });
+    }, 2000);
+  };
+
+  const handleDisconnectPrinter = () => {
+    setPrinterConnected(false);
+    toast({
+      title: t.printerConnected,
+      description: "Your printer has been disconnected.",
+    });
+  };
+
   return (
     <div className="p-6 pt-5 pb-20 md:pb-6 space-y-6">
-      <div>
+      <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t.settings}</h1>
+        {!printerConnected ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleConnectPrinter}
+            disabled={isPrinting}
+            className="flex items-center gap-2 border-2 rounded-full transition-all duration-300 hover:scale-105 h-7 px-3 border-blue-500 dark:border-white"
+          >
+            <Printer className="w-3 h-3 text-blue-500 dark:text-white" />
+            <span className="text-xs font-medium hidden sm:inline text-blue-500 dark:text-white">
+              {isPrinting ? "..." : t.connectPrinter}
+            </span>
+          </Button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 border-2 rounded-full h-8 px-3 bg-green-100 border-green-300 text-green-700 dark:bg-green-900 dark:border-green-700 dark:text-green-300">
+              <Printer className="w-3 h-3" />
+              <span className="text-xs font-medium hidden sm:inline">{t.printerConnected}</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDisconnectPrinter}
+              className="flex items-center gap-2 border-2 rounded-full transition-all duration-300 hover:scale-105 h-7 px-3"
+            >
+              <DollarSignIcon className='w-3 h-3' />
+              <span className="text-xs font-medium hidden sm:inline">Disconnect</span>
+            </Button>
+          </div>
+        )}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* User Profile Section */}

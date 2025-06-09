@@ -1,4 +1,3 @@
-
 import { Moon, Sun, Globe, LanguagesIcon, MoonStar, Home, Users, FileText, BarChart3, Settings, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -148,35 +147,6 @@ const Header = ({
 
             {/* Toggles - Right */}
             <div className="flex items-center space-x-3 flex-shrink-0">
-              {/* Printer Button */}
-              {!printerConnected ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleConnectPrinter}
-                  disabled={isPrinting}
-                  className={cn(
-                    "flex items-center gap-2 border-2 rounded-full transition-all duration-300 hover:scale-105 h-7 px-3",
-                    isDark
-                      ? "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
-                      : "bg-gray-100 border-gray-300 text-blue-700 hover:bg-gray-200"
-                  )}
-                >
-                  <Printer className="w-3 h-3" />
-                  <span className="text-xs font-medium hidden sm:inline">
-                    {isPrinting ? "..." : t.connectPrinter}
-                  </span>
-                </Button>
-              ) : (
-                <div className={cn(
-                  "flex items-center gap-2 border-2 rounded-full h-7 px-3",
-                  "bg-green-100 border-green-300 text-green-700 dark:bg-green-900 dark:border-green-700 dark:text-green-300"
-                )}>
-                  <Printer className="w-3 h-3" />
-                  <span className="text-xs font-medium hidden sm:inline">{t.printerConnected}</span>
-                </div>
-              )}
-
               {/* Theme Toggle */}
               <div
                 onClick={() => setIsDark(!isDark)}
