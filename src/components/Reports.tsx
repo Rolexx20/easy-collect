@@ -50,10 +50,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       noOverdueLoans: 'No overdue loans found',
       noBorrowerData: 'No borrower data available',
       noDailyCollectionData: 'No daily collection data available',
-      totalBorrowers: 'Total Borrowers',
-      totalLoans: 'Total Loans',
-      totalCollected: 'Total Collected',
-      pendingAmount: 'Pending Amount',
       exportSuccess: 'Report exported successfully',
       noData: 'No data available for export',
       filterPlaceholder: 'Filter by name or phone...',
@@ -81,10 +77,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       noOverdueLoans: 'தாமதமான கடன்கள் இல்லை',
       noBorrowerData: 'கடன் வாங்குபவர் தரவு இல்லை',
       noDailyCollectionData: 'தினசரி வசூல் தரவு இல்லை',
-      totalBorrowers: 'மொத்த கடன் வாங்குபவர்கள்',
-      totalLoans: 'மொத்த கடன்கள்',
-      totalCollected: 'மொத்த வசூல்',
-      pendingAmount: 'நிலுவையில் உள்ள தொகை',
       exportSuccess: 'அறிக்கை வெற்றிகரமாக ஏற்றுமதி செய்யப்பட்டது',
       noData: 'ஏற்றுமதிக்கு தரவு இல்லை',
       filterPlaceholder: 'பெயர் அல்லது தொலைபேசி மூலம் வடிகட்டி...',
@@ -200,24 +192,24 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   const exportToCSV = (data: any[], filename: string) => {
     let csvContent = '';
     if (selectedReportType === 'collection') {
-      csvContent = 'Date,Borrower Name,Loan Amount,Payment Amount,Remaining Amount\n';
-      data.forEach(loan => {
-        csvContent += `${loan.start_date},${loan.borrowerName || 'N/A'},${loan.total_amount},${loan.amount_paid},${loan.total_amount - loan.amount_paid}\n`;
+      csvContent = 'No,Date,Borrower Name,Loan Amount,Payment Amount,Remaining Amount\n'; // Add numbering column
+      data.forEach((loan, index) => {
+        csvContent += `${index + 1},${loan.start_date},${loan.borrowerName || 'N/A'},${loan.total_amount},${loan.amount_paid},${loan.total_amount - loan.amount_paid}\n`;
       });
     } else if (selectedReportType === 'overdue') {
-      csvContent = 'Date,Borrower Name,Loan Amount,Payment Amount,Status\n';
-      data.forEach(loan => {
-        csvContent += `${loan.start_date},${loan.borrowerName || 'N/A'},${loan.total_amount},${loan.amount_paid},${loan.status}\n`;
+      csvContent = 'No,Date,Borrower Name,Loan Amount,Payment Amount,Status\n'; // Add numbering column
+      data.forEach((loan, index) => {
+        csvContent += `${index + 1},${loan.start_date},${loan.borrowerName || 'N/A'},${loan.total_amount},${loan.amount_paid},${loan.status}\n`;
       });
     } else if (selectedReportType === 'borrower') {
-      csvContent = 'Created Date,Name,Phone,Address,Total Loans,Total Amount,Total Paid,Remaining Amount\n';
-      data.forEach(borrower => {
-        csvContent += `${borrower.created_at ? borrower.created_at.split('T')[0] : ''},${borrower.name},${borrower.phone},${borrower.address},${borrower.total_loans || 0},${borrower.total_amount || 0},${borrower.total_paid || 0},${borrower.remaining_amount || 0}\n`;
+      csvContent = 'No,Created Date,Name,Phone,Address,Total Loans,Total Amount,Total Paid,Remaining Amount\n'; // Add numbering column
+      data.forEach((borrower, index) => {
+        csvContent += `${index + 1},${borrower.created_at ? borrower.created_at.split('T')[0] : ''},${borrower.name},${borrower.phone},${borrower.address},${borrower.total_loans || 0},${borrower.total_amount || 0},${borrower.total_paid || 0},${borrower.remaining_amount || 0}\n`;
       });
     } else if (selectedReportType === 'dailyCollection') {
-      csvContent = 'Payment Date,Borrower Name,Payment Amount,Payment Method,Remaining Loan Amount,Total Loan Amount\n';
-      data.forEach(payment => {
-        csvContent += `${payment.payment_date},${payment.borrowerName || 'N/A'},${payment.amount},${payment.payment_method || 'cash'},${payment.remainingLoanAmount || 0},${payment.totalLoanAmount || 0}\n`;
+      csvContent = 'No,Payment Date,Borrower Name,Payment Amount,Payment Method,Remaining Loan Amount,Total Loan Amount\n'; // Add numbering column
+      data.forEach((payment, index) => {
+        csvContent += `${index + 1},${payment.payment_date},${payment.borrowerName || 'N/A'},${payment.amount},${payment.payment_method || 'cash'},${payment.remainingLoanAmount || 0},${payment.totalLoanAmount || 0}\n`;
       });
     }
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -235,8 +227,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     let wsData: any[] = [];
     if (selectedReportType === 'collection') {
       wsData = [
-        ['Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Remaining Amount'],
-        ...data.map(loan => [
+        ['No', 'Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Remaining Amount'], // Add numbering column
+        ...data.map((loan, index) => [
+          index + 1,
           loan.start_date,
           loan.borrowerName || 'N/A',
           loan.total_amount,
@@ -246,8 +239,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       ];
     } else if (selectedReportType === 'overdue') {
       wsData = [
-        ['Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Status'],
-        ...data.map(loan => [
+        ['No', 'Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Status'], // Add numbering column
+        ...data.map((loan, index) => [
+          index + 1,
           loan.start_date,
           loan.borrowerName || 'N/A',
           loan.total_amount,
@@ -257,8 +251,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       ];
     } else if (selectedReportType === 'borrower') {
       wsData = [
-        ['Created Date', 'Name', 'Phone', 'Address', 'Total Loans', 'Total Amount', 'Total Paid', 'Remaining Amount'],
-        ...data.map(borrower => [
+        ['No', 'Created Date', 'Name', 'Phone', 'Address', 'Total Loans', 'Total Amount', 'Total Paid', 'Remaining Amount'], // Add numbering column
+        ...data.map((borrower, index) => [
+          index + 1,
           borrower.created_at ? borrower.created_at.split('T')[0] : '',
           borrower.name,
           borrower.phone,
@@ -271,8 +266,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       ];
     } else if (selectedReportType === 'dailyCollection') {
       wsData = [
-        ['Payment Date', 'Borrower Name', 'Payment Amount', 'Payment Method', 'Remaining Loan Amount', 'Total Loan Amount'],
-        ...data.map(payment => [
+        ['No', 'Payment Date', 'Borrower Name', 'Payment Amount', 'Payment Method', 'Remaining Loan Amount', 'Total Loan Amount'], // Add numbering column
+        ...data.map((payment, index) => [
+          index + 1,
           payment.payment_date,
           payment.borrowerName || 'N/A',
           payment.amount,
@@ -299,8 +295,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     let title = '';
 
     if (selectedReportType === 'collection') {
-      head = ['Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Remaining Amount'];
-      body = data.map(loan => [
+      head = ['No', 'Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Remaining Amount']; // Add numbering column
+      body = data.map((loan, index) => [
+        index + 1,
         loan.start_date,
         loan.borrowerName || 'N/A',
         loan.total_amount,
@@ -309,8 +306,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       ]);
       title = t.collectionReport;
     } else if (selectedReportType === 'overdue') {
-      head = ['Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Status'];
-      body = data.map(loan => [
+      head = ['No', 'Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Status']; // Add numbering column
+      body = data.map((loan, index) => [
+        index + 1,
         loan.start_date,
         loan.borrowerName || 'N/A',
         loan.total_amount,
@@ -319,8 +317,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       ]);
       title = t.overdueReport;
     } else if (selectedReportType === 'borrower') {
-      head = ['Name', 'Phone', 'Address', 'Total Loans', 'Total Amount', 'Total Paid', 'Remaining Amount'];
-      body = data.map(borrower => [
+      head = ['No', 'Name', 'Phone', 'Address', 'Total Loans', 'Total Amount', 'Total Paid', 'Remaining Amount']; // Add numbering column
+      body = data.map((borrower, index) => [
+        index + 1,
         borrower.name,
         borrower.phone,
         borrower.address,
@@ -331,8 +330,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       ]);
       title = t.borrowerReport;
     } else if (selectedReportType === 'dailyCollection') {
-      head = ['Payment Date', 'Borrower Name', 'Payment Amount', 'Payment Method', 'Remaining Loan Amount', 'Total Loan Amount'];
-      body = data.map(payment => [
+      head = ['No', 'Payment Date', 'Borrower Name', 'Payment Amount', 'Payment Method', 'Remaining Loan Amount', 'Total Loan Amount']; // Add numbering column
+      body = data.map((payment, index) => [
+        index + 1,
         payment.payment_date,
         payment.borrowerName || 'N/A',
         payment.amount,
@@ -380,6 +380,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       case 'collection':
         return (
           <TableRow>
+            <TableHead>#</TableHead> {/* Add numbering column */}
             <TableHead>{t.date}</TableHead>
             <TableHead>{t.borrowerName}</TableHead>
             <TableHead>{t.loanAmount}</TableHead>
@@ -390,6 +391,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       case 'overdue':
         return (
           <TableRow>
+            <TableHead>#</TableHead> {/* Add numbering column */}
             <TableHead>{t.date}</TableHead>
             <TableHead>{t.borrowerName}</TableHead>
             <TableHead>{t.loanAmount}</TableHead>
@@ -400,6 +402,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       case 'borrower':
         return (
           <TableRow>
+            <TableHead>#</TableHead> {/* Add numbering column */}
             <TableHead>Name</TableHead>
             <TableHead>Phone</TableHead>
             <TableHead>Address</TableHead>
@@ -412,6 +415,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       case 'dailyCollection':
         return (
           <TableRow>
+            <TableHead>#</TableHead> {/* Add numbering column */}
             <TableHead>{t.paymentDate}</TableHead>
             <TableHead>{t.borrowerName}</TableHead>
             <TableHead>{t.paymentMethod}</TableHead>
@@ -433,7 +437,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         selectedReportType === 'dailyCollection' ? t.noDailyCollectionData : t.noPaymentData;
       return (
         <TableRow>
-          <TableCell colSpan={selectedReportType === 'borrower' ? 8 : selectedReportType === 'dailyCollection' ? 6 : 5} className="text-center text-gray-500 dark:text-gray-400 py-8">
+          <TableCell colSpan={selectedReportType === 'borrower' ? 8 : selectedReportType === 'dailyCollection' ? 7 : 6} className="text-center text-gray-500 dark:text-gray-400 py-8">
             {noDataMessage}
           </TableCell>
         </TableRow>
@@ -444,10 +448,12 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     const paginatedData = data.slice(startIdx, startIdx + rowsPerPage);
 
     return paginatedData.map((item, index) => {
+      const rowNumber = startIdx + index + 1; // Calculate row number
       switch (selectedReportType) {
         case 'collection':
           return (
             <TableRow key={index}>
+              <TableCell>{rowNumber}</TableCell> {/* Add numbering */}
               <TableCell>{item.start_date}</TableCell>
               <TableCell>{item.borrowerName || 'N/A'}</TableCell>
               <TableCell>
@@ -470,6 +476,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         case 'overdue':
           return (
             <TableRow key={index}>
+              <TableCell>{rowNumber}</TableCell> {/* Add numbering */}
               <TableCell>{item.start_date}</TableCell>
               <TableCell>{item.borrowerName || 'N/A'}</TableCell>
               <TableCell>₹ {item.total_amount?.toLocaleString()}</TableCell>
@@ -484,6 +491,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         case 'borrower':
           return (
             <TableRow key={index}>
+              <TableCell>{rowNumber}</TableCell> {/* Add numbering */}
               <TableCell>{item.name}</TableCell>
               <TableCell>{item.phone}</TableCell>
               <TableCell>{item.address}</TableCell>
@@ -512,6 +520,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         case 'dailyCollection':
           return (
             <TableRow key={index}>
+              <TableCell>{rowNumber}</TableCell> {/* Add numbering */}
               <TableCell>{item.payment_date}</TableCell>
               <TableCell>{item.borrowerName || 'N/A'}</TableCell>
               <TableCell>
@@ -623,70 +632,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   return (
     <div className="p-4 md:p-6 bg-gray-50 dark:bg-gray-900">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">{t.title}</h1>
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-        <Card className="bg-gradient-to-br from-blue-100/20 to-blue-200 dark:from-blue-900 dark:to-blue-800/20 border-blue-200 dark:border-blue-700 hover:shadow-lg dark:hover:shadow-blue-900/40 transition-shadow">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold text-blue-700 dark:text-blue-200 mb-3">
-                  {t.totalBorrowers}
-                </div>
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {borrowers.length}
-                </div>
-              </div>
-              <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-green-100/20 to-green-200 dark:from-green-900 dark:to-green-800/20 border-green-200 dark:border-green-700 hover:shadow-lg dark:hover:shadow-green-900/40 transition-shadow">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold text-green-700 dark:text-green-200 mb-3">
-                  {t.totalLoans}
-                </div>
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {loans.length}
-                </div>
-              </div>
-              <FileText className="w-8 h-8 text-green-600 dark:text-green-400" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-purple-100/20 to-purple-200 dark:from-purple-900 dark:to-purple-800/20 border-purple-200 dark:border-purple-700 hover:shadow-lg dark:hover:shadow-purple-900/40 transition-shadow">
-          <CardContent className="p-4 md:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold text-purple-700 dark:text-purple-200 mb-3">
-                  {t.totalCollected}
-                </div>
-                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  ₹{totalCollected.toLocaleString()}
-                </div>
-              </div>
-              <DollarSign className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-orange-100/20 to-orange-200 dark:from-orange-900 dark:to-orange-800/20 border-orange-200 dark:border-orange-700 hover:shadow-lg dark:hover:shadow-orange-900/40 transition-shadow">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold text-gray-600 dark:text-orange-200 mb-3">
-                  {t.pendingAmount}
-                </div>
-                <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                  ₹{pendingAmount.toLocaleString()}
-                </div>
-              </div>
-              <Calendar className="w-8 h-8 text-orange-600 dark:text-orange-400" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Export Section Card */}
       <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 mb-8">
         <CardContent className="p-6">
@@ -782,20 +727,20 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             </div>
             <style>{`
               .ec-table-header-row {
-              border-bottom: 2px solid #222 !important;
+                border-bottom: 2px solid #222 !important;
               }
               .ec-table-header-cell {
-              color: #111 !important;
-              font-weight: 700 !important;
-              background: transparent !important;
+                color: #111 !important;
+                font-weight: 700 !important;
+                background: transparent !important;
               }
               @media (prefers-color-scheme: dark) {
-              .ec-table-header-row {
-                border-bottom: 2px solid #444 !important;
-              }
-              .ec-table-header-cell {
-                color: #fff !important;
-              }
+                .ec-table-header-row {
+                  border-bottom: 2px solid #444 !important;
+                }
+                .ec-table-header-cell {
+                  color: #fff !important;
+                }
               }
               /* Add row border for dark mode */
               .dark tr, .dark .ec-table-header-row, .dark .ec-table-row {
@@ -813,3 +758,4 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
 };
 
 export default Reports;
+
