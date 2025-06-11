@@ -54,8 +54,8 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
   const [formData, setFormData] = useState({
     borrower_id: '',
     principal_amount: '',
-    interest_rate: '',
-    duration_months: '',
+    interest_rate: '15',
+    duration_months: '1',
     start_date: new Date().toISOString().split('T')[0]
   });
 
@@ -404,11 +404,13 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                     <SelectValue placeholder={t.selectBorrower} />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-                    {borrowers.map((borrower) => (
-                      <SelectItem key={borrower.id} value={borrower.id}>
-                        {borrower.name}
-                      </SelectItem>
-                    ))}
+                    {borrowers
+                      .filter((borrower) => !loans.some((loan) => loan.borrower_id === borrower.id))
+                      .map((borrower) => (
+                        <SelectItem key={borrower.id} value={borrower.id}>
+                          {borrower.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -711,13 +713,13 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                           </span>
                         </TooltipTrigger>
                         {(loan.status === 'active' && loan.amount_paid > 0) && (
-                          <TooltipContent className='bg-red-700 text-white flex items-center gap-1'>
-                            <AlertTriangle className="w-4 h-4" />
-                            <span className="text-xs">
-                              {language === 'ta'
-                                ? 'நிலுவை பணம் செலுத்துதலுடன் கடனை நீக்க முடியாது.'
-                                : 'Cannot delete loan with pending payments'}
-                            </span>
+                          <TooltipContent className='bg-red-700 text-white items-center gap-1 hidden sm:flex'>
+                          <AlertTriangle className="w-4 h-4" />
+                          <span className="text-xs">
+                            {language === 'ta'
+                            ? 'நிலுவை பணம் செலுத்துதலுடன் கடனை நீக்க முடியாது.'
+                            : 'Cannot delete loan with pending payments'}
+                          </span>
                           </TooltipContent>
                         )}
                       </Tooltip>

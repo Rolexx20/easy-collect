@@ -58,7 +58,7 @@ const BorrowerCard = ({
     en: {
       edit: "Edit",
       delete: "Delete",
-      totalLoans: "Total Loans",
+      totalLoans: "Loans Amount",
       pendingPayment: "Pending Payment",
       deleteWarning: "Cannot undo. Settle loans to delete.",
       paymentHistory: "Payment History",
@@ -94,7 +94,7 @@ const BorrowerCard = ({
   };
 
   return (
-    <Card className="transition-all border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm hover:shadow-xl bg-gradient-to-br from-white via-gray-50 to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-950 group">
+    <Card className="transition-all border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm hover:shadow-xl bg-gradient-to-br from-blue-100 via-gray-50 to-red-100 dark:from-blue-950 dark:via-gray-800 dark:to-red-200/20 group">
       <CardHeader className="pb-2 pt-2 border-gray-100 dark:border-gray-800 bg-gradient-to-r from-blue-50/60 to-transparent dark:from-blue-900/30">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

@@ -156,7 +156,7 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
                 setEditingBorrower(null);
                 setIsDialogOpen(true);
               }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-sm md:text-base flex items-center gap-2"
+              className="bg-gradient-to-r from-blue-600 to-red-800 hover:from-blue-700 hover:to-red-900 text-white dark:text-white px-3 py-2 text-sm md:text-base flex items-center gap-2"
             >
               <Plus className="w-4 h-4 mr-0" />
               <span className="hidden sm:inline">{t.addBorrower}</span>
