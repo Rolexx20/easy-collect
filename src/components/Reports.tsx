@@ -289,7 +289,11 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   };
 
   const exportToPDF = (data: any[], filename: string) => {
-    const doc = new jsPDF();
+    const doc = new jsPDF({
+      orientation: 'landscape', // Better for wide tables
+      unit: 'pt',
+      format: 'a4',
+    });
     let head: string[] = [];
     let body: any[][] = [];
     let title = '';

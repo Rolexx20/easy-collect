@@ -244,7 +244,7 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
                 borderRadius: 8,
                 fontSize: 14,
               }}
-              formatter={(value: number) => [`₹ {Number(value).toLocaleString()}`]}
+              formatter={(value: number) => [`₹${Number(value).toLocaleString()}`]}
             />
             <Bar dataKey="amount" name="Total Amount" fill="#d1d5db" barSize={22} />
             <Bar dataKey="paid" name="Paid Amount" fill="#6366f1" barSize={14} />
