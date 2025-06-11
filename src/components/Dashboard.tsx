@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { DollarSign, Users, TrendingUp, AlertTriangle, Calendar, CreditCard, Clock, User, CircleAlert } from 'lucide-react';
 import { getPayments } from '@/lib/database';
 import { useQuery } from '@tanstack/react-query';
@@ -208,58 +207,82 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col pt-2">
-            <div className="flex-1 w-full h-[260px] min-h-[220px]">
-              <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={loans.slice(0, 6).map((loan) => ({
-              name: loan.borrowerName || 'Unknown',
-              amount: Number(loan.total_amount) || 0,
-              paid: Number(loan.amount_paid) || 0
-            }))}
-            margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
-            barCategoryGap={18}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis
-              dataKey="name"
-              tick={{ fontSize: 12 }}
-              interval={0}
-              height={36}
-            />
-            <YAxis
-              tickFormatter={v => `₹ ${v.toLocaleString()}`}
-              width={70}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor:
-            typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
-              ? '#23272f'
-              : '#fff',
-                color:
-            typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
-              ? '#f3f4f6'
-              : '#111827',
-                border: '1px solid #e5e7eb',
-                borderRadius: 8,
-                fontSize: 14,
-              }}
-              formatter={(value: number) => [`₹${Number(value).toLocaleString()}`]}
-            />
-            <Bar dataKey="amount" name="Total Amount" fill="#d1d5db" barSize={22} />
-            <Bar dataKey="paid" name="Paid Amount" fill="#6366f1" barSize={14} />
-          </BarChart>
+            <div className="flex-1 w-full h-[260px] min-h-[220px] overflow-x-auto">
+              <ResponsiveContainer width={Math.max(600, loans.slice(0, 10).length * 120)} height="100%">
+                <BarChart
+                  data={loans.slice(0, 10).map((loan) => ({
+                    name: loan.borrowerName || 'Unknown',
+                    amount: Number(loan.total_amount) || 0,
+                    paid: Number(loan.amount_paid) || 0
+                  }))}
+                  margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+                  barCategoryGap={18}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={
+                      typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
+                        ? '#374151'
+                        : '#e5e7eb'
+                    }
+                  />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 12, fill: typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? '#d1d5db' : '#374151' }}
+                    interval={0}
+                    height={36}
+                  />
+                  <YAxis
+                    tickFormatter={v => `₹ ${v.toLocaleString()}`}
+                    width={70}
+                    tick={{ fontSize: 12, fill: typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? '#d1d5db' : '#374151' }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor:
+                        typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
+                          ? '#1f2937'
+                          : '#ffffff',
+                      color:
+                        typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
+                          ? '#f3f4f6'
+                          : '#111827',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: 8,
+                      fontSize: 14,
+                    }}
+                    formatter={(value: number) => [`₹${Number(value).toLocaleString()}`]}
+                  />
+                  <Bar
+                    dataKey="amount"
+                    name="Total Amount"
+                    fill="#3b82f6"
+                    barSize={22}
+                    radius={[4, 4, 0, 0]}
+                    onMouseOver={(e) => (e.target.style.fill = '#2563eb')}
+                    onMouseOut={(e) => (e.target.style.fill = '#3b82f6')}
+                  />
+                  <Bar
+                    dataKey="paid"
+                    name="Paid Amount"
+                    fill="#10b981"
+                    barSize={14}
+                    radius={[4, 4, 0, 0]}
+                    onMouseOver={(e) => (e.target.style.fill = '#059669')}
+                    onMouseOut={(e) => (e.target.style.fill = '#10b981')}
+                  />
+                </BarChart>
               </ResponsiveContainer>
             </div>
             {/* Legend below the graph */}
             <div className="flex gap-5 mt-2 justify-center pb-2">
               <div className="flex items-center gap-1">
-          <span className="inline-block w-3 h-3 rounded bg-indigo-400" />
-          <span className="text-xs text-gray-700 dark:text-gray-200">Paid</span>
+                <span className="inline-block w-3 h-3 rounded bg-green-400" />
+                <span className="text-xs text-gray-700 dark:text-white">Paid</span>
               </div>
               <div className="flex items-center gap-1">
-          <span className="inline-block w-3 h-3 rounded bg-gray-300 dark:bg-gray-600" />
-          <span className="text-xs text-gray-700 dark:text-gray-200">Total</span>
+                <span className="inline-block w-3 h-3 rounded bg-blue-500" />
+                <span className="text-xs text-gray-700 dark:text-gray-200">Total</span>
               </div>
             </div>
           </CardContent>
@@ -279,33 +302,42 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
                 <p>{t.noRecentPayments}</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {recentPayments.map((payment) => (
-                  <div key={payment.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                        <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-gray-100">
-                          {getBorrowerNameForPayment(payment.loan_id)}
+              <div className="max-h-80 overflow-y-auto space-y-3">
+                {recentPayments.map((payment) => {
+                  const loan = loans.find(l => l.id === payment.loan_id);
+                  const remainingAmount = loan ? loan.total_amount - loan.amount_paid : 0;
+                  return (
+                    <div key={payment.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                          <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {payment.payment_date}
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-gray-100">
+                            {getBorrowerNameForPayment(payment.loan_id)}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {payment.payment_date}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-green-600 dark:text-green-500 flex items-center gap-1">
+                          ₹ {payment.amount.toLocaleString()}
+                        </div>
+                        {remainingAmount > 0 && (
+                          <div className="text-xs font-bold text-red-600 dark:text-red-500">
+                            ₹ {remainingAmount.toLocaleString()}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                          {payment.payment_method}
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-bold text-green-600 dark:text-green-400 flex items-center gap-1">
-                        ₹ {payment.amount.toLocaleString()}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                        {payment.payment_method}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -338,7 +370,6 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
                     }
                     return 0;
                   })
-                  .slice(0, 6)
                   .map((loan) => {
                     let endDateStr = 'No end date';
                     if (loan.created_date && loan.duration) {
@@ -379,16 +410,6 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
                       </div>
                     );
                   })}
-                {loans.filter(loan => loan.status === 'overdue').length > 6 && (
-                  <div className="text-center mt-2">
-                    <a
-                      href="/loans"
-                      className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium"
-                    >
-                      {t.viewAll}
-                    </a>
-                  </div>
-                )}
               </div>
             )}
           </CardContent>
@@ -420,7 +441,6 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
                       }
                       return 0;
                     })
-                    .slice(0, 4)
                     .map((loan) => {
                       // Calculate actual loan end date: created_date + duration (assuming duration is in days)
                       let endDateStr = 'No end date';
@@ -445,10 +465,12 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
                               <div className="font-medium text-gray-900 dark:text-gray-100">
                                 {loan.borrowerName || 'Unknown'}
                               </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {endDateStr}
-                              </div>
+                              {endDateStr && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {endDateStr}
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div className="text-right">
@@ -462,16 +484,6 @@ const Dashboard = ({ language, borrowers, loans, dashboardStats }: DashboardProp
                         </div>
                       );
                     })}
-                  {loans.filter(loan => loan.status === 'active' || loan.status === 'overdue').length > 4 && (
-                    <div className="text-center mt-2">
-                      <a
-                        href="/loans"
-                        className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium"
-                      >
-                        {t.viewAll}
-                      </a>
-                    </div>
-                  )}
                 </div>
               )}
             </CardContent>
