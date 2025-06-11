@@ -149,7 +149,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
           className={cn(
             "flex items-center gap-2 border-2 rounded-full transition-all duration-300 hover:scale-105 h-7 px-3",
             language === "en"
-              ? "bg-gray-100 border-gray-300 text-blue-700 hover:bg-gray-200 dark:bg-gray-800 dark:border-gray-600 dark:text-blue-400 dark:hover:bg-gray-700"
+              ? "bg-gray-100 border-gray-300 text-black hover:bg-gray-200 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700"
               : ""
           )}
         >

@@ -186,7 +186,7 @@ const Header = ({
                   <MoonStar
                     className={cn(
                       "w-3 h-3 transition-colors",
-                      isDark ? "text-gray-200" : "text-gray-600"
+                      isDark ? "text-gray-200" : "text-gray-800"
                     )}
                   />
                 </div>
