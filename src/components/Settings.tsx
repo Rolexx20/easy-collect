@@ -4,13 +4,10 @@ import {
   Download,
   Upload,
   Save,
-  Camera,
   Database,
   Printer,
-  Cross,
-  CroissantIcon,
-  PlusCircle,
-  DollarSignIcon,
+  Languages,
+  Globe2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,17 +17,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { BluetoothPrinter } from "@/utils/bluetoothPrinter";
+import { Global } from "recharts";
 
 interface SettingsProps {
   language: string;
+  setLanguage: (lang: string) => void;
 }
 
-const Settings = ({ language }: SettingsProps) => {
+const Settings = ({ language, setLanguage }: SettingsProps) => {
   const { toast } = useToast();
   const [profile, setProfile] = useState({
     name: "Admin User",
@@ -38,8 +37,6 @@ const Settings = ({ language }: SettingsProps) => {
     phone: "+91 9876543210",
     company: "EasyCollect Finance",
   });
-  const [printerConnected, setPrinterConnected] = useState(false);
-  const [isPrinting, setIsPrinting] = useState(false);
 
   const translations = {
     en: {
@@ -137,92 +134,43 @@ const Settings = ({ language }: SettingsProps) => {
     }
   };
 
-  const printer = new BluetoothPrinter();
-
-  const handleConnectPrinter = async () => {
-    setIsPrinting(true);
-    try {
-      const connected = await printer.connect();
-      setIsPrinting(false);
-
-      if (connected) {
-        setPrinterConnected(true);
-        toast({
-          title: t.printerConnected,
-          description: "Your printer has been connected.",
-          duration: 3000, // Close after 3 seconds
-        });
-      } else {
-        toast({
-          title: "Connection Failed",
-          description: "Unable to connect to the printer. Please try again.",
-          duration: 3000, // Close after 3 seconds
-        });
-      }
-    } catch (error) {
-      setIsPrinting(false);
-      console.error("Error during printer connection:", error);
-      toast({
-        title: "Connection Error",
-        description: "An error occurred while connecting to the printer.",
-        duration: 3000, // Close after 3 seconds
-      });
-    }
-  };
-
-  const handleDisconnectPrinter = () => {
-    printer.disconnect();
-    setPrinterConnected(false);
-    toast({
-      title: "Printer Disconnected",
-      description: "Your printer has been disconnected.",
-      duration: 3000, // Close after 3 seconds
-    });
-  };
-
   return (
     <div className="p-6 pt-5 pb-20 md:pb-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           {t.settings}
         </h1>
-        {!printerConnected ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleConnectPrinter}
-            disabled={isPrinting}
-            className="flex items-center gap-2 border-2 rounded-full transition-all duration-300 hover:scale-105 h-7 px-3 border-blue-500 dark:border-white"
-          >
-            <Printer className="w-3 h-3 text-blue-500 dark:text-white" />
-            <span className="text-xs font-medium hidden sm:inline text-blue-500 dark:text-white">
-              {isPrinting ? "..." : t.connectPrinter}
-            </span>
-          </Button>
-        ) : (
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 border-2 rounded-full h-8 px-3 bg-green-100 border-green-300 text-green-700 dark:bg-green-900 dark:border-green-700 dark:text-green-300">
-              <Printer className="w-3 h-3" />
-              <span className="text-xs font-medium hidden sm:inline">
-                {t.printerConnected}
-              </span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDisconnectPrinter}
-              className="flex items-center gap-2 border-2 rounded-full transition-all duration-300 hover:scale-105 h-7 px-3"
-            >
-              <DollarSignIcon className="w-3 h-3" />
-              <span className="text-xs font-medium hidden sm:inline">
-                Disconnect
-              </span>
-            </Button>
-          </div>
-        )}
+
+        {/* Language Toggle */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setLanguage(language === "en" ? "ta" : "en")}
+          className={cn(
+            "flex items-center gap-2 border-2 rounded-full transition-all duration-300 hover:scale-105 h-7 px-3",
+            language === "en"
+              ? "bg-gray-100 border-gray-300 text-blue-700 hover:bg-gray-200 dark:bg-gray-800 dark:border-gray-600 dark:text-blue-400 dark:hover:bg-gray-700"
+              : ""
+          )}
+        >
+          {language === "en" ? (
+            <>
+              {/* English Icon */}
+              <Languages className="w-4 h-4" />
+              <span className="text-xs font-medium">English</span>
+            </>
+          ) : (
+            <>
+              {/* Tamil Icon */}
+              <Globe2 className="w-4 h-4" />
+              <span className="text-xs font-medium">தமிழ்</span>
+            </>
+          )}
+        </Button>
       </div>
+
+      {/* User Profile Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* User Profile Section */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
@@ -119,7 +118,7 @@ const Index = () => {
       case 'reports':
         return <Reports language={language} borrowers={borrowers} loans={loans} />;
       case 'settings':
-        return <Settings language={language} />;
+        return <Settings language={language} setLanguage={setLanguage} />;
       default:
         return <Dashboard language={language} borrowers={borrowers} loans={loans} dashboardStats={dashboardStats} />;
     }
@@ -134,8 +133,6 @@ const Index = () => {
         <Header 
           isDark={isDark} 
           setIsDark={setIsDark} 
-          language={language} 
-          setLanguage={setLanguage}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           sidebarCollapsed={sidebarCollapsed}
