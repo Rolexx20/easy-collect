@@ -68,7 +68,7 @@ const Header = ({
       loans: "Loans",
       reports: "Reports",
       settings: "Settings",
-      connectPrinter: "Connect Printer",
+      connectPrinter: "Connect",
       printerConnected: "Printer Connected",
       printerConnectionFailed: "Failed to connect printer",
     },
@@ -79,7 +79,7 @@ const Header = ({
       loans: "கடன்கள்",
       reports: "அறிக்கைகள்",
       settings: "அமைப்புகள்",
-      connectPrinter: "பிரிண்டர் இணைக்கவும்",
+      connectPrinter: "இணைக்கவும்",
       printerConnected: "பிரிண்டர் இணைக்கப்பட்டது",
       printerConnectionFailed: "பிரிண்டர் இணைப்பு தோல்வி",
     },
@@ -202,8 +202,8 @@ const Header = ({
                   className={cn(
                     "flex items-center gap-2 border-2 rounded-full transition-all duration-300 h-7 px-3",
                     isDark
-                      ? "border-gray-600 text-gray-200 hover:bg-gray-700"
-                      : "border-gray-300 text-gray-500 hover:bg-gray-700"
+                      ? "border-gray-600 text-gray-200 hover:bg-gray-600"
+                      : "border-gray-300 text-gray-500 hover:bg-gray-100"
                   )}
                 >
                   <Printer
