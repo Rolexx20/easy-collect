@@ -629,6 +629,22 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     }
   };
 
+  const handleFromDateChange = (date: string) => {
+    if (toDate && new Date(date) > new Date(toDate)) {
+      toast({ title: "From date cannot be greater than To date", variant: "destructive", duration: 3000 });
+      return;
+    }
+    setFromDate(date);
+  };
+
+  const handleToDateChange = (date: string) => {
+    if (fromDate && new Date(date) < new Date(fromDate)) {
+      toast({ title: "To date cannot be less than From date", variant: "destructive", duration: 3000 });
+      return;
+    }
+    setToDate(date);
+  };
+
   return (
     <div className="p-4 md:p-6 bg-gray-50 dark:bg-gray-900">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">{t.title}</h1>
@@ -671,14 +687,14 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
                 <input
                   type="date"
                   value={fromDate}
-                  onChange={e => setFromDate(e.target.value)}
+                  onChange={e => handleFromDateChange(e.target.value)}
                   className="px-5 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   placeholder="From date"
                 />
                 <input
                   type="date"
                   value={toDate}
-                  onChange={e => setToDate(e.target.value)}
+                  onChange={e => handleToDateChange(e.target.value)}
                   className="px-5 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   placeholder="To date"
                 />

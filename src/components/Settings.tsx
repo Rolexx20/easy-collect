@@ -32,9 +32,9 @@ interface SettingsProps {
 const Settings = ({ language, setLanguage }: SettingsProps) => {
   const { toast } = useToast();
   const [profile, setProfile] = useState({
-    name: "Admin User",
+    name: "Reven Regal",
     email: "admin@easycollect.com",
-    phone: "+91 9876543210",
+    phone: "+94 721040096",
     company: "EasyCollect Finance",
   });
 
