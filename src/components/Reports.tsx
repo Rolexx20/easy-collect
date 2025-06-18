@@ -31,10 +31,10 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     en: {
       title: 'Reports',
       exportBtn: 'Export',
-      collectionReport: 'Collection Report',
-      overdueReport: 'Overdue Report',
-      borrowerReport: 'Borrower Report',
-      dailyCollectionReport: 'Daily Collection Report',
+      collectionReport: 'Loan Report',
+      overdueReport: 'Overdue Loans',
+      borrowerReport: 'Borrower Details',
+      dailyCollectionReport: 'Daily Collection',
       date: 'Date',
       borrowerName: 'Borrower Name',
       loanAmount: 'Loan Amount',
@@ -58,7 +58,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     ta: {
       title: 'அறிக்கைகள்',
       exportBtn: 'ஏற்றுமதி',
-      collectionReport: 'வசூல் அறிக்கை',
+      collectionReport: 'கடன் அறிக்கை',
       overdueReport: 'தாமத அறிக்கை',
       borrowerReport: 'கடன் வாங்குபவர் அறிக்கை',
       dailyCollectionReport: 'தினசரி வசூல் அறிக்கை',
@@ -94,7 +94,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   const reportTypes = [
     { id: 'dailyCollection', label: t.dailyCollectionReport },
     { id: 'overdue', label: t.overdueReport },
-    { id: 'collection', label: 'Borrower Collection Report' },
+    { id: 'collection', label: t.collectionReport },
     { id: 'borrower', label: t.borrowerReport }
   ];
 
@@ -192,24 +192,24 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   const exportToCSV = (data: any[], filename: string) => {
     let csvContent = '';
     if (selectedReportType === 'collection') {
-      csvContent = 'No,Date,Borrower Name,Loan Amount,Payment Amount,Remaining Amount\n'; // Add numbering column
+      csvContent = 'No,Date,Borrower Name,Loan Amount,Remaining Amount,Collected Amount\n'; // Match table column order
       data.forEach((loan, index) => {
-        csvContent += `${index + 1},${loan.start_date},${loan.borrowerName || 'N/A'},${loan.total_amount},${loan.amount_paid},${loan.total_amount - loan.amount_paid}\n`;
+        csvContent += `${index + 1},${loan.start_date},${loan.borrowerName || 'N/A'},${loan.total_amount},${loan.total_amount - loan.amount_paid},${loan.amount_paid}\n`;
       });
     } else if (selectedReportType === 'overdue') {
-      csvContent = 'No,Date,Borrower Name,Loan Amount,Payment Amount,Status\n'; // Add numbering column
+      csvContent = 'No,Date,Borrower Name,Loan Amount,Payment Amount,Status\n'; // Match table column order
       data.forEach((loan, index) => {
         csvContent += `${index + 1},${loan.start_date},${loan.borrowerName || 'N/A'},${loan.total_amount},${loan.amount_paid},${loan.status}\n`;
       });
     } else if (selectedReportType === 'borrower') {
-      csvContent = 'No,Created Date,Name,Phone,Address,Total Loans,Total Amount,Total Paid,Remaining Amount\n'; // Add numbering column
+      csvContent = 'No,Name,Phone,Address,Total Loans,Total Paid,Remaining Amount,Total Amount\n'; // Match table column order
       data.forEach((borrower, index) => {
-        csvContent += `${index + 1},${borrower.created_at ? borrower.created_at.split('T')[0] : ''},${borrower.name},${borrower.phone},${borrower.address},${borrower.total_loans || 0},${borrower.total_amount || 0},${borrower.total_paid || 0},${borrower.remaining_amount || 0}\n`;
+        csvContent += `${index + 1},${borrower.name},${borrower.phone},${borrower.address},${borrower.total_loans || 0},${borrower.total_paid || 0},${borrower.remaining_amount || 0},${borrower.total_amount || 0}\n`;
       });
     } else if (selectedReportType === 'dailyCollection') {
-      csvContent = 'No,Payment Date,Borrower Name,Payment Amount,Payment Method,Remaining Loan Amount,Total Loan Amount\n'; // Add numbering column
+      csvContent = 'No,Payment Date,Borrower Name,Payment Method,Total Loan Amount,Remaining Loan Amount,Payment Amount\n'; // Match table column order
       data.forEach((payment, index) => {
-        csvContent += `${index + 1},${payment.payment_date},${payment.borrowerName || 'N/A'},${payment.amount},${payment.payment_method || 'cash'},${payment.remainingLoanAmount || 0},${payment.totalLoanAmount || 0}\n`;
+        csvContent += `${index + 1},${payment.payment_date},${payment.borrowerName || 'N/A'},${payment.payment_method || 'cash'},${payment.totalLoanAmount || 0},${payment.remainingLoanAmount || 0},${payment.amount}\n`;
       });
     }
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -227,19 +227,19 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     let wsData: any[] = [];
     if (selectedReportType === 'collection') {
       wsData = [
-        ['No', 'Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Remaining Amount'], // Add numbering column
+        ['No', 'Date', 'Borrower Name', 'Loan Amount', 'Remaining Amount', 'Collected Amount'], // Match table column order
         ...data.map((loan, index) => [
           index + 1,
           loan.start_date,
           loan.borrowerName || 'N/A',
           loan.total_amount,
-          loan.amount_paid,
-          loan.total_amount - loan.amount_paid
+          loan.total_amount - loan.amount_paid,
+          loan.amount_paid
         ])
       ];
     } else if (selectedReportType === 'overdue') {
       wsData = [
-        ['No', 'Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Status'], // Add numbering column
+        ['No', 'Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Status'], // Match table column order
         ...data.map((loan, index) => [
           index + 1,
           loan.start_date,
@@ -251,30 +251,29 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       ];
     } else if (selectedReportType === 'borrower') {
       wsData = [
-        ['No', 'Created Date', 'Name', 'Phone', 'Address', 'Total Loans', 'Total Amount', 'Total Paid', 'Remaining Amount'], // Add numbering column
+        ['No', 'Name', 'Phone', 'Address', 'Total Loans', 'Total Paid', 'Remaining Amount', 'Total Amount'], // Match table column order
         ...data.map((borrower, index) => [
           index + 1,
-          borrower.created_at ? borrower.created_at.split('T')[0] : '',
           borrower.name,
           borrower.phone,
           borrower.address,
           borrower.total_loans || 0,
-          borrower.total_amount || 0,
           borrower.total_paid || 0,
-          borrower.remaining_amount || 0
+          borrower.remaining_amount || 0,
+          borrower.total_amount || 0
         ])
       ];
     } else if (selectedReportType === 'dailyCollection') {
       wsData = [
-        ['No', 'Payment Date', 'Borrower Name', 'Payment Amount', 'Payment Method', 'Remaining Loan Amount', 'Total Loan Amount'], // Add numbering column
+        ['No', 'Payment Date', 'Borrower Name', 'Payment Method', 'Total Loan Amount', 'Remaining Loan Amount', 'Payment Amount'], // Match table column order
         ...data.map((payment, index) => [
           index + 1,
           payment.payment_date,
           payment.borrowerName || 'N/A',
-          payment.amount,
           payment.payment_method || 'cash',
+          payment.totalLoanAmount || 0,
           payment.remainingLoanAmount || 0,
-          payment.totalLoanAmount || 0
+          payment.amount
         ])
       ];
     }
@@ -295,18 +294,18 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     let title = '';
 
     if (selectedReportType === 'collection') {
-      head = ['No', 'Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Remaining Amount']; // Add numbering column
+      head = ['No', 'Date', 'Borrower Name', 'Loan Amount', 'Remaining Amount', 'Collected Amount']; // Match table column order
       body = data.map((loan, index) => [
         index + 1,
         loan.start_date,
         loan.borrowerName || 'N/A',
         loan.total_amount,
-        loan.amount_paid,
-        loan.total_amount - loan.amount_paid
+        loan.total_amount - loan.amount_paid,
+        loan.amount_paid
       ]);
       title = t.collectionReport;
     } else if (selectedReportType === 'overdue') {
-      head = ['No', 'Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Status']; // Add numbering column
+      head = ['No', 'Date', 'Borrower Name', 'Loan Amount', 'Payment Amount', 'Status']; // Match table column order
       body = data.map((loan, index) => [
         index + 1,
         loan.start_date,
@@ -317,28 +316,28 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       ]);
       title = t.overdueReport;
     } else if (selectedReportType === 'borrower') {
-      head = ['No', 'Name', 'Phone', 'Address', 'Total Loans', 'Total Amount', 'Total Paid', 'Remaining Amount']; // Add numbering column
+      head = ['No', 'Name', 'Phone', 'Address', 'Total Loans', 'Total Paid', 'Remaining Amount', 'Total Amount']; // Match table column order
       body = data.map((borrower, index) => [
         index + 1,
         borrower.name,
         borrower.phone,
         borrower.address,
         borrower.total_loans || 0,
-        borrower.total_amount || 0,
         borrower.total_paid || 0,
-        borrower.remaining_amount || 0
+        borrower.remaining_amount || 0,
+        borrower.total_amount || 0
       ]);
       title = t.borrowerReport;
     } else if (selectedReportType === 'dailyCollection') {
-      head = ['No', 'Payment Date', 'Borrower Name', 'Payment Amount', 'Payment Method', 'Remaining Loan Amount', 'Total Loan Amount']; // Add numbering column
+      head = ['No', 'Payment Date', 'Borrower Name', 'Payment Method', 'Total Loan Amount', 'Remaining Loan Amount', 'Payment Amount']; // Match table column order
       body = data.map((payment, index) => [
         index + 1,
         payment.payment_date,
         payment.borrowerName || 'N/A',
-        payment.amount,
         payment.payment_method || 'cash',
+        payment.totalLoanAmount || 0,
         payment.remainingLoanAmount || 0,
-        payment.totalLoanAmount || 0
+        payment.amount
       ]);
       title = t.dailyCollectionReport;
     }
@@ -658,25 +657,25 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
               {/* File Type Selection */}
               <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                {fileTypes.map((type) => (
-                  <button
-                    key={type.id}
-                    onClick={() => setSelectedFileType(type.id)}
-                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${selectedFileType === type.id
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                      }`}
-                  >
-                    {type.label}
-                  </button>
-                ))}
+          {fileTypes.map((type) => (
+            <button
+              key={type.id}
+              onClick={() => setSelectedFileType(type.id)}
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${selectedFileType === type.id
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                }`}
+            >
+              {type.label}
+            </button>
+          ))}
               </div>
               <Button
-                onClick={handleExport}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+          onClick={handleExport}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
               >
-                <Download className="w-4 h-4 mr-2" />
-                {t.exportBtn}
+          <Download className="w-4 h-4 mr-2" />
+          {t.exportBtn}
               </Button>
             </div>
           </div>
@@ -684,20 +683,20 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           <div className="mt-4 flex flex-col md:flex-row gap-2">
             {(selectedReportType === 'collection' || selectedReportType === 'overdue' || selectedReportType === 'dailyCollection') && (
               <>
-                <input
-                  type="date"
-                  value={fromDate}
-                  onChange={e => handleFromDateChange(e.target.value)}
-                  className="px-5 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                  placeholder="From date"
-                />
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={e => handleToDateChange(e.target.value)}
-                  className="px-5 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                  placeholder="To date"
-                />
+          <input
+            type="date"
+            value={fromDate}
+            onChange={e => handleFromDateChange(e.target.value)}
+            className="px-5 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            placeholder="From date"
+          />
+          <input
+            type="date"
+            value={toDate}
+            onChange={e => handleToDateChange(e.target.value)}
+            className="px-5 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            placeholder="To date"
+          />
               </>
             )}
             <input
@@ -708,65 +707,80 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
               className="w-full md:w-3/3 px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             />
           </div>
-          {/* Report Type Selection */}
-          <div className="mt-4">
-            <div className="flex w-full bg-gray-200/70 dark:bg-gray-700/70 rounded-lg p-1 gap-2">
+            {/* Report Type Selection */}
+            <div className="mt-4">
+            {/* Responsive report type selection */}
+            <div className="hidden md:flex w-full bg-gray-200/70 dark:bg-gray-700/70 rounded-lg p-1 gap-2">
               {reportTypes.map((type) => (
-                <button
-                  key={type.id}
-                  onClick={() => handleReportTypeChange(type.id)}
-                  className={
-                    "flex-1 flex items-center justify-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 border-b-2 " +
-                    (selectedReportType === type.id
-                      ? "border-black bg-white/80 dark:bg-gray-800 text-black dark:text-white shadow-none dark:border-gray-200"
-                      : "border-transparent text-gray-700 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-600")
-                  }
-                  style={{
-                    borderBottomWidth: "2px",
-                  }}
-                >
-                  {type.label}
-                </button>
+              <button
+              key={type.id}
+              onClick={() => handleReportTypeChange(type.id)}
+              className={
+              "flex-1 flex items-center justify-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 border-b-2 " +
+              (selectedReportType === type.id
+              ? "border-black bg-white/80 dark:bg-gray-800 text-black dark:text-white shadow-none dark:border-gray-200"
+              : "border-transparent text-gray-700 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-600")
+              }
+              style={{
+              borderBottomWidth: "2px",
+              }}
+              >
+              {type.label}
+              </button>
               ))}
+            </div>
+            <div className="md:hidden">
+              <select
+              value={selectedReportType}
+              onChange={(e) => handleReportTypeChange(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              style={{ width: '90%' }}
+              >
+              {reportTypes.map((type) => (
+              <option key={type.id} value={type.id}>
+              {type.label}
+              </option>
+              ))}
+              </select>
             </div>
             {/* Data Table */}
             <div className="mt-4 overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  {renderTableHeaders()}
-                </TableHeader>
-                <TableBody>
-                  {renderTableRows()}
-                </TableBody>
+              <Table className="w-full min-w-[600px] md:min-w-[800px] lg:min-w-[1024px]">
+              <TableHeader>
+              {renderTableHeaders()}
+              </TableHeader>
+              <TableBody>
+              {renderTableRows()}
+              </TableBody>
               </Table>
               {renderPagination()}
             </div>
             <style>{`
               .ec-table-header-row {
-                border-bottom: 2px solid #222 !important;
+              border-bottom: 2px solid #222 !important;
               }
               .ec-table-header-cell {
-                color: #111 !important;
-                font-weight: 700 !important;
-                background: transparent !important;
+              color: #111 !important;
+              font-weight: 700 !important;
+              background: transparent !important;
               }
               @media (prefers-color-scheme: dark) {
-                .ec-table-header-row {
-                  border-bottom: 2px solid #444 !important;
-                }
-                .ec-table-header-cell {
-                  color: #fff !important;
-                }
+              .ec-table-header-row {
+              border-bottom: 2px solid #444 !important;
+              }
+              .ec-table-header-cell {
+              color: #fff !important;
+              }
               }
               /* Add row border for dark mode */
               .dark tr, .dark .ec-table-header-row, .dark .ec-table-row {
-                border-bottom: 1px solid #444 !important;
+              border-bottom: 1px solid #444 !important;
               }
               tr, .ec-table-row {
-                border-bottom: 1px solid #e5e7eb !important;
+              border-bottom: 1px solid #e5e7eb !important;
               }
             `}</style>
-          </div>
+            </div>
         </CardContent>
       </Card>
     </div>
