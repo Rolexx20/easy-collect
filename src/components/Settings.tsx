@@ -5,7 +5,6 @@ import {
   Upload,
   Save,
   Database,
-  Printer,
   Languages,
   Globe2,
 } from "lucide-react";
@@ -20,9 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Global } from "recharts";
 
 interface SettingsProps {
   language: string;
@@ -32,10 +29,10 @@ interface SettingsProps {
 const Settings = ({ language, setLanguage }: SettingsProps) => {
   const { toast } = useToast();
   const [profile, setProfile] = useState({
-    name: "Reven Regal",
-    email: "admin@easycollect.com",
-    phone: "+94 721040096",
-    company: "EasyCollect Finance",
+    name: "Niththiyanandam Dirosan",
+    email: "dirodirosan931@gmil.clm",
+    phone: "+94 753532601",
+    nicNo: "992248564V",
   });
 
   const translations = {
@@ -46,7 +43,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       name: "Full Name",
       email: "Email Address",
       phone: "Phone Number",
-      company: "Company Name",
+      nicNo: "NIC No",
       saveProfile: "Save Profile",
       dataManagement: "Data Management",
       dataDesc: "Backup and restore your data",
@@ -67,7 +64,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       name: "முழு பெயர்",
       email: "மின்னஞ்சல் முகவரி",
       phone: "தொலைபேசி எண்",
-      company: "நிறுவன பெயர்",
+      nicNo: "தேசிய அடையாள அட்டை எண்",
       saveProfile: "சுயவிவரத்தை சேமிக்கவும்",
       dataManagement: "தரவு மேலாண்மை",
       dataDesc: "உங்கள் தரவை காப்புப்படுத்தி மீட்டமைக்கவும்",
@@ -213,12 +210,12 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="company">{t.company}</Label>
+                <Label htmlFor="nicNo">{t.nicNo}</Label>
                 <Input
-                  id="company"
-                  value={profile.company}
+                  id="nicNo"
+                  value={profile.nicNo}
                   onChange={(e) =>
-                    setProfile({ ...profile, company: e.target.value })
+                    setProfile({ ...profile, nicNo: e.target.value })
                   }
                 />
               </div>
