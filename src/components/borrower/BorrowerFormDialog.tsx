@@ -33,14 +33,14 @@ interface BorrowerFormDialogProps {
 
 const BorrowerFormDialog = ({ isOpen, onClose, editingBorrower, onDataChange, language }: BorrowerFormDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => ({
     title: editingBorrower?.title || '',
     first_name: editingBorrower?.first_name || '',
     last_name: editingBorrower?.last_name || '',
     nic_number: editingBorrower?.nic_number || '',
     phone: editingBorrower?.phone?.startsWith('+94') ? editingBorrower.phone.replace('+94', '0') : editingBorrower?.phone || '',
     address: editingBorrower?.address || ''
-  });
+  }));
 
   const titleOptions = [
     { value: 'Mr.', label: 'Mr.' },
@@ -85,7 +85,7 @@ const BorrowerFormDialog = ({ isOpen, onClose, editingBorrower, onDataChange, la
   const t = translations[language as keyof typeof translations];
 
   const handleSubmit = async () => {
-    if (!formData.title || !formData.first_name || !formData.last_name || !formData.nic_number || !formData.phone || !formData.address) {
+    if (!editingBorrower && (!formData.title || !formData.first_name || !formData.last_name || !formData.nic_number || !formData.phone || !formData.address)) {
       toast({ title: t.fillAllFields, variant: "destructive" });
       return;
     }
@@ -139,7 +139,14 @@ const BorrowerFormDialog = ({ isOpen, onClose, editingBorrower, onDataChange, la
   };
 
   const resetForm = () => {
-    setFormData({ title: '', first_name: '', last_name: '', nic_number: '', phone: '', address: '' });
+    setFormData({
+      title: editingBorrower?.title || '',
+      first_name: editingBorrower?.first_name || '',
+      last_name: editingBorrower?.last_name || '',
+      nic_number: editingBorrower?.nic_number || '',
+      phone: editingBorrower?.phone?.startsWith('+94') ? editingBorrower.phone.replace('+94', '0') : editingBorrower?.phone || '',
+      address: editingBorrower?.address || ''
+    });
     onClose();
   };
 
@@ -156,7 +163,7 @@ const BorrowerFormDialog = ({ isOpen, onClose, editingBorrower, onDataChange, la
             <Label htmlFor="title" className="pb-1 text-gray-700 dark:text-gray-300">{t.titleField}</Label>
             <Select value={formData.title} onValueChange={(value) => setFormData({ ...formData, title: value })}>
               <SelectTrigger className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                <SelectValue placeholder="Select title" />
+                <SelectValue placeholder={formData.title || "Select title"} />
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 z-50">
                 {titleOptions.map((option) => (
@@ -174,7 +181,7 @@ const BorrowerFormDialog = ({ isOpen, onClose, editingBorrower, onDataChange, la
                 id="first_name"
                 value={formData.first_name}
                 onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                placeholder={t.firstName}
+                placeholder={formData.first_name || t.firstName}
                 className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
               />
             </div>
@@ -184,7 +191,7 @@ const BorrowerFormDialog = ({ isOpen, onClose, editingBorrower, onDataChange, la
                 id="last_name"
                 value={formData.last_name}
                 onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                placeholder={t.lastName}
+                placeholder={formData.last_name || t.lastName}
                 className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
               />
             </div>
@@ -195,7 +202,7 @@ const BorrowerFormDialog = ({ isOpen, onClose, editingBorrower, onDataChange, la
               id="nic_number"
               value={formData.nic_number}
               onChange={(e) => setFormData({ ...formData, nic_number: e.target.value })}
-              placeholder={t.nicNumber}
+              placeholder={formData.nic_number || t.nicNumber}
               className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
             />
           </div>
@@ -209,7 +216,7 @@ const BorrowerFormDialog = ({ isOpen, onClose, editingBorrower, onDataChange, la
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="771234567"
+                placeholder={formData.phone || "771234567"}
                 className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-l-none"
               />
             </div>
@@ -220,7 +227,7 @@ const BorrowerFormDialog = ({ isOpen, onClose, editingBorrower, onDataChange, la
               id="address"
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              placeholder={t.address}
+              placeholder={formData.address || t.address}
               className="py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
             />
           </div>
