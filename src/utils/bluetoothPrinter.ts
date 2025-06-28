@@ -16,6 +16,8 @@ export class BluetoothPrinter {
   private characteristic: BluetoothRemoteGATTCharacteristic | null = null;
 
   async connect(): Promise<boolean> {
+    // NOTE: Web Bluetooth API only works on HTTPS or localhost.
+    // If accessed over a network (not localhost), the site must be served via HTTPS.
     try {
       if (!navigator.bluetooth) {
         console.error('Bluetooth API is not supported in this environment');
@@ -25,13 +27,7 @@ export class BluetoothPrinter {
       console.log("Requesting Bluetooth device...");
       // Prompt user for permission to access Bluetooth devices
       this.device = await navigator.bluetooth.requestDevice({
-        filters: [
-          { services: ['000018f0-0000-1000-8000-00805f9b34fb'] }, // Common printer service
-          { namePrefix: 'PRINTER' },
-          { namePrefix: 'TM-' },
-          { namePrefix: 'RPP' }
-        ],
-        optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+        acceptAllDevices: true, // Allow all Bluetooth devices
       });
 
       if (!this.device.gatt) {
