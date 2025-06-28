@@ -121,35 +121,17 @@ const Dashboard = ({
     .filter((loan) => loan.status === "overdue")
     .reduce((sum, loan) => sum + (loan.total_amount - loan.amount_paid), 0);
 
-  const averagePayment =
-    payments.length > 0
-      ? payments.reduce((sum, payment) => sum + Number(payment.amount), 0) /
-        payments.length
-      : 0;
-
   const recentPayments = payments
     .sort(
       (a, b) =>
         new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime()
     )
-    .slice(0, 5);
+    .slice(0, 10);
 
   const getBorrowerNameForPayment = (loanId: string) => {
     const loan = loans.find((l) => l.id === loanId);
     return loan?.borrowerName || "Unknown";
   };
-
-  const pieData = [
-    { name: t.active, value: activeLoans, color: "#3b82f6" },
-    { name: t.completed, value: completedLoans, color: "#10b981" },
-    { name: t.overdue, value: overdueLoans, color: "#ef4444" },
-  ];
-
-  const recentLoans = loans.slice(0, 6).map((loan, index) => ({
-    name: `Loan ${index + 1}`,
-    amount: Number(loan.total_amount) || 0,
-    paid: Number(loan.amount_paid) || 0,
-  }));
 
   return (
     <div className="w-full p-6 py-6 space-y-6 pt-5">
