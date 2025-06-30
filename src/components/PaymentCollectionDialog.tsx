@@ -13,6 +13,8 @@ import { Progress } from "@/components/ui/progress";
 import { DollarSign, Calendar, CreditCard, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { createPayment } from "@/lib/database";
+import jsPDF from "jspdf";
+import { set } from "date-fns";
 
 interface Loan {
   id: string;
@@ -84,7 +86,8 @@ const PaymentCollectionDialog = ({
       paymentProgress: "பணம் செலுத்தல் முன்னேற்றம்",
       paymentCollected: "பணம் வெற்றிகரமாக வசூலிக்கப்பட்டது",
       amounterror: "உள்ளீட்டு மதிப்பு பூஜ்ஜியத்தை விட அதிகமாக இருக்க வேண்டும்",
-      invalidAmount:"பணம் செலுத்தும் தொகை மீதமுள்ள தொகையை விட அதிகமாக இருக்க முடியாது",
+      invalidAmount:
+        "பணம் செலுத்தும் தொகை மீதமுள்ள தொகையை விட அதிகமாக இருக்க முடியாது",
       collecting: "வசூலிக்கிறது...",
       cash: "பணம்",
       bank: "வங்கி பரிமாற்றம்",
@@ -95,6 +98,196 @@ const PaymentCollectionDialog = ({
   };
 
   const t = translations[language as keyof typeof translations];
+
+  // Helper to calculate end date
+  const calculateEndDate = (startDate: string, durationMonths: number) => {
+    const start = new Date(startDate);
+    const end = new Date(start);
+    end.setMonth(end.getMonth() + durationMonths);
+    return end.toISOString().split("T")[0];
+  };
+
+  // Helper to generate and download PDF receipt
+  const generateReceiptPDF = ({
+    phone,
+    date,
+    time,
+    customerName,
+    loanAmount,
+    dailyPayment,
+    duration,
+    startDate,
+    endDate,
+    amountPaid,
+    remainingAmount,
+    paymentAmount,
+    closingBalance,
+    broughtForward,
+  }: {
+    phone: string;
+    date: string;
+    time: string;
+    customerName: string;
+    loanAmount: number;
+    dailyPayment: string;
+    duration: number;
+    startDate: string;
+    endDate: string;
+    amountPaid: number;
+    remainingAmount: number;
+    paymentAmount: number;
+    closingBalance: number;
+    broughtForward: number;
+  }) => {
+    const pageWidth = 58; // mm
+    const margin = 4; // mm
+
+    // --- Step 1: Measure content height ---
+    let y = margin + 4;
+    const line = (h = 5) => (y += h);
+    y = margin + 4;
+    line(0); // Title
+    line(6); // Customer
+    line(5); // Bill Date
+    line(4); // Divider
+    line(5); // Loan Amount
+    line(5); // Daily Payment
+    line(5); // Duration
+    line(5); // Start Date
+    line(5); // End Date
+    line(5); // Total Paid
+    line(5); // Total Due
+    line(4); // Divider
+    line(5); // Paid Today
+    line(5); // Brought Forward
+    line(5); // Arrears
+    line(5); // Closing Balance
+    line(6); // Divider
+    line(5); // Thank You
+    line(5); // Divider
+
+    const contentHeight = y + margin + 2; // Add a little padding
+
+    // --- Step 2: Create final doc with measured height and margin ---
+    const doc = new jsPDF({
+      unit: "mm",
+      format: [pageWidth + margin * 2, contentHeight],
+    });
+
+    y = margin + 2;
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    // Adjust margin for the receipt title to match the attached image (centered, with more top margin)
+    doc.text("$ INSTALLMENT RECEIPT $", (pageWidth + margin * 2) / 2, y + 2, {
+      align: "center",
+    });
+    doc.setFont(undefined, "normal");
+    y += 9;
+    doc.setFontSize(8);
+    doc.text(`Customer :`, margin + 2, y, { align: "left" });
+    doc.text(`${customerName}`, pageWidth + margin - 2, y, { align: "right" });
+    y += 5;
+    doc.text(`Bill Date :`, margin + 2, y, { align: "left" });
+    doc.text(`${date} ${time}`, pageWidth + margin - 2, y, { align: "right" });
+    y += 5;
+    // Start Date left, End Date right (below Bill Date)
+    doc.text(`Loan Period :`, margin + 2, y, { align: "left" });
+    doc.text(`${startDate} to ${endDate}`, pageWidth + margin - 2, y, {
+      align: "right",
+    });
+    y += 4;
+    // Change dashed line to right-aligned like other lines
+    doc.text("-".repeat(pageWidth), (pageWidth + margin * 2) / 2, y, {
+      align: "center",
+    });
+    y += 4;
+    doc.text(`Loan Amount :`, margin + 2, y, { align: "left" });
+    doc.text(
+      `${parseFloat(loanAmount.toString()).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      pageWidth + margin - 2,
+      y,
+      { align: "right" }
+    );
+    y += 5;
+    // Add Total Interest below Loan Amount
+    const totalInterest = loan.total_amount - loan.principal_amount;
+    doc.text(`Total Interest :`, margin + 2, y, { align: "left" });
+    doc.text(
+      `${totalInterest.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      pageWidth + margin - 2,
+      y,
+      { align: "right" }
+    );
+    y += 5;
+    doc.text(`Daily Payment :`, margin + 2, y, { align: "left" });
+    doc.text(
+      `${parseFloat(dailyPayment.toString()).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      pageWidth + margin - 2,
+      y,
+      { align: "right" }
+    );
+    y += 5;
+    doc.text(`Duration :`, margin + 2, y, { align: "left" });
+    doc.text(`${duration} days`, pageWidth + margin - 2, y, { align: "right" });
+    y += 5;
+    doc.text(`Total Paid :`, margin + 2, y, { align: "left" });
+    doc.text(`${amountPaid.toLocaleString()}`, pageWidth + margin - 2, y, {
+      align: "right",
+    });
+    y += 5;
+    doc.text(`Total Due :`, margin + 2, y, { align: "left" });
+    doc.text(`${remainingAmount.toLocaleString()}`, pageWidth + margin - 2, y, {
+      align: "right",
+    });
+    y += 4;
+    doc.text("-".repeat(pageWidth), (pageWidth + margin * 2) / 2, y, {
+      align: "center",
+    });
+    y += 4;
+    doc.setFont(undefined, "bold");
+    doc.text(`Paid Today:`, margin + 2, y, { align: "left" });
+    doc.text(`${paymentAmount.toLocaleString()}`, pageWidth + margin - 2, y, {
+      align: "right",
+    });
+    y += 5;
+    doc.text(`Brought Forward :`, margin + 2, y, { align: "left" });
+    doc.text(`${broughtForward.toLocaleString()}`, pageWidth + margin - 2, y, {
+      align: "right",
+    });
+    doc.setFont(undefined, "normal");
+    y += 5;
+    doc.text(`Arrears :`, margin + 2, y, { align: "left" });
+    doc.text(`0`, pageWidth + margin - 2, y, { align: "right" });
+    y += 5;
+    doc.text(`Closing Balance :`, margin + 2, y, { align: "left" });
+    doc.text(`${closingBalance.toLocaleString()}`, pageWidth + margin - 2, y, {
+      align: "right",
+    });
+    y += 4;
+    doc.text("-".repeat(pageWidth), (pageWidth + margin * 2) / 2, y, {
+      align: "center",
+    });
+    y += 4;
+    doc.setFont(undefined, "bold");
+    doc.text("* THANK YOU *", (pageWidth + margin * 2) / 2, y, {
+      align: "center",
+    });
+    doc.setFont(undefined, "normal");
+    y += 4;
+    doc.text("-".repeat(pageWidth), (pageWidth + margin * 2) / 2, y, {
+      align: "center",
+    });
+    doc.save(`Receipt_${customerName}_${date}.pdf`);
+  };
 
   const handleSubmit = async () => {
     if (!formData.amount) {
@@ -121,6 +314,53 @@ const PaymentCollectionDialog = ({
       });
 
       toast({ title: t.paymentCollected });
+
+      // --- PDF Receipt Generation ---
+      if (loan) {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString();
+        let timeStr = now.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
+        timeStr = timeStr.replace(/(am|pm)/i, (match) => match.toUpperCase());
+        const durationDays = loan.duration_months * 30;
+        const endDate = calculateEndDate(loan.start_date, loan.duration_months);
+        const amountPaid = loan.amount_paid + paymentAmount;
+        const closingBalance = loan.total_amount - amountPaid;
+        const broughtForward = loan.amount_paid;
+        // Find borrower phone if available
+        let phone = "";
+        if (
+          loan.borrower_id &&
+          window &&
+          (window as any).easyCollectBorrowers
+        ) {
+          const found = (window as any).easyCollectBorrowers.find(
+            (b: any) => b.id === loan.borrower_id
+          );
+          if (found) phone = found.phone;
+        }
+        generateReceiptPDF({
+          phone: phone || "-",
+          date: dateStr,
+          time: timeStr,
+          customerName: loan.borrowerName || "",
+          loanAmount: loan.principal_amount,
+          dailyPayment: (loan.total_amount / durationDays).toFixed(2),
+          duration: durationDays,
+          startDate: loan.start_date,
+          endDate,
+          amountPaid,
+          remainingAmount: loan.total_amount - amountPaid,
+          paymentAmount,
+          closingBalance,
+          broughtForward,
+        });
+      }
+      // --- End PDF Receipt Generation ---
+
       onPaymentCollect();
       onClose();
       setFormData({ amount: "", notes: "" });
@@ -293,5 +533,4 @@ const PaymentCollectionDialog = ({
     </Dialog>
   );
 };
-
 export default PaymentCollectionDialog;
