@@ -418,7 +418,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             <TableHead>{t.date}</TableHead>
             <TableHead>{t.borrowerName}</TableHead>
             <TableHead>Status</TableHead>{" "}
-            {/* Ensure status column matches export */}
             <TableHead>{t.loanAmount}</TableHead>
             <TableHead>Remaining Amount</TableHead>
             <TableHead>Collected Amount</TableHead>
@@ -503,7 +502,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
               <TableCell>{item.start_date}</TableCell>
               <TableCell>{item.borrowerName || "N/A"}</TableCell>
               <TableCell>
-                <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                <span className="px-2 py-1 font-bold rounded-full text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                   {item.status || "Active"}
                 </span>
               </TableCell>
