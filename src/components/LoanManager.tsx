@@ -43,7 +43,7 @@ import {
   reversePayment,
 } from "@/lib/database";
 import PaymentCollectionDialog from "./PaymentCollectionDialog";
-import PaymentHistoryDialog from "./PaymentHistoryDialog";
+import ReversePaymentDialog from "./ReversePaymentDialog";
 import DeleteConfirmationDialog from "./DeleteConfirmationDialog";
 import {
   Tooltip,
@@ -91,7 +91,7 @@ const LoanManager = ({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [loanToDelete, setLoanToDelete] = useState<Loan | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [paymentHistoryOpen, setPaymentHistoryOpen] = useState(false);
+  const [reverseDialogOpen, setReverseDialogOpen] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -327,13 +327,9 @@ const LoanManager = ({
     setPaymentDialogOpen(true);
   };
 
-  const handleViewPaymentHistory = (loan: Loan) => {
+  const handleReversePayment = (loan: Loan) => {
     setSelectedLoan(loan);
-    setPaymentHistoryOpen(true);
-  };
-
-  const handlePaymentReversed = () => {
-    onDataChange(); // Refresh loan data to update the table
+    setReverseDialogOpen(true);
   };
 
   const resetForm = () => {
@@ -863,12 +859,12 @@ const LoanManager = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleViewPaymentHistory(loan)}
-                      className="flex-0 text-xs px-2 py-1 border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:bg-purple-50 dark:hover:bg-purple-900 hover:border-purple-400 dark:hover:border-purple-400 transition-all duration-150"
+                      onClick={() => handleReversePayment(loan)}
+                      className="flex-0 text-xs px-2 py-1 border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:bg-orange-50 dark:hover:bg-orange-900 hover:border-orange-400 dark:hover:border-orange-400 transition-all duration-150"
                       disabled={isLoading}
                       style={{ minWidth: 0 }}
                     >
-                      <History className="w-4 h-4 text-purple-600 dark:text-purple-300" />
+                      <Undo2 className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                     </Button>
                     <Button
                       variant="outline"
@@ -951,14 +947,19 @@ const LoanManager = ({
             language={language}
           />
 
-          <PaymentHistoryDialog
-            isOpen={paymentHistoryOpen}
+          <ReversePaymentDialog
+            isOpen={reverseDialogOpen}
             onClose={() => {
-              setPaymentHistoryOpen(false);
+              setReverseDialogOpen(false);
               setSelectedLoan(null);
+              onDataChange();
             }}
             loan={selectedLoan}
-            onPaymentReversed={handlePaymentReversed} // Pass handler to refresh loan table
+            onPaymentReversed={() => {
+              setReverseDialogOpen(false);
+              setSelectedLoan(null);
+              onDataChange();
+            }}
             language={language}
           />
         </>
