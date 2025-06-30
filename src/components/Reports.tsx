@@ -121,15 +121,52 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   const loadPayments = async () => {
     try {
       const paymentsData = await getPayments();
-      // Add borrower names and loan details to payments by matching loan_id
-      const paymentsWithLoanDetails = paymentsData.map((payment) => {
-        const loan = loans.find((l) => l.id === payment.loan_id);
-        return {
-          ...payment,
-          borrowerName: loan?.borrowerName || "N/A",
-          totalLoanAmount: loan?.total_amount || 0,
-          remainingLoanAmount: loan ? loan.total_amount - loan.amount_paid : 0,
-        };
+      // Group payments by loan_id and sort by payment_date ascending
+      const paymentsByLoan: { [loanId: string]: any[] } = {};
+      paymentsData.forEach((payment) => {
+        if (!paymentsByLoan[payment.loan_id])
+          paymentsByLoan[payment.loan_id] = [];
+        paymentsByLoan[payment.loan_id].push(payment);
+      });
+      Object.values(paymentsByLoan).forEach((arr) =>
+        arr.sort(
+          (a, b) =>
+            new Date(a.payment_date).getTime() -
+            new Date(b.payment_date).getTime()
+        )
+      );
+      // Flatten payments, calculate remainingLoanAmount after each payment
+      const paymentsWithLoanDetails: any[] = [];
+      Object.entries(paymentsByLoan).forEach(([loanId, paymentsArr]) => {
+        const loan = loans.find((l) => l.id === loanId);
+        let remaining = loan?.total_amount || 0;
+        paymentsArr.forEach((payment, idx) => {
+          // For the first payment, remaining = total - payment.amount
+          // For others, remaining = previous remaining - payment.amount
+          let beforePayment = remaining;
+          if (idx === 0) {
+            beforePayment = loan?.total_amount || 0;
+            remaining = beforePayment - (payment.amount || 0);
+          } else {
+            beforePayment = remaining;
+            remaining = beforePayment - (payment.amount || 0);
+          }
+          paymentsWithLoanDetails.push({
+            ...payment,
+            borrowerName: loan?.borrowerName || "N/A",
+            totalLoanAmount: loan?.total_amount || 0,
+            remainingLoanAmount: beforePayment,
+          });
+        });
+      });
+      // Sort all payments by payment_date descending (latest first), then by remainingLoanAmount ascending
+      paymentsWithLoanDetails.sort((a, b) => {
+        const dateA = new Date(a.payment_date).getTime();
+        const dateB = new Date(b.payment_date).getTime();
+        if (dateA !== dateB) {
+          return dateB - dateA; // latest date first
+        }
+        return (a.remainingLoanAmount || 0) - (b.remainingLoanAmount || 0); // lower remaining first if same date
       });
       setPayments(paymentsWithLoanDetails);
     } catch (error) {
@@ -380,7 +417,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             <TableHead>#</TableHead> {/* Add numbering column */}
             <TableHead>{t.date}</TableHead>
             <TableHead>{t.borrowerName}</TableHead>
-            <TableHead>Status</TableHead> {/* Ensure status column matches export */}
+            <TableHead>Status</TableHead>{" "}
+            {/* Ensure status column matches export */}
             <TableHead>{t.loanAmount}</TableHead>
             <TableHead>Remaining Amount</TableHead>
             <TableHead>Collected Amount</TableHead>
