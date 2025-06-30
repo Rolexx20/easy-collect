@@ -1,18 +1,56 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Progress } from '@/components/ui/progress';
-import { Plus, Edit, Trash2, Calendar, DollarSign, User, CreditCard, Clock, TrendingUp, AlertTriangle, Clock10, ThumbsUp, Lightbulb, History, Undo2 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-import { createLoan, updateLoan, deleteLoan, reversePayment } from '@/lib/database';
-import PaymentCollectionDialog from './PaymentCollectionDialog';
-import PaymentHistoryDialog from './PaymentHistoryDialog';
-import DeleteConfirmationDialog from './DeleteConfirmationDialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Calendar,
+  DollarSign,
+  User,
+  CreditCard,
+  Clock,
+  TrendingUp,
+  AlertTriangle,
+  Clock10,
+  ThumbsUp,
+  Lightbulb,
+  History,
+  Undo2,
+} from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import {
+  createLoan,
+  updateLoan,
+  deleteLoan,
+  reversePayment,
+} from "@/lib/database";
+import PaymentCollectionDialog from "./PaymentCollectionDialog";
+import PaymentHistoryDialog from "./PaymentHistoryDialog";
+import DeleteConfirmationDialog from "./DeleteConfirmationDialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Loan {
   id: string;
@@ -24,7 +62,7 @@ interface Loan {
   total_amount: number;
   amount_paid: number;
   start_date: string;
-  status: 'active' | 'completed' | 'overdue';
+  status: "active" | "completed" | "overdue";
   next_payment_date?: string;
 }
 
@@ -42,7 +80,12 @@ interface LoanManagerProps {
   onDataChange: () => void;
 }
 
-const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerProps) => {
+const LoanManager = ({
+  language,
+  loans,
+  borrowers,
+  onDataChange,
+}: LoanManagerProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -52,110 +95,122 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    borrower_id: '',
-    principal_amount: '',
-    interest_rate: '15',
-    duration_months: '1',
-    start_date: new Date().toISOString().split('T')[0]
+    borrower_id: "",
+    principal_amount: "",
+    interest_rate: "15",
+    duration_months: "1",
+    start_date: new Date().toISOString().split("T")[0],
   });
 
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
   // Track original principal for edit validation
-  const [originalPrincipal, setOriginalPrincipal] = useState<number | null>(null);
+  const [originalPrincipal, setOriginalPrincipal] = useState<number | null>(
+    null
+  );
   const [editAmountError, setEditAmountError] = useState<string | null>(null);
 
   const translations = {
     en: {
-      title: 'Loan Management',
-      addLoan: 'Add New Loan',
-      editLoan: 'Edit Loan',
-      borrower: 'Borrower',
-      principalAmount: 'Loan Amount',
-      interestRate: 'Interest Rate(%)',
-      duration: 'Loan Duration (months)',
-      startDate: 'Start Date',
-      save: 'Save',
-      cancel: 'Cancel',
-      edit: 'Edit',
-      delete: 'Delete',
-      collectPayment: 'Collect Payment',
-      paymentHistory: 'Payment History',
-      totalAmount: 'Total Amount',
-      amountPaid: 'Paid Amount',
-      remainingAmount: 'Remain Amount',
-      status: 'Status',
-      nextPayment: 'End Date',
-      loanAdded: 'Loan added successfully',
-      loanUpdated: 'Loan updated successfully',
-      loanDeleted: 'Loan deleted successfully',
-      fillAllFields: 'Please fill all fields',
-      noLoans: 'No loans registered yet',
-      selectBorrower: 'Select a borrower',
-      confirmDelete: 'Are you sure you want to delete this loan?',
-      deleteWarning: 'This action cannot be undone and will also delete all associated payments.',
-      active: 'Active',
-      completed: 'Completed',
-      overdue: 'Overdue',
-      paymentProgress: 'Payment Progress',
-      daysRemaining: 'D',
-      dailyPayment: 'D.Pay:'
+      title: "Loan Management",
+      addLoan: "Add New Loan",
+      editLoan: "Edit Loan",
+      borrower: "Borrower",
+      principalAmount: "Loan Amount",
+      interestRate: "Interest Rate(%)",
+      duration: "Loan Duration (months)",
+      startDate: "Start Date",
+      save: "Save",
+      cancel: "Cancel",
+      edit: "Edit",
+      delete: "Delete",
+      collectPayment: "Collect Payment",
+      paymentHistory: "Payment History",
+      totalAmount: "Total Amount",
+      amountPaid: "Paid Amount",
+      remainingAmount: "Remain Amount",
+      status: "Status",
+      nextPayment: "End Date",
+      loanAdded: "Loan added successfully",
+      loanUpdated: "Loan updated successfully",
+      loanDeleted: "Loan deleted successfully",
+      fillAllFields: "Please fill all fields",
+      noLoans: "No loans registered yet",
+      selectBorrower: "Select a borrower",
+      confirmDelete: "Are you sure you want to delete this loan?",
+      deleteWarning:
+        "This action cannot be undone and will also delete all associated payments.",
+      active: "Active",
+      completed: "Completed",
+      overdue: "Overdue",
+      paymentProgress: "Payment Progress",
+      daysRemaining: "D",
+      dailyPayment: "D.Pay:",
     },
     ta: {
-      title: 'கடன் மேலாண்மை',
-      addLoan: 'புதிய கடன் சேர்க்கவும்',
-      editLoan: 'கடனைத் திருத்தவும்',
-      borrower: 'கடன் வாங்குபவர்',
-      principalAmount: 'முதன்மை தொகை',
-      interestRate: 'வட்டி விகிதம் (%)',
-      duration: 'காலம் (மாதங்கள்)',
-      startDate: 'தொடக்க தேதி',
-      save: 'சேமிக்கவும்',
-      cancel: 'ரத்து செய்யவும்',
-      edit: 'திருத்து',
-      delete: 'நீக்கு',
-      collectPayment: 'பணம் வசூலிக்கவும்',
-      paymentHistory: 'பணம் செலுத்தல் வரலாறு',
-      totalAmount: 'மொத்த தொகை',
-      amountPaid: 'செலுத்திய தொகை',
-      remainingAmount: 'மீதமுள்ள தொகை',
-      status: 'நிலை',
-      nextPayment: 'கடன் முடிவு தேதி',
-      loanAdded: 'கடன் வெற்றிகரமாக சேர்க்கப்பட்டது',
-      loanUpdated: 'கடன் வெற்றிகரமாக புதுப்பிக்கப்பட்டது',
-      loanDeleted: 'கடன் வெற்றிகரமாக நீக்கப்பட்டது',
-      fillAllFields: 'தயவுசெய்து அனைத்து புலங்களையும் நிரப்பவும்',
-      noLoans: 'இதுவரை கடன்கள் பதிவு செய்யப்படவில்லை',
-      selectBorrower: 'கடன் வாங்குபவரை தேர்ந்தெடுக்கவும்',
-      confirmDelete: 'இந்த கடனை நீக்க விரும்புகிறீர்களா?',
-      deleteWarning: 'இந்த செயல் மாற்ற முடியாது மற்றும் அனைத்து தொடர்புடைய பணம் செலுத்தல்களையும் நீக்கும்.',
-      active: 'செயலில்',
-      completed: 'முடிந்தது',
-      overdue: 'தாமதம்',
-      paymentProgress: 'பணம் செலுத்தல் முன்னேற்றம்',
-      daysRemaining: 'மீதமுள்ள நாட்கள்',
-      dailyPayment: 'தினசரி பணம் செலுத்தும் தொகை'
-    }
+      title: "கடன் மேலாண்மை",
+      addLoan: "புதிய கடன் சேர்க்கவும்",
+      editLoan: "கடனைத் திருத்தவும்",
+      borrower: "கடன் வாங்குபவர்",
+      principalAmount: "முதன்மை தொகை",
+      interestRate: "வட்டி விகிதம் (%)",
+      duration: "காலம் (மாதங்கள்)",
+      startDate: "தொடக்க தேதி",
+      save: "சேமிக்கவும்",
+      cancel: "ரத்து செய்யவும்",
+      edit: "திருத்து",
+      delete: "நீக்கு",
+      collectPayment: "பணம் வசூலிக்கவும்",
+      paymentHistory: "பணம் செலுத்தல் வரலாறு",
+      totalAmount: "மொத்த தொகை",
+      amountPaid: "செலுத்திய தொகை",
+      remainingAmount: "மீதமுள்ள தொகை",
+      status: "நிலை",
+      nextPayment: "கடன் முடிவு தேதி",
+      loanAdded: "கடன் வெற்றிகரமாக சேர்க்கப்பட்டது",
+      loanUpdated: "கடன் வெற்றிகரமாக புதுப்பிக்கப்பட்டது",
+      loanDeleted: "கடன் வெற்றிகரமாக நீக்கப்பட்டது",
+      fillAllFields: "தயவுசெய்து அனைத்து புலங்களையும் நிரப்பவும்",
+      noLoans: "இதுவரை கடன்கள் பதிவு செய்யப்படவில்லை",
+      selectBorrower: "கடன் வாங்குபவரை தேர்ந்தெடுக்கவும்",
+      confirmDelete: "இந்த கடனை நீக்க விரும்புகிறீர்களா?",
+      deleteWarning:
+        "இந்த செயல் மாற்ற முடியாது மற்றும் அனைத்து தொடர்புடைய பணம் செலுத்தல்களையும் நீக்கும்.",
+      active: "செயலில்",
+      completed: "முடிந்தது",
+      overdue: "தாமதம்",
+      paymentProgress: "பணம் செலுத்தல் முன்னேற்றம்",
+      daysRemaining: "மீதமுள்ள நாட்கள்",
+      dailyPayment: "தினசரி பணம் செலுத்தும் தொகை",
+    },
   };
 
   const t = translations[language as keyof typeof translations];
 
   const handleSubmit = async () => {
-    if (!formData.borrower_id || !formData.principal_amount || !formData.interest_rate ||
-      !formData.duration_months || !formData.start_date) {
+    if (
+      !formData.borrower_id ||
+      !formData.principal_amount ||
+      !formData.interest_rate ||
+      !formData.duration_months ||
+      !formData.start_date
+    ) {
       toast({ title: t.fillAllFields, variant: "destructive" });
       return;
     }
 
     // Check if a loan already exists for the selected borrower
-    const existingLoan = loans.find((loan) => loan.borrower_id === formData.borrower_id);
+    const existingLoan = loans.find(
+      (loan) => loan.borrower_id === formData.borrower_id
+    );
     if (existingLoan && !editingLoan) {
       toast({
-        title: language === 'ta'
-          ? 'இந்த கடன் வாங்குபவருக்கு ஏற்கனவே ஒரு கடன் உள்ளது'
-          : 'A loan already exists for this borrower',
+        title:
+          language === "ta"
+            ? "இந்த கடன் வாங்குபவருக்கு ஏற்கனவே ஒரு கடன் உள்ளது"
+            : "A loan already exists for this borrower",
         variant: "destructive",
-        duration: 3000
+        duration: 3000,
       });
       return;
     }
@@ -168,11 +223,13 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
 
       // If editing and payments have been made, prevent decreasing principal
       if (editingLoan && editingLoan.amount_paid > 0) {
-        if (principalAmount < (originalPrincipal ?? editingLoan.principal_amount)) {
+        if (
+          principalAmount < (originalPrincipal ?? editingLoan.principal_amount)
+        ) {
           setEditAmountError(
-            language === 'ta'
-              ? 'பணம் செலுத்தல் தொடங்கிய பிறகு கடன் தொகையை குறைக்க முடியாது'
-              : 'Cannot decrease loan amount after payments have started'
+            language === "ta"
+              ? "பணம் செலுத்தல் தொடங்கிய பிறகு கடன் தொகையை குறைக்க முடியாது"
+              : "Cannot decrease loan amount after payments have started"
           );
           return;
         }
@@ -184,9 +241,9 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
         principal_amount: principalAmount,
         interest_rate: interestRate,
         duration_months: durationInMonths,
-        total_amount: principalAmount + (principalAmount * interestRate / 100),
+        total_amount: principalAmount + (principalAmount * interestRate) / 100,
         start_date: formData.start_date,
-        status: 'active' as const
+        status: "active" as const,
       };
 
       if (editingLoan) {
@@ -199,12 +256,12 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       onDataChange();
       resetForm();
     } catch (error) {
-      console.error('Error saving loan:', error);
+      console.error("Error saving loan:", error);
       toast({
         title: "Error",
         description: "Failed to save loan. Please try again.",
         variant: "destructive",
-        duration: 3000
+        duration: 3000,
       });
     } finally {
       setIsLoading(false);
@@ -220,20 +277,21 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       principal_amount: loan.principal_amount.toString(),
       interest_rate: loan.interest_rate.toString(),
       duration_months: loan.duration_months.toString(),
-      start_date: loan.start_date
+      start_date: loan.start_date,
     });
     setIsDialogOpen(true);
   };
 
   const handleDeleteClick = (loan: Loan) => {
     // Only allow delete if loan is completed
-    if (loan.status !== 'completed') {
+    if (loan.status !== "completed") {
       toast({
-        title: language === 'ta'
-          ? 'முடிக்கப்படாத கடனை நீக்க முடியாது'
-          : 'Cannot delete a loan that is not completed',
+        title:
+          language === "ta"
+            ? "முடிக்கப்படாத கடனை நீக்க முடியாது"
+            : "Cannot delete a loan that is not completed",
         variant: "destructive",
-        duration: 3000
+        duration: 3000,
       });
       return;
     }
@@ -250,12 +308,12 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       toast({ title: t.loanDeleted });
       onDataChange();
     } catch (error) {
-      console.error('Error deleting loan:', error);
+      console.error("Error deleting loan:", error);
       toast({
         title: "Error",
         description: "Failed to delete loan. Please try again.",
         variant: "destructive",
-        duration: 3000
+        duration: 3000,
       });
     } finally {
       setIsLoading(false);
@@ -280,11 +338,11 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
 
   const resetForm = () => {
     setFormData({
-      borrower_id: '',
-      principal_amount: '',
-      interest_rate: '15',
-      duration_months: '1',
-      start_date: new Date().toISOString().split('T')[0]
+      borrower_id: "",
+      principal_amount: "",
+      interest_rate: "15",
+      duration_months: "1",
+      start_date: new Date().toISOString().split("T")[0],
     });
     setEditingLoan(null);
     setIsDialogOpen(false);
@@ -292,24 +350,24 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'completed':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'overdue':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      case "active":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      case "completed":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      case "overdue":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'active':
+      case "active":
         return t.active;
-      case 'completed':
+      case "completed":
         return t.completed;
-      case 'overdue':
+      case "overdue":
         return t.overdue;
       default:
         return status;
@@ -318,11 +376,11 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'active':
+      case "active":
         return <ThumbsUp className="w-3 h-3" />;
-      case 'completed':
+      case "completed":
         return <Lightbulb className="w-3 h-3" />;
-      case 'overdue':
+      case "overdue":
         return <AlertTriangle className="w-4 h-4" />;
       default:
         return <Clock className="w-4 h-4" />;
@@ -333,7 +391,10 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
     return Math.round((amountPaid / totalAmount) * 100);
   };
 
-  const calculateDaysRemaining = (startDate: string, durationMonths: number) => {
+  const calculateDaysRemaining = (
+    startDate: string,
+    durationMonths: number
+  ) => {
     const start = new Date(startDate);
     const actualDays = durationMonths * 30;
     const end = new Date(start);
@@ -344,7 +405,10 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
     return Math.max(0, diffDays);
   };
 
-  const calculateDailyPayment = (totalAmount: number, durationMonths: number) => {
+  const calculateDailyPayment = (
+    totalAmount: number,
+    durationMonths: number
+  ) => {
     const actualDays = durationMonths * 30;
     return totalAmount / actualDays;
   };
@@ -353,19 +417,34 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
     const start = new Date(startDate);
     const end = new Date(start);
     end.setMonth(end.getMonth() + durationMonths);
-    return end.toISOString().split('T')[0];
+    return end.toISOString().split("T")[0];
   };
 
   const filteredLoans = loans.filter((loan) => {
-    const borrowerName = loan.borrowerName || '';
+    const borrowerName = loan.borrowerName || "";
     const principal = loan.principal_amount.toString();
-    const status = loan.status || '';
+    const status = loan.status || "";
     return (
       borrowerName.toLowerCase().includes(search.toLowerCase()) ||
       principal.includes(search) ||
       status.toLowerCase().includes(search.toLowerCase())
     );
   });
+
+  // Utility function to format display name like BorrowerManager
+  const formatDisplayName = (borrower: Borrower) => {
+    if (borrower.name) {
+      const parts = borrower.name.trim().split(" ");
+      if (parts.length === 3) {
+        const first = parts[0];
+        const second = parts[1].charAt(0).toUpperCase() + ".";
+        const third = parts[2];
+        return `${first} ${second} ${third}`;
+      }
+      return borrower.name;
+    }
+    return "Unknown Borrower";
+  };
 
   return (
     <div className="p-6 space-y-6 pt-5">
@@ -392,30 +471,55 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
             </DialogHeader>
             <div className="space-y-2 px-6 py-6">
               <div className="flex flex-col gap-1 pb-2">
-                <Label htmlFor="borrower" className="flex items-center gap-2 pb-1">
+                <Label
+                  htmlFor="borrower"
+                  className="flex items-center gap-2 pb-1"
+                >
                   <User className="w-4 h-4" />
                   {t.borrower}
                 </Label>
                 <Select
                   value={formData.borrower_id}
-                  onValueChange={(value) => setFormData({ ...formData, borrower_id: value })}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, borrower_id: value })
+                  }
+                  disabled={!!editingLoan}
                 >
                   <SelectTrigger className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-blue-500">
                     <SelectValue placeholder={t.selectBorrower} />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-                    {borrowers
-                      .filter((borrower) => !loans.some((loan) => loan.borrower_id === borrower.id))
-                      .map((borrower) => (
-                        <SelectItem key={borrower.id} value={borrower.id}>
-                          {borrower.name}
-                        </SelectItem>
-                      ))}
+                    {editingLoan
+                      ? (() => {
+                          const borrower = borrowers.find(
+                            (b) => b.id === formData.borrower_id
+                          );
+                          return borrower ? (
+                            <SelectItem key={borrower.id} value={borrower.id}>
+                              {formatDisplayName(borrower)}
+                            </SelectItem>
+                          ) : null;
+                        })()
+                      : borrowers
+                          .filter(
+                            (borrower) =>
+                              !loans.some(
+                                (loan) => loan.borrower_id === borrower.id
+                              )
+                          )
+                          .map((borrower) => (
+                            <SelectItem key={borrower.id} value={borrower.id}>
+                              {formatDisplayName(borrower)}
+                            </SelectItem>
+                          ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex flex-col gap-1 pb-2">
-                <Label htmlFor="principal" className="flex items-center gap-2 pb-1">
+                <Label
+                  htmlFor="principal"
+                  className="flex items-center gap-2 pb-1"
+                >
                   <DollarSign className="w-4 h-4" />
                   {t.principalAmount}
                 </Label>
@@ -425,7 +529,10 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                   step="1000"
                   value={formData.principal_amount}
                   onChange={(e) => {
-                    setFormData({ ...formData, principal_amount: e.target.value });
+                    setFormData({
+                      ...formData,
+                      principal_amount: e.target.value,
+                    });
                     setEditAmountError(null);
                   }}
                   placeholder="0"
@@ -434,17 +541,22 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                 />
                 {!!editingLoan && editingLoan.amount_paid > 0 && (
                   <span className="text-xs text-gray-500 mt-1">
-                    {language === 'ta'
-                      ? 'பணம் செலுத்தல் தொடங்கிய பிறகு கடன் தொகையை குறைக்க முடியாது. அதிகரிக்க மட்டும் முடியும்.'
-                      : 'Cannot decrease loan amount after payments have started. You can only increase.'}
+                    {language === "ta"
+                      ? "பணம் செலுத்தல் தொடங்கிய பிறகு கடன் தொகையை குறைக்க முடியாது. அதிகரிக்க மட்டும் முடியும்."
+                      : "Cannot decrease loan amount after payments have started. You can only increase."}
                   </span>
                 )}
                 {editAmountError && (
-                  <span className="text-xs text-red-500 mt-1">{editAmountError}</span>
+                  <span className="text-xs text-red-500 mt-1">
+                    {editAmountError}
+                  </span>
                 )}
               </div>
               <div className="flex flex-col gap-1 pb-2">
-                <Label htmlFor="interest" className="flex items-center gap-2 pb-1">
+                <Label
+                  htmlFor="interest"
+                  className="flex items-center gap-2 pb-1"
+                >
                   <TrendingUp className="w-4 h-4" />
                   {t.interestRate}
                 </Label>
@@ -453,13 +565,18 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                   type="number"
                   step="15"
                   value={formData.interest_rate}
-                  onChange={(e) => setFormData({ ...formData, interest_rate: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, interest_rate: e.target.value })
+                  }
                   placeholder="15"
                   className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                 />
               </div>
-                <div className="flex flex-col gap-1 pb-2">
-                <Label htmlFor="duration" className="flex items-center gap-2 pb-1">
+              <div className="flex flex-col gap-1 pb-2">
+                <Label
+                  htmlFor="duration"
+                  className="flex items-center gap-2 pb-1"
+                >
                   <Clock className="w-4 h-4" />
                   {t.duration}
                 </Label>
@@ -467,13 +584,21 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                   id="duration"
                   type="number"
                   value={formData.duration_months}
-                  onChange={(e) => setFormData({ ...formData, duration_months: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      duration_months: e.target.value,
+                    })
+                  }
                   placeholder="1"
                   className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                 />
-                </div>
+              </div>
               <div className="flex flex-col gap-1 pb-2">
-                <Label htmlFor="startDate" className="flex items-center gap-2 pb-1">
+                <Label
+                  htmlFor="startDate"
+                  className="flex items-center gap-2 pb-1"
+                >
                   <Calendar className="w-4 h-4" />
                   {t.startDate}
                 </Label>
@@ -481,7 +606,9 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                   id="startDate"
                   type="date"
                   value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, start_date: e.target.value })
+                  }
                 />
               </div>
               <div className="flex gap-2 pt-2">
@@ -492,7 +619,11 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                 >
                   {isLoading ? "Saving..." : t.save}
                 </Button>
-                <Button variant="outline" onClick={resetForm} className="flex-1">
+                <Button
+                  variant="outline"
+                  onClick={resetForm}
+                  className="flex-1"
+                >
                   {t.cancel}
                 </Button>
               </div>
@@ -522,11 +653,25 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredLoans.map((loan) => {
-            const progress = calculateProgress(loan.amount_paid, loan.total_amount);
-            const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months);
-            const dailyPayment = calculateDailyPayment(loan.total_amount, loan.duration_months);
-            const totalPayment = loan.principal_amount + (loan.principal_amount * loan.interest_rate / 100);
-            const loanEndDate = calculateLoanEndDate(loan.start_date, loan.duration_months);
+            const progress = calculateProgress(
+              loan.amount_paid,
+              loan.total_amount
+            );
+            const daysRemaining = calculateDaysRemaining(
+              loan.start_date,
+              loan.duration_months
+            );
+            const dailyPayment = calculateDailyPayment(
+              loan.total_amount,
+              loan.duration_months
+            );
+            const totalPayment =
+              loan.principal_amount +
+              (loan.principal_amount * loan.interest_rate) / 100;
+            const loanEndDate = calculateLoanEndDate(
+              loan.start_date,
+              loan.duration_months
+            );
 
             return (
               <Card
@@ -537,7 +682,8 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                   dark:from-green-950/30 dark:via-gray-900/95 dark:to-red-950/30
                   group"
               >
-                <CardHeader className="pb-2 pt-2 border-gray-100 dark:border-gray-800
+                <CardHeader
+                  className="pb-2 pt-2 border-gray-100 dark:border-gray-800
                   bg-gradient-to-r
                   from-green-100/80 to-transparent
                   dark:from-green-900/5"
@@ -547,10 +693,29 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                       <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 dark:bg-green-900">
                         <User className="w-4 h-4 text-green-700 dark:text-green-300" />
                       </span>
-                      <span className="truncate text-lg font-bold text-gray-800 dark:text-gray-100">{loan.borrowerName || 'Unknown'}</span>
+                      <span className="truncate text-lg font-bold text-gray-800 dark:text-gray-100">
+                        {
+                          // Use formatDisplayName logic directly on loan.borrowerName (no title)
+                          (() => {
+                            const name = loan.borrowerName || "";
+                            const parts = name.trim().split(" ");
+                            if (parts.length === 3) {
+                              const second =
+                                parts[1].charAt(0).toUpperCase() + ".";
+                              const third = parts[2];
+                              return `${second} ${third}`;
+                            }
+                            return name || "Unknown";
+                          })()
+                        }
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${getStatusColor(loan.status)}`}>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${getStatusColor(
+                          loan.status
+                        )}`}
+                      >
                         {getStatusIcon(loan.status)}
                         {getStatusText(loan.status)}
                       </span>
@@ -583,7 +748,10 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                         {t.dailyPayment}
                       </span>
                       <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 leading-tight truncate">
-                        ₹ {dailyPayment.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        ₹{" "}
+                        {dailyPayment.toLocaleString(undefined, {
+                          maximumFractionDigits: 0,
+                        })}
                       </span>
                     </div>
                     <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
@@ -592,7 +760,10 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                         Duration
                       </span>
                       <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 leading-tight truncate">
-                        {loan.duration_months * 30} {`${t.daysRemaining.replace(/[^A-Za-z]/g, '') || 'days'}`}
+                        {loan.duration_months * 30}{" "}
+                        {`${
+                          t.daysRemaining.replace(/[^A-Za-z]/g, "") || "days"
+                        }`}
                       </span>
                     </div>
                     <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
@@ -601,7 +772,10 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                         Interest
                       </span>
                       <span className="text-xs font-semibold  text-gray-900 dark:text-gray-100 leading-tight truncate">
-                        ₹ {(loan.total_amount - loan.principal_amount).toLocaleString()}
+                        ₹{" "}
+                        {(
+                          loan.total_amount - loan.principal_amount
+                        ).toLocaleString()}
                       </span>
                     </div>
                     <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
@@ -610,24 +784,41 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                         R.Days
                       </span>
                       <span className="text-xs font-semibold text-red-500 dark:text-red-500 leading-tight truncate">
-                        {calculateDaysRemaining(loan.start_date, loan.duration_months)}
+                        {calculateDaysRemaining(
+                          loan.start_date,
+                          loan.duration_months
+                        )}
                       </span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 items-center mt-2 text-left">
                     <div className="flex flex-col text-left min-w-0">
-                      <span className="text-[12px] text-green-500 truncate">{t.amountPaid}:</span>
-                      <span className="text-xs font-bold text-green-600 truncate">₹ {loan.amount_paid.toLocaleString()}</span>
+                      <span className="text-[12px] text-green-500 truncate">
+                        {t.amountPaid}:
+                      </span>
+                      <span className="text-xs font-bold text-green-600 truncate">
+                        ₹ {loan.amount_paid.toLocaleString()}
+                      </span>
                     </div>
                     <div className="flex flex-col text-left min-w-0">
-                      <span className="text-[12px] text-right text-red-500 truncate">{t.remainingAmount}:</span>
-                      <span className="text-right text-xs font-bold text-red-600 truncate">₹ {(loan.total_amount - loan.amount_paid).toLocaleString()}</span>
+                      <span className="text-[12px] text-right text-red-500 truncate">
+                        {t.remainingAmount}:
+                      </span>
+                      <span className="text-right text-xs font-bold text-red-600 truncate">
+                        ₹{" "}
+                        {(
+                          loan.total_amount - loan.amount_paid
+                        ).toLocaleString()}
+                      </span>
                     </div>
                   </div>
 
                   <div className="relative flex items-center">
-                    <Progress value={progress} className="h-2 mt-0 mb-0 flex-1" />
+                    <Progress
+                      value={progress}
+                      className="h-2 mt-0 mb-0 flex-1"
+                    />
                     <span className="ml-2 text-xs font-bold text-green-600 dark:text-green-500 z-10">
                       {progress}%
                     </span>
@@ -637,19 +828,28 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                     <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       <span>
-                        {t.startDate}: {new Date(loan.start_date).toLocaleDateString(undefined, { year: '2-digit', month: 'short', day: '2-digit' })}
+                        {t.startDate}:{" "}
+                        {new Date(loan.start_date).toLocaleDateString(
+                          undefined,
+                          { year: "2-digit", month: "short", day: "2-digit" }
+                        )}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       <span>
-                        {t.nextPayment}: {new Date(loanEndDate).toLocaleDateString(undefined, { year: '2-digit', month: 'short', day: '2-digit' })}
+                        {t.nextPayment}:{" "}
+                        {new Date(loanEndDate).toLocaleDateString(undefined, {
+                          year: "2-digit",
+                          month: "short",
+                          day: "2-digit",
+                        })}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex gap-2 mt-1">
-                    {loan.status === 'active' && (
+                    {loan.status === "active" && (
                       <Button
                         size="sm"
                         onClick={() => handleCollectPayment(loan)}
@@ -688,22 +888,28 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                if (loan.status === 'active' && loan.amount_paid > 0) {
+                                if (
+                                  loan.status === "active" &&
+                                  loan.amount_paid > 0
+                                ) {
                                   toast({
-                                    title: language === 'ta'
-                                      ? 'நிலுவை பணம் செலுத்துதலுடன் கடனை நீக்க முடியாது.'
-                                      : 'Cannot delete loan with pending payments',
+                                    title:
+                                      language === "ta"
+                                        ? "நிலுவை பணம் செலுத்துதலுடன் கடனை நீக்க முடியாது."
+                                        : "Cannot delete loan with pending payments",
                                     variant: "destructive",
-                                    duration: 3000
+                                    duration: 3000,
                                   });
                                 } else {
                                   handleDeleteClick(loan);
                                 }
                               }}
                               className={`flex-0 text-xs px-2 py-1 border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:bg-red-50 dark:hover:bg-red-900 hover:border-red-400 dark:hover:border-red-400 transition-all duration-150 ${
-                                isLoading || (loan.status === 'active' && loan.amount_paid > 0)
-                                  ? 'opacity-50 cursor-not-allowed'
-                                  : ''
+                                isLoading ||
+                                (loan.status === "active" &&
+                                  loan.amount_paid > 0)
+                                  ? "opacity-50 cursor-not-allowed"
+                                  : ""
                               }`}
                               disabled={isLoading}
                               style={{ minWidth: 0 }}
@@ -712,14 +918,14 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                             </Button>
                           </span>
                         </TooltipTrigger>
-                        {(loan.status === 'active' && loan.amount_paid > 0) && (
-                          <TooltipContent className='bg-red-700 text-white items-center gap-1 hidden sm:flex'>
-                          <AlertTriangle className="w-4 h-4" />
-                          <span className="text-xs">
-                            {language === 'ta'
-                            ? 'நிலுவை பணம் செலுத்துதலுடன் கடனை நீக்க முடியாது.'
-                            : 'Cannot delete loan with pending payments'}
-                          </span>
+                        {loan.status === "active" && loan.amount_paid > 0 && (
+                          <TooltipContent className="bg-red-700 text-white items-center gap-1 hidden sm:flex">
+                            <AlertTriangle className="w-4 h-4" />
+                            <span className="text-xs">
+                              {language === "ta"
+                                ? "நிலுவை பணம் செலுத்துதலுடன் கடனை நீக்க முடியாது."
+                                : "Cannot delete loan with pending payments"}
+                            </span>
                           </TooltipContent>
                         )}
                       </Tooltip>
@@ -764,7 +970,13 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
         onConfirm={handleDeleteConfirm}
         title={t.confirmDelete}
         message={t.deleteWarning}
-        itemName={loanToDelete ? `${loanToDelete.borrowerName} - ₹${loanToDelete.total_amount.toLocaleString()}` : undefined}
+        itemName={
+          loanToDelete
+            ? `${
+                loanToDelete.borrowerName
+              } - ₹${loanToDelete.total_amount.toLocaleString()}`
+            : undefined
+        }
         language={language}
       />
     </div>

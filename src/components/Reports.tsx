@@ -249,34 +249,34 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     let csvContent = "";
     if (selectedReportType === "collection") {
       csvContent =
-        "No,Date,Borrower Name,Status,Loan Amount,Remaining Amount,Collected Amount\n"; // Updated column order
+        "No,Date,Borrower Name,Status,Loan Amount,Remaining Amount,Collected Amount\n";
       data.forEach((loan, index) => {
         csvContent += `${index + 1},${loan.start_date},${
-          loan.borrowerName || "N/A"
+          formatReportBorrowerName(loan.borrowerName || "N/A")
         },${loan.status || "Active"},${loan.total_amount},${
           loan.total_amount - loan.amount_paid
         },${loan.amount_paid}\n`;
       });
     } else if (selectedReportType === "borrower") {
-      csvContent = "No,Name,Phone,Address,Total Amount\n"; // Match table column order
+      csvContent = "No,Name,Phone,Address,Total Amount\n";
       data.forEach((borrower, index) => {
         csvContent += `${index + 1},${borrower.name},${borrower.phone},${
           borrower.address
         },${borrower.total_amount || 0}\n`;
       });
     } else if (selectedReportType === "overdue") {
-      csvContent = "No,Date,Borrower Name,Loan Amount,Payment Amount,Status\n"; // Match table column order
+      csvContent = "No,Date,Borrower Name,Loan Amount,Payment Amount,Status\n";
       data.forEach((loan, index) => {
         csvContent += `${index + 1},${loan.start_date},${
-          loan.borrowerName || "N/A"
+          formatReportBorrowerName(loan.borrowerName || "N/A")
         },${loan.total_amount},${loan.amount_paid},${loan.status}\n`;
       });
     } else if (selectedReportType === "dailyCollection") {
       csvContent =
-        "No,Payment Date,Borrower Name,Payment Method,Total Loan Amount,Remaining Loan Amount,Payment Amount\n"; // Match table column order
+        "No,Payment Date,Borrower Name,Payment Method,Total Loan Amount,Remaining Loan Amount,Payment Amount\n";
       data.forEach((payment, index) => {
         csvContent += `${index + 1},${payment.payment_date},${
-          payment.borrowerName || "N/A"
+          formatReportBorrowerName(payment.borrowerName || "N/A")
         },${payment.payment_method || "cash"},${payment.totalLoanAmount || 0},${
           payment.remainingLoanAmount || 0
         },${payment.amount}\n`;
@@ -316,7 +316,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       body = data.map((loan, index) => [
         index + 1,
         loan.start_date,
-        loan.borrowerName || "N/A",
+        formatReportBorrowerName(loan.borrowerName || "N/A"),
         loan.status || "Active",
         loan.total_amount,
         loan.total_amount - loan.amount_paid,
@@ -345,7 +345,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       body = data.map((loan, index) => [
         index + 1,
         loan.start_date,
-        loan.borrowerName || "N/A",
+        formatReportBorrowerName(loan.borrowerName || "N/A"),
         loan.total_amount,
         loan.amount_paid,
         loan.status,
@@ -364,7 +364,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       body = data.map((payment, index) => [
         index + 1,
         payment.payment_date,
-        payment.borrowerName || "N/A",
+        formatReportBorrowerName(payment.borrowerName || "N/A"),
         payment.payment_method || "cash",
         payment.totalLoanAmount || 0,
         payment.remainingLoanAmount || 0,
@@ -461,6 +461,19 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     }
   };
 
+  // Utility function to format borrower name for reports (except borrower details)
+  const formatReportBorrowerName = (name: string) => {
+    if (!name) return "N/A";
+    const parts = name.trim().split(" ");
+    if (parts.length === 3) {
+      const first = parts[0];
+      const second = parts[1].charAt(0).toUpperCase() + ".";
+      const third = parts[2];
+      return `${first} ${second} ${third}`;
+    }
+    return name;
+  };
+
   const renderTableRows = () => {
     const data = getReportData();
     if (data.length === 0) {
@@ -498,9 +511,11 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         case "collection":
           return (
             <TableRow key={index}>
-              <TableCell>{rowNumber}</TableCell> {/* Add numbering */}
+              <TableCell>{rowNumber}</TableCell>
               <TableCell>{item.start_date}</TableCell>
-              <TableCell>{item.borrowerName || "N/A"}</TableCell>
+              <TableCell>
+                {formatReportBorrowerName(item.borrowerName || "N/A")}
+              </TableCell>
               <TableCell>
                 <span className="px-2 py-1 font-bold rounded-full text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                   {item.status || "Active"}
@@ -526,7 +541,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         case "borrower":
           return (
             <TableRow key={index}>
-              <TableCell>{rowNumber}</TableCell> {/* Add numbering */}
+              <TableCell>{rowNumber}</TableCell>
               <TableCell>{item.name}</TableCell>
               <TableCell>{item.phone}</TableCell>
               <TableCell>{item.address}</TableCell>
@@ -540,9 +555,11 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         case "overdue":
           return (
             <TableRow key={index}>
-              <TableCell>{rowNumber}</TableCell> {/* Add numbering */}
+              <TableCell>{rowNumber}</TableCell>
               <TableCell>{item.start_date}</TableCell>
-              <TableCell>{item.borrowerName || "N/A"}</TableCell>
+              <TableCell>
+                {formatReportBorrowerName(item.borrowerName || "N/A")}
+              </TableCell>
               <TableCell>₹ {item.total_amount?.toLocaleString()}</TableCell>
               <TableCell>₹ {item.amount_paid?.toLocaleString()}</TableCell>
               <TableCell>
@@ -555,9 +572,11 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         case "dailyCollection":
           return (
             <TableRow key={index}>
-              <TableCell>{rowNumber}</TableCell> {/* Add numbering */}
+              <TableCell>{rowNumber}</TableCell>
               <TableCell>{item.payment_date}</TableCell>
-              <TableCell>{item.borrowerName || "N/A"}</TableCell>
+              <TableCell>
+                {formatReportBorrowerName(item.borrowerName || "N/A")}
+              </TableCell>
               <TableCell>
                 <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                   {item.payment_method || "cash"}
