@@ -156,6 +156,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             borrowerName: loan?.borrowerName || "N/A",
             totalLoanAmount: loan?.total_amount || 0,
             remainingLoanAmount: beforePayment,
+            displayAmount: payment.is_reversed ? -Math.abs(payment.amount) : payment.amount,
           });
         });
       });
@@ -279,7 +280,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           formatReportBorrowerName(payment.borrowerName || "N/A")
         },${payment.payment_method || "cash"},${payment.totalLoanAmount || 0},${
           payment.remainingLoanAmount || 0
-        },${payment.amount}\n`;
+        },${payment.displayAmount || payment.amount}\n`;
       });
     }
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -368,7 +369,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         payment.payment_method || "cash",
         payment.totalLoanAmount || 0,
         payment.remainingLoanAmount || 0,
-        payment.amount,
+        payment.displayAmount || payment.amount,
       ]);
       title = t.dailyCollectionReport;
     }
@@ -591,8 +592,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
                 </span>
               </TableCell>
               <TableCell>
-                <span className="text-green-700 dark:text-green-500 font-bold">
-                  ₹ {item.amount?.toLocaleString()}
+                <span className={`font-bold ${(item.displayAmount || item.amount) < 0 ? 'text-red-700 dark:text-red-500' : 'text-green-700 dark:text-green-500'}`}>
+                  ₹ {(item.displayAmount || item.amount)?.toLocaleString()}
                 </span>
               </TableCell>
             </TableRow>

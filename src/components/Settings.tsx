@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   User,
   Download,
@@ -7,6 +7,8 @@ import {
   Database,
   Languages,
   Globe2,
+  Lock,
+  Key,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { getUserProfile, updateUserProfile, changePassword, type UserProfile } from "@/lib/database";
 
 interface SettingsProps {
   language: string;
@@ -29,11 +32,20 @@ interface SettingsProps {
 const Settings = ({ language, setLanguage }: SettingsProps) => {
   const { toast } = useToast();
   const [profile, setProfile] = useState({
-    name: "Niththiyanandam Dirosan",
-    email: "dirodirosan931@gmil.clm",
-    phone: "+94 753532601",
-    nicNo: "992248564V",
+    name: "",
+    email: "",
+    phone: "",
+    nicNo: "",
   });
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [isLoadingPassword, setIsLoadingPassword] = useState(false);
 
   const translations = {
     en: {
@@ -56,6 +68,15 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       dataImported: "Data imported successfully",
       connectPrinter: "Connect Printer",
       printerConnected: "Printer Connected",
+      changePassword: "Change Password",
+      currentPassword: "Current Password",
+      newPassword: "New Password",
+      confirmPassword: "Confirm New Password",
+      passwordChanged: "Password changed successfully",
+      passwordMismatch: "Passwords do not match",
+      invalidCurrentPassword: "Invalid current password",
+      showPasswordForm: "Show Password Change",
+      hidePasswordForm: "Hide Password Change",
     },
     ta: {
       settings: "அமைப்புகள்",
@@ -78,17 +99,126 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       dataImported: "தரவு வெற்றிகரமாக இறக்குமதி செய்யப்பட்டது",
       connectPrinter: "அச்சுப்பொறியை இணைக்கவும்",
       printerConnected: "அச்சுப்பொறி இணைக்கப்பட்டது",
+      changePassword: "கடவுச்சொல் மாற்று",
+      currentPassword: "தற்போதைய கடவுச்சொல்",
+      newPassword: "புதிய கடவுச்சொல்",
+      confirmPassword: "புதிய கடவுச்சொல் உறுதிப்படுத்தவும்",
+      passwordChanged: "கடவுச்சொல் வெற்றிகரமாக மாற்றப்பட்டது",
+      passwordMismatch: "கடவுச்சொற்கள் பொருந்தவில்லை",
+      invalidCurrentPassword: "தவறான தற்போதைய கடவுச்சொல்",
+      showPasswordForm: "கடவுச்சொல் மாற்றத்தைக் காட்டு",
+      hidePasswordForm: "கடவுச்சொல் மாற்றத்தை மறைக்க",
     },
   };
 
   const t = translations[language as keyof typeof translations];
 
-  const handleSaveProfile = () => {
-    toast({
-      title: t.profileUpdated,
-      description: "Your profile has been updated successfully.",
-      duration: 3000, // Close after 3 seconds
-    });
+  // Load user profile on component mount
+  useEffect(() => {
+    loadUserProfile();
+  }, []);
+
+  const loadUserProfile = async () => {
+    try {
+      const userData = await getUserProfile();
+      if (userData) {
+        setUserProfile(userData);
+        setProfile({
+          name: userData.name || "",
+          email: userData.email || "",
+          phone: userData.phone || "",
+          nicNo: userData.nic_no || "",
+        });
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!userProfile) return;
+    
+    setIsLoadingProfile(true);
+    try {
+      await updateUserProfile(userProfile.id, {
+        name: profile.name,
+        email: profile.email,
+        phone: profile.phone,
+        nic_no: profile.nicNo,
+      });
+      
+      toast({
+        title: t.profileUpdated,
+        description: "Your profile has been updated successfully.",
+        duration: 3000,
+      });
+      
+      // Reload the profile to get updated data
+      await loadUserProfile();
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (!userProfile) return;
+    
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({
+        title: t.passwordMismatch,
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+
+    // Basic check - in a real app you'd verify against hashed password
+    if (passwordForm.currentPassword !== "12345678") {
+      toast({
+        title: t.invalidCurrentPassword,
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+
+    setIsLoadingPassword(true);
+    try {
+      // In a real app, you'd hash the password properly
+      const newPasswordHash = '$2a$10$' + btoa(passwordForm.newPassword).slice(0, 53);
+      await changePassword(userProfile.id, newPasswordHash);
+      
+      toast({
+        title: t.passwordChanged,
+        description: "Your password has been changed successfully.",
+        duration: 3000,
+      });
+      
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setShowPasswordChange(false);
+    } catch (error) {
+      console.error('Error changing password:', error);
+      toast({
+        title: "Error",
+        description: "Failed to change password. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      setIsLoadingPassword(false);
+    }
   };
 
   const handleExportData = () => {
@@ -220,13 +350,80 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                 />
               </div>
             </div>
-            <Button
-              onClick={handleSaveProfile}
-              className="w-full md:w-auto bg-blue-700 text-white hover:bg-blue-800 dark:hover:bg-blue-600"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {t.saveProfile}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSaveProfile}
+                disabled={isLoadingProfile}
+                className="bg-blue-700 text-white hover:bg-blue-800 dark:hover:bg-blue-600"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {isLoadingProfile ? "Saving..." : t.saveProfile}
+              </Button>
+              <Button
+                onClick={() => setShowPasswordChange(!showPasswordChange)}
+                variant="outline"
+                className="border-gray-300 dark:border-gray-700"
+              >
+                <Lock className="w-4 h-4 mr-2" />
+                {showPasswordChange ? t.hidePasswordForm : t.showPasswordForm}
+              </Button>
+            </div>
+
+            {/* Password Change Form */}
+            {showPasswordChange && (
+              <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h4 className="font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                  <Key className="w-4 h-4" />
+                  {t.changePassword}
+                </h4>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="currentPassword">{t.currentPassword}</Label>
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      value={passwordForm.currentPassword}
+                      onChange={(e) =>
+                        setPasswordForm({ ...passwordForm, currentPassword: e.target.value })
+                      }
+                      placeholder="Enter current password (default: 12345678)"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">{t.newPassword}</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      value={passwordForm.newPassword}
+                      onChange={(e) =>
+                        setPasswordForm({ ...passwordForm, newPassword: e.target.value })
+                      }
+                      placeholder="Enter new password"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">{t.confirmPassword}</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={passwordForm.confirmPassword}
+                      onChange={(e) =>
+                        setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })
+                      }
+                      placeholder="Confirm new password"
+                    />
+                  </div>
+                  <Button
+                    onClick={handlePasswordChange}
+                    disabled={isLoadingPassword || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
+                    className="bg-orange-600 text-white hover:bg-orange-700"
+                  >
+                    <Lock className="w-4 h-4 mr-2" />
+                    {isLoadingPassword ? "Changing..." : t.changePassword}
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -30,6 +30,7 @@ export interface Loan {
   start_date: string;
   status: 'active' | 'completed' | 'overdue';
   next_payment_date?: string;
+  arrears?: number;
 }
 
 export interface Payment {
@@ -39,6 +40,18 @@ export interface Payment {
   payment_date: string;
   payment_method: string;
   notes?: string;
+  is_reversed?: boolean;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  password_hash: string;
+  name: string;
+  phone?: string;
+  nic_no?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Borrower operations
@@ -259,6 +272,60 @@ export const getPaymentsByLoanId = async (loanId: string): Promise<Payment[]> =>
 };
 
 // Dashboard statistics
+// User profile operations
+export const getUserProfile = async (): Promise<UserProfile | null> => {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .single();
+    
+  if (error) {
+    console.error('Error fetching user profile:', error);
+    return null;
+  }
+  return data;
+};
+
+export const updateUserProfile = async (id: string, profile: Partial<UserProfile>): Promise<UserProfile> => {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .update(profile)
+    .eq('id', id)
+    .select()
+    .single();
+    
+  if (error) {
+    console.error('Error updating user profile:', error);
+    throw error;
+  }
+  return data;
+};
+
+export const changePassword = async (id: string, newPasswordHash: string): Promise<void> => {
+  const { error } = await supabase
+    .from('user_profiles')
+    .update({ password_hash: newPasswordHash })
+    .eq('id', id);
+    
+  if (error) {
+    console.error('Error changing password:', error);
+    throw error;
+  }
+};
+
+// Update arrears for a loan
+export const updateLoanArrears = async (loanId: string, arrearsAmount: number): Promise<void> => {
+  const { error } = await supabase
+    .from('loans')
+    .update({ arrears: arrearsAmount })
+    .eq('id', loanId);
+    
+  if (error) {
+    console.error('Error updating loan arrears:', error);
+    throw error;
+  }
+};
+
 export const getDashboardStats = async () => {
   const borrowers = await getBorrowers();
   const loans = await getLoans();
@@ -269,6 +336,7 @@ export const getDashboardStats = async () => {
   const overdueLoans = loans.filter(loan => loan.status === 'overdue').length;
   const totalCollected = loans.reduce((sum, loan) => sum + (loan.amount_paid || 0), 0);
   const totalLoanAmount = loans.reduce((sum, loan) => sum + loan.total_amount, 0);
+  const totalArrears = loans.reduce((sum, loan) => sum + (loan.arrears || 0), 0);
   const pendingAmount = totalLoanAmount - totalCollected;
   
   return {
@@ -278,6 +346,7 @@ export const getDashboardStats = async () => {
     overdueLoans,
     totalCollected,
     totalLoanAmount,
+    totalArrears,
     pendingAmount,
     loans,
     borrowers

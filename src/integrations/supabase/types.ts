@@ -51,6 +51,7 @@ export type Database = {
       loans: {
         Row: {
           amount_paid: number
+          arrears: number | null
           borrower_id: string
           created_at: string
           duration_months: number
@@ -65,6 +66,7 @@ export type Database = {
         }
         Insert: {
           amount_paid?: number
+          arrears?: number | null
           borrower_id: string
           created_at?: string
           duration_months: number
@@ -79,6 +81,7 @@ export type Database = {
         }
         Update: {
           amount_paid?: number
+          arrears?: number | null
           borrower_id?: string
           created_at?: string
           duration_months?: number
@@ -145,6 +148,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          nic_no: string | null
+          password_hash: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          nic_no?: string | null
+          password_hash: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          nic_no?: string | null
+          password_hash?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {

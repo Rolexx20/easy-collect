@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { DollarSign, Calendar, CreditCard, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { createPayment } from "@/lib/database";
+import { createPayment, updateLoanArrears } from "@/lib/database";
 import jsPDF from "jspdf";
 import { set } from "date-fns";
 
@@ -28,6 +28,7 @@ interface Loan {
   start_date: string;
   status: "active" | "completed" | "overdue";
   next_payment_date?: string;
+  arrears?: number;
 }
 
 interface PaymentCollectionDialogProps {
@@ -51,6 +52,7 @@ const PaymentCollectionDialog = ({
       ? (loan.total_amount / loan.duration_months / 30).toFixed(2)
       : "",
     notes: "",
+    arrears: "0",
   });
 
   const translations = {
@@ -67,6 +69,7 @@ const PaymentCollectionDialog = ({
       paymentCollected: "Payment collected successfully",
       amounterror: "The input value must be greater than zero",
       invalidAmount: "Payment amount cannot exceed remaining amount",
+      arrears: "Arrears Amount",
       collecting: "Collecting...",
       cash: "Cash",
       bank: "Bank Transfer",
@@ -88,6 +91,7 @@ const PaymentCollectionDialog = ({
       amounterror: "உள்ளீட்டு மதிப்பு பூஜ்ஜியத்தை விட அதிகமாக இருக்க வேண்டும்",
       invalidAmount:
         "பணம் செலுத்தும் தொகை மீதமுள்ள தொகையை விட அதிகமாக இருக்க முடியாது",
+      arrears: "நிலுவைத் தொகை",
       collecting: "வசூலிக்கிறது...",
       cash: "பணம்",
       bank: "வங்கி பரிமாற்றம்",
@@ -265,8 +269,9 @@ const PaymentCollectionDialog = ({
     });
     doc.setFont(undefined, "normal");
     y += 5;
+    const arrearsAmount = loan.arrears || 0;
     doc.text(`Arrears :`, margin + 2, y, { align: "left" });
-    doc.text(`0`, pageWidth + margin - 2, y, { align: "right" });
+    doc.text(`${arrearsAmount.toLocaleString()}`, pageWidth + margin - 2, y, { align: "right" });
     y += 5;
     doc.text(`Closing Balance :`, margin + 2, y, { align: "left" });
     doc.text(`${closingBalance.toLocaleString()}`, pageWidth + margin - 2, y, {
@@ -312,6 +317,12 @@ const PaymentCollectionDialog = ({
         notes: formData.notes,
         payment_method: "",
       });
+
+      // Update arrears if specified
+      const arrearsAmount = parseFloat(formData.arrears) || 0;
+      if (arrearsAmount > 0) {
+        await updateLoanArrears(loan!.id, arrearsAmount);
+      }
 
       toast({ title: t.paymentCollected });
 
@@ -363,7 +374,7 @@ const PaymentCollectionDialog = ({
 
       onPaymentCollect();
       onClose();
-      setFormData({ amount: "", notes: "" });
+      setFormData({ amount: "", notes: "", arrears: "0" });
     } catch (error) {
       console.error("Error collecting payment:", error);
       toast({
@@ -433,6 +444,17 @@ const PaymentCollectionDialog = ({
               </span>
             </div>
 
+            {loan.arrears && loan.arrears > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Current Arrears
+                </span>
+                <span className="font-bold text-orange-600 dark:text-orange-400">
+                  ₹{loan.arrears.toLocaleString()}
+                </span>
+              </div>
+            )}
+
             {/* Current Progress */}
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
@@ -491,6 +513,25 @@ const PaymentCollectionDialog = ({
                   {t.amounterror}
                 </p>
               )}
+            </div>
+
+            <div>
+              <Label htmlFor="arrears" className="flex items-center gap-2 mb-2">
+                <DollarSign className="w-4 h-4" />
+                {t.arrears}
+              </Label>
+              <Input
+                id="arrears"
+                type="number"
+                step="1"
+                value={formData.arrears}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, arrears: value });
+                }}
+                placeholder="0"
+                className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+              />
             </div>
 
             <div>
