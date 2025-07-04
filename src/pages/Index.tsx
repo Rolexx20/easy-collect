@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import AppSidebar from '@/components/AppSidebar';
@@ -8,15 +9,34 @@ import LoanManager from '@/components/LoanManager';
 import Reports from '@/components/Reports';
 import Settings from '@/components/Settings';
 import { getBorrowers, getLoans, getDashboardStats } from '@/lib/database';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
+  const { user, loading } = useAuth();
   const [isDark, setIsDark] = useState(false);
   const [language, setLanguage] = useState('en');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   const queryClient = useQueryClient();
+
+  // Redirect to auth if not authenticated
+  if (!loading && !user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Fetch borrowers
   const { data: borrowers = [], isLoading: borrowersLoading, error: borrowersError } = useQuery({

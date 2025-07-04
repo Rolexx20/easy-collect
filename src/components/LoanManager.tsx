@@ -344,9 +344,27 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
     return Math.max(0, diffDays);
   };
 
-  const calculateDailyPayment = (totalAmount: number, durationMonths: number) => {
-    const actualDays = durationMonths * 30;
-    return totalAmount / actualDays;
+  const calculateArrears = (loan: Loan) => {
+    const today = new Date();
+    const startDate = new Date(loan.start_date);
+    const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Calculate daily payment amount
+    const dailyPayment = loan.total_amount / (loan.duration_months * 30);
+    
+    // Calculate how much should have been paid by now
+    const expectedPaymentByNow = Math.min(dailyPayment * daysSinceStart, loan.total_amount);
+    
+    // Calculate arrears (difference between expected and actual payments)
+    const arrears = Math.max(0, expectedPaymentByNow - loan.amount_paid);
+    
+    return arrears;
+  };
+
+  const calculateMissedDays = (loan: Loan) => {
+    const dailyPayment = loan.total_amount / (loan.duration_months * 30);
+    const arrears = calculateArrears(loan);
+    return Math.floor(arrears / dailyPayment);
   };
 
   const calculateLoanEndDate = (startDate: string, durationMonths: number) => {
@@ -554,7 +572,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
           {filteredLoans.map((loan) => {
             const progress = calculateProgress(loan.amount_paid, loan.total_amount);
             const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months);
-            const dailyPayment = calculateDailyPayment(loan.total_amount, loan.duration_months);
+            const dailyPayment = loan.total_amount / (loan.duration_months * 30);
             const totalPayment = loan.principal_amount + (loan.principal_amount * loan.interest_rate / 100);
             const loanEndDate = calculateLoanEndDate(loan.start_date, loan.duration_months);
 
@@ -659,6 +677,29 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                       </span>
                     </div>
                   </div>
+
+                  {/* Arrears Section - Only show if there are arrears */}
+                  {calculateArrears(loan) > 0 && (
+                    <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-2 mb-2">
+                      <div className="grid grid-cols-2 gap-2 text-left">
+                        <div className="flex flex-col text-left min-w-0">
+                          <span className="text-[12px] text-red-600 dark:text-red-400 flex items-center gap-1 truncate">
+                            <AlertTriangle className="w-2.5 h-2.5" />
+                            Arrears Amount
+                          </span>
+                          <span className="text-xs font-bold text-red-700 dark:text-red-300 truncate">
+                            ₹ {calculateArrears(loan).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          </span>
+                        </div>
+                        <div className="flex flex-col text-left min-w-0">
+                          <span className="text-[12px] text-red-600 dark:text-red-400 truncate">Missed Days</span>
+                          <span className="text-xs font-bold text-red-700 dark:text-red-300 truncate">
+                            {calculateMissedDays(loan)} days
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-2 items-center mt-2 text-left">
                     <div className="flex flex-col text-left min-w-0">

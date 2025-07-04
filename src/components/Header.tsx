@@ -10,6 +10,7 @@ import {
   BarChart3,
   Settings,
   Printer,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ import logo from "@/assets/logo.svg";
 import { useState } from "react";
 import { bluetoothPrinter } from "@/utils/bluetoothPrinter";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface HeaderProps {
   isDark: boolean;
@@ -33,6 +35,7 @@ const Header = ({
   activeTab,
   setActiveTab,
 }: HeaderProps) => {
+  const { signOut, profile } = useAuth();
   const [isPrinting, setIsPrinting] = useState(false);
   const [printerConnected, setPrinterConnected] = useState(false);
 
@@ -155,6 +158,13 @@ const Header = ({
 
             {/* Toggles - Right */}
             <div className="flex items-center space-x-3 flex-shrink-0">
+              {/* User Profile */}
+              {profile && (
+                <span className="text-sm text-gray-600 dark:text-gray-400 hidden sm:inline">
+                  {profile.name}
+                </span>
+              )}
+
               {/* Theme Toggle */}
               <div
                 onClick={() => setIsDark(!isDark)}
@@ -229,6 +239,25 @@ const Header = ({
                   </span>
                 </div>
               )}
+
+              {/* Logout Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={signOut}
+                className={cn(
+                  "flex items-center gap-2 border-2 rounded-full transition-all duration-300 h-7 px-3 hover:bg-red-50 dark:hover:bg-red-900 hover:border-red-200 dark:hover:border-red-700",
+                  isDark
+                    ? "border-gray-600 text-gray-200"
+                    : "border-gray-300 text-gray-500"
+                )}
+                title="Sign Out"
+              >
+                <LogOut className="w-3 h-3 text-red-600 dark:text-red-400" />
+                <span className="text-xs font-medium hidden sm:inline text-red-600 dark:text-red-400">
+                  Logout
+                </span>
+              </Button>
             </div>
           </div>
         </div>
