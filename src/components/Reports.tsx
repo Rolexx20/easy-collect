@@ -107,8 +107,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
 
   const reportTypes = [
     { id: "dailyCollection", label: t.dailyCollectionReport },
-    { id: "arrears", label: "Arrears Report" },
-    { id: "reversedPayments", label: "Reversed Payments Report" },
     { id: "overdue", label: t.overdueReport },
     { id: "collection", label: t.collectionReport },
     { id: "borrower", label: t.borrowerReport },
@@ -119,7 +117,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     { id: "csv", label: "CSV" },
   ];
 
-  // Load payments when daily collection report is selected
+  // Load payments data when daily collection report is selected
   const loadPayments = async () => {
     try {
       const paymentsData = await getPayments();
@@ -180,7 +178,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
 
   // Load payments when daily collection report is selected
   useEffect(() => {
-    if (selectedReportType === "dailyCollection" || selectedReportType === "reversedPayments") {
+    if (selectedReportType === "dailyCollection") {
       loadPayments();
     }
   }, [selectedReportType]);
@@ -205,12 +203,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         break;
       case "dailyCollection":
         data = payments;
-        break;
-      case "arrears":
-        data = loans.filter((loan) => loan.arrears && loan.arrears > 0);
-        break;
-      case "reversedPayments":
-        data = payments.filter((payment) => payment.is_reversed);
         break;
       default:
         data = [];
@@ -289,20 +281,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         },${payment.payment_method || "cash"},${payment.totalLoanAmount || 0},${
           payment.remainingLoanAmount || 0
         },${payment.displayAmount || payment.amount}\n`;
-      });
-    } else if (selectedReportType === "arrears") {
-      csvContent = "No,Date,Borrower Name,Loan Amount,Arrears Amount,Status\n";
-      data.forEach((loan, index) => {
-        csvContent += `${index + 1},${loan.start_date},${
-          formatReportBorrowerName(loan.borrowerName || "N/A")
-        },${loan.total_amount},${loan.arrears || 0},${loan.status}\n`;
-      });
-    } else if (selectedReportType === "reversedPayments") {
-      csvContent = "No,Payment Date,Borrower Name,Payment Method,Reversed Amount,Notes\n";
-      data.forEach((payment, index) => {
-        csvContent += `${index + 1},${payment.payment_date},${
-          formatReportBorrowerName(payment.borrowerName || "N/A")
-        },${payment.payment_method || "cash"},${Math.abs(payment.amount)},${payment.notes || "N/A"}\n`;
       });
     }
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -394,42 +372,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         payment.displayAmount || payment.amount,
       ]);
       title = t.dailyCollectionReport;
-    } else if (selectedReportType === "arrears") {
-      head = [
-        "No",
-        "Date", 
-        "Borrower Name",
-        "Loan Amount",
-        "Arrears Amount",
-        "Status",
-      ];
-      body = data.map((loan, index) => [
-        index + 1,
-        loan.start_date,
-        formatReportBorrowerName(loan.borrowerName || "N/A"),
-        loan.total_amount,
-        loan.arrears || 0,
-        loan.status,
-      ]);
-      title = "Arrears Report";
-    } else if (selectedReportType === "reversedPayments") {
-      head = [
-        "No",
-        "Payment Date",
-        "Borrower Name", 
-        "Payment Method",
-        "Reversed Amount",
-        "Notes",
-      ];
-      body = data.map((payment, index) => [
-        index + 1,
-        payment.payment_date,
-        formatReportBorrowerName(payment.borrowerName || "N/A"),
-        payment.payment_method || "cash",
-        Math.abs(payment.amount),
-        payment.notes || "N/A",
-      ]);
-      title = "Reversed Payments Report";
     }
 
     doc.text(title, 14, 16);
@@ -513,28 +455,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             <TableHead>{t.totalLoanAmount}</TableHead>
             <TableHead>{t.remainingLoanAmount}</TableHead>
             <TableHead>{t.paymentAmount}</TableHead>
-          </TableRow>
-        );
-      case "arrears":
-        return (
-          <TableRow>
-            <TableHead>#</TableHead>
-            <TableHead>{t.date}</TableHead>
-            <TableHead>{t.borrowerName}</TableHead>
-            <TableHead>{t.loanAmount}</TableHead>
-            <TableHead>Arrears Amount</TableHead>
-            <TableHead>{t.status}</TableHead>
-          </TableRow>
-        );
-      case "reversedPayments":
-        return (
-          <TableRow>
-            <TableHead>#</TableHead>
-            <TableHead>{t.paymentDate}</TableHead>
-            <TableHead>{t.borrowerName}</TableHead>
-            <TableHead>{t.paymentMethod}</TableHead>
-            <TableHead>Reversed Amount</TableHead>
-            <TableHead>{t.notes}</TableHead>
           </TableRow>
         );
       default:
@@ -676,48 +596,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
                   ₹ {(item.displayAmount || item.amount)?.toLocaleString()}
                 </span>
               </TableCell>
-            </TableRow>
-          );
-        case "arrears":
-          return (
-            <TableRow key={index}>
-              <TableCell>{rowNumber}</TableCell>
-              <TableCell>{item.start_date}</TableCell>
-              <TableCell>
-                {formatReportBorrowerName(item.borrowerName || "N/A")}
-              </TableCell>
-              <TableCell>₹ {item.total_amount?.toLocaleString()}</TableCell>
-              <TableCell>
-                <span className="text-red-600 dark:text-red-500 font-bold">
-                  ₹ {item.arrears?.toLocaleString()}
-                </span>
-              </TableCell>
-              <TableCell>
-                <span className="px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                  {item.status}
-                </span>
-              </TableCell>
-            </TableRow>
-          );
-        case "reversedPayments":
-          return (
-            <TableRow key={index}>
-              <TableCell>{rowNumber}</TableCell>
-              <TableCell>{item.payment_date}</TableCell>
-              <TableCell>
-                {formatReportBorrowerName(item.borrowerName || "N/A")}
-              </TableCell>
-              <TableCell>
-                <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                  {item.payment_method || "cash"}
-                </span>
-              </TableCell>
-              <TableCell>
-                <span className="text-red-600 dark:text-red-500 font-bold">
-                  ₹ {Math.abs(item.amount)?.toLocaleString()}
-                </span>
-              </TableCell>
-              <TableCell>{item.notes || "N/A"}</TableCell>
             </TableRow>
           );
         default:

@@ -314,7 +314,6 @@ const PaymentCollectionDialog = ({
         loan_id: loan!.id,
         amount: paymentAmount,
         payment_date: new Date().toISOString().split("T")[0],
-        payment_time: new Date().toTimeString().split(" ")[0],
         notes: formData.notes,
         payment_method: "",
       });
