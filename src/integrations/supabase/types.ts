@@ -120,6 +120,7 @@ export type Database = {
           notes: string | null
           payment_date: string
           payment_method: string | null
+          payment_time: string | null
         }
         Insert: {
           amount: number
@@ -129,6 +130,7 @@ export type Database = {
           notes?: string | null
           payment_date?: string
           payment_method?: string | null
+          payment_time?: string | null
         }
         Update: {
           amount?: number
@@ -138,6 +140,7 @@ export type Database = {
           notes?: string | null
           payment_date?: string
           payment_method?: string | null
+          payment_time?: string | null
         }
         Relationships: [
           {
@@ -188,10 +191,14 @@ export type Database = {
         Row: {
           active_loans: number | null
           address: string | null
+          first_name: string | null
           id: string | null
+          last_name: string | null
           name: string | null
+          nic_number: string | null
           phone: string | null
           remaining_amount: number | null
+          title: string | null
           total_amount: number | null
           total_loans: number | null
           total_paid: number | null

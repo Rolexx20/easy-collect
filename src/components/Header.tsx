@@ -160,9 +160,14 @@ const Header = ({
             <div className="flex items-center space-x-3 flex-shrink-0">
               {/* User Profile */}
               {profile && (
-                <span className="text-sm text-gray-600 dark:text-gray-400 hidden sm:inline">
-                  {profile.name}
-                </span>
+                <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full">
+                  <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                    {profile.name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">
+                    {profile.name}
+                  </span>
+                </div>
               )}
 
               {/* Theme Toggle */}
@@ -201,44 +206,6 @@ const Header = ({
                   />
                 </div>
               </div>
-
-              {/* Connect Printer Button */}
-              {!printerConnected ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleConnectPrinter}
-                  disabled={isPrinting}
-                  className={cn(
-                    "flex items-center gap-2 border-2 rounded-full transition-all duration-300 h-7 px-3",
-                    isDark
-                      ? "border-gray-600 text-gray-200 hover:bg-gray-600"
-                      : "border-gray-300 text-gray-500 hover:bg-gray-100"
-                  )}
-                >
-                  <Printer
-                    className={cn(
-                      "w-3 h-3",
-                      isDark ? "text-gray-200" : "text-gray-700"
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      "text-xs font-medium hidden sm:inline",
-                      isDark ? "text-gray-200" : "text-gray-800"
-                    )}
-                  >
-                    {isPrinting ? "..." : t.connectPrinter}
-                  </span>
-                </Button>
-              ) : (
-                <div className="flex items-center gap-2 border-2 rounded-full h-8 px-3 bg-green-100 border-green-300 text-green-700 dark:bg-green-900 dark:border-green-700 dark:text-green-300">
-                  <Printer className="w-3 h-3" />
-                  <span className="text-xs font-medium hidden sm:inline">
-                    {t.printerConnected}
-                  </span>
-                </div>
-              )}
 
               {/* Logout Button */}
               <Button

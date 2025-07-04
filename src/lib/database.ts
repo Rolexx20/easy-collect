@@ -38,6 +38,7 @@ export interface Payment {
   loan_id: string;
   amount: number;
   payment_date: string;
+  payment_time?: string;
   payment_method: string;
   notes?: string;
   is_reversed?: boolean;
