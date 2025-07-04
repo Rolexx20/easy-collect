@@ -19,6 +19,7 @@ import { useState } from "react";
 import { bluetoothPrinter } from "@/utils/bluetoothPrinter";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { User as UserIcon } from "lucide-react";
 
 interface HeaderProps {
   isDark: boolean;
@@ -38,6 +39,8 @@ const Header = ({
   const { signOut, profile } = useAuth();
   const [isPrinting, setIsPrinting] = useState(false);
   const [printerConnected, setPrinterConnected] = useState(false);
+  // User profile dropdown state
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const handleConnectPrinter = async () => {
     setIsPrinting(true);
@@ -61,6 +64,13 @@ const Header = ({
     } finally {
       setIsPrinting(false);
     }
+  };
+
+  // Helper to get first name or initials
+  const getUserInitial = (name?: string) => {
+    if (!name) return "";
+    const parts = name.trim().split(" ");
+    return parts[0][0]?.toUpperCase() || "";
   };
 
   const translations = {
@@ -158,13 +168,6 @@ const Header = ({
 
             {/* Toggles - Right */}
             <div className="flex items-center space-x-3 flex-shrink-0">
-              {/* User Profile */}
-              {profile && (
-                <span className="text-sm text-gray-600 dark:text-gray-400 hidden sm:inline">
-                  {profile.name}
-                </span>
-              )}
-
               {/* Theme Toggle */}
               <div
                 onClick={() => setIsDark(!isDark)}
@@ -202,62 +205,55 @@ const Header = ({
                 </div>
               </div>
 
-              {/* Connect Printer Button */}
-              {!printerConnected ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleConnectPrinter}
-                  disabled={isPrinting}
-                  className={cn(
-                    "flex items-center gap-2 border-2 rounded-full transition-all duration-300 h-7 px-3",
-                    isDark
-                      ? "border-gray-600 text-gray-200 hover:bg-gray-600"
-                      : "border-gray-300 text-gray-500 hover:bg-gray-100"
-                  )}
-                >
-                  <Printer
+              {/* User Profile Button with Icon and Dropdown */}
+              {profile && (
+                <div className="relative">
+                  <button
                     className={cn(
-                      "w-3 h-3",
-                      isDark ? "text-gray-200" : "text-gray-700"
+                      "flex items-center gap-2 border-2 rounded-full transition-all duration-300 h-7 px-2 focus:outline-none",
+                      isDark
+                        ? "bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600"
+                        : "bg-gray-100 border-gray-300 text-gray-800 hover:bg-gray-200"
                     )}
-                  />
-                  <span
-                    className={cn(
-                      "text-xs font-medium hidden sm:inline",
-                      isDark ? "text-gray-200" : "text-gray-800"
-                    )}
+                    style={{
+                      width: "auto",
+                      minWidth: 0,
+                      justifyContent: "flex-start",
+                      paddingRight: "8px",
+                      paddingLeft: "4px",
+                    }}
+                    onClick={() => setShowProfileMenu((v) => !v)}
                   >
-                    {isPrinting ? "..." : t.connectPrinter}
-                  </span>
-                </Button>
-              ) : (
-                <div className="flex items-center gap-2 border-2 rounded-full h-8 px-3 bg-green-100 border-green-300 text-green-700 dark:bg-green-900 dark:border-green-700 dark:text-green-300">
-                  <Printer className="w-3 h-3" />
-                  <span className="text-xs font-medium hidden sm:inline">
-                    {t.printerConnected}
-                  </span>
+                    <span
+                      className={cn(
+                        "flex items-center justify-center w-5 h-5 rounded-full font-bold text-xs",
+                        isDark
+                          ? "bg-blue-900 text-blue-200"
+                          : "bg-blue-200 text-blue-800"
+                      )}
+                    >
+                      {getUserInitial(profile.name) || (
+                        <UserIcon className="w-4 h-4" />
+                      )}
+                    </span>
+                    <span className="hidden sm:inline truncate max-w-[60px] text-left">{profile.name?.split(" ")[0]}</span>
+                  </button>
+                  {showProfileMenu && (
+                    <div
+                      className="absolute right-0 mt-2 w-36 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50"
+                      onMouseLeave={() => setShowProfileMenu(false)}
+                    >
+                      <button
+                        onClick={signOut}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
-
-              {/* Logout Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={signOut}
-                className={cn(
-                  "flex items-center gap-2 border-2 rounded-full transition-all duration-300 h-7 px-3 hover:bg-red-50 dark:hover:bg-red-900 hover:border-red-200 dark:hover:border-red-700",
-                  isDark
-                    ? "border-gray-600 text-gray-200"
-                    : "border-gray-300 text-gray-500"
-                )}
-                title="Sign Out"
-              >
-                <LogOut className="w-3 h-3 text-red-600 dark:text-red-400" />
-                <span className="text-xs font-medium hidden sm:inline text-red-600 dark:text-red-400">
-                  Logout
-                </span>
-              </Button>
             </div>
           </div>
         </div>
