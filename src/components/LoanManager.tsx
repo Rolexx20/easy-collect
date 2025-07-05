@@ -622,6 +622,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                 </CardHeader>
                 <CardContent className="p-3 pt-1 space-y-3">
                   <div className="grid grid-cols-3 gap-2 mt-2 mb-1 text-left">
+                    {/* Row 1 */}
                     <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                       <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                         <DollarSign className="w-2.5 h-2.5" />
@@ -649,6 +650,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                         ₹ {dailyPayment.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                       </span>
                     </div>
+                    {/* Row 2 */}
                     <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
                       <span className="text-[12px] text-gray-500 flex items-center gap-1 truncate">
                         <Calendar className="w-2.5 h-2.5" />
@@ -676,30 +678,60 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                         {calculateDaysRemaining(loan.start_date, loan.duration_months)}
                       </span>
                     </div>
-                  </div>
-
-                  {/* Arrears Section - Only show if there are arrears */}
-                  {calculateArrears(loan) > 0 && (
-                    <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-2 mb-2">
-                      <div className="grid grid-cols-2 gap-2 text-left">
-                        <div className="flex flex-col text-left min-w-0">
-                          <span className="text-[12px] text-red-600 dark:text-red-400 flex items-center gap-1 truncate">
-                            <AlertTriangle className="w-2.5 h-2.5" />
-                            Arrears Amount
-                          </span>
-                          <span className="text-xs font-bold text-red-700 dark:text-red-300 truncate">
-                            ₹ {calculateArrears(loan).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </span>
-                        </div>
-                        <div className="flex flex-col text-left min-w-0">
-                          <span className="text-[12px] text-red-600 dark:text-red-400 truncate">Missed Days</span>
-                          <span className="text-xs font-bold text-red-700 dark:text-red-300 truncate">
-                            {calculateMissedDays(loan)} days
-                          </span>
-                        </div>
-                      </div>
+                    {/* Row 3 */}
+                    <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
+                      <span className="text-[12px] text-red-600 dark:text-red-400 flex items-center gap-1 truncate">
+                        <AlertTriangle className="w-2.5 h-2.5" />
+                        Arrears
+                      </span>
+                      <span className="text-xs font-bold text-red-700 dark:text-red-300 truncate">
+                        ₹ {calculateArrears(loan).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </span>
                     </div>
-                  )}
+                    <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
+                      <span className="text-[12px] text-red-600 dark:text-red-400 flex items-center gap-1 truncate">
+                        <Clock10 className="w-2.5 h-2.5" />
+                        Missed Days
+                      </span>
+                      <span className="text-xs font-bold text-red-700 dark:text-red-300 truncate">
+                        {calculateMissedDays(loan)} days
+                      </span>
+                    </div>
+                    <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
+                      <span className="text-[12px] text-blue-600 dark:text-blue-400 flex items-center gap-1 truncate">
+                        <Calendar className="w-2.5 h-2.5" />
+                        Next Pay
+                      </span>
+                      <span className="text-xs font-bold text-blue-700 dark:text-blue-300 truncate">
+                        {(() => {
+                          // Calculate next unpaid day based on amount_paid and today's date
+                          const start = new Date(loan.start_date);
+                          const totalDays = loan.duration_months * 30;
+                          const dailyPayment = loan.total_amount / totalDays;
+                          const paidDays = Math.floor(loan.amount_paid / dailyPayment);
+
+                          // Find the next unpaid date: start date + paidDays
+                          let nextDate = new Date(start);
+                          nextDate.setDate(start.getDate() + paidDays);
+
+                          // If all paid, set to end date
+                          if (loan.amount_paid >= loan.total_amount) {
+                            nextDate = new Date(start);
+                            nextDate.setDate(start.getDate() + totalDays);
+                          }
+
+                          // If nextDate is before today, set to today (for overdue)
+                          const today = new Date();
+                          today.setHours(0,0,0,0);
+                          if (nextDate < today) {
+                            nextDate = today;
+                          }
+
+                          return nextDate.toLocaleDateString(undefined, { year: '2-digit', month: 'short', day: '2-digit' });
+                        })()}
+                      </span>
+                    </div>
+                  </div>
 
                   <div className="grid grid-cols-2 gap-2 items-center mt-2 text-left">
                     <div className="flex flex-col text-left min-w-0">
