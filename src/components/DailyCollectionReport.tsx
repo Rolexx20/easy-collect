@@ -54,7 +54,13 @@ const DailyCollectionReport = ({ language }: DailyCollectionReportProps) => {
       const todayOnly = allPayments.filter(payment => 
         payment.payment_date === today
       );
-      setTodayPayments(todayOnly);
+      // Sort by date and time (latest first)
+      const sortedPayments = todayOnly.sort((a, b) => {
+        const dateA = new Date(`${a.payment_date}T${a.payment_time || '00:00:00'}`);
+        const dateB = new Date(`${b.payment_date}T${b.payment_time || '00:00:00'}`);
+        return dateB.getTime() - dateA.getTime();
+      });
+      setTodayPayments(sortedPayments);
     } catch (error) {
       console.error('Error loading daily report:', error);
     } finally {
@@ -160,7 +166,7 @@ const DailyCollectionReport = ({ language }: DailyCollectionReportProps) => {
                         ₹{Number(payment.amount).toLocaleString()}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {new Date().toLocaleTimeString()}
+                        {payment.payment_time || new Date().toLocaleTimeString()}
                       </div>
                     </div>
                   </div>
