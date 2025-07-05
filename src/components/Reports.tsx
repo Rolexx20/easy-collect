@@ -110,8 +110,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     { id: "overdue", label: t.overdueReport },
     { id: "collection", label: t.collectionReport },
     { id: "borrower", label: t.borrowerReport },
-    { id: "arrears", label: "Arrears Report" },
-    { id: "reversedPayments", label: "Reversed Payments Report" },
   ];
 
   const fileTypes = [
@@ -206,28 +204,20 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       case "dailyCollection":
         data = payments;
         break;
-      case "arrears":
-        data = loans.filter((loan) => loan.status === "overdue" || (loan.arrears && loan.arrears > 0));
-        break;
-      case "reversedPayments":
-        data = payments.filter((payment) => payment.is_reversed === true);
-        break;
       default:
         data = [];
     }
 
-    // Date range filter for collection/overdue/dailyCollection/arrears/reversedPayments
+    // Date range filter for collection/overdue/dailyCollection
     if (
       (selectedReportType === "collection" ||
         selectedReportType === "overdue" ||
-        selectedReportType === "dailyCollection" ||
-        selectedReportType === "arrears" ||
-        selectedReportType === "reversedPayments") &&
+        selectedReportType === "dailyCollection") &&
       (fromDate || toDate)
     ) {
       data = data.filter((item) => {
         const date =
-          selectedReportType === "dailyCollection" || selectedReportType === "reversedPayments"
+          selectedReportType === "dailyCollection"
             ? new Date(item.payment_date)
             : new Date(item.start_date);
         const from = fromDate ? new Date(fromDate) : null;
@@ -425,10 +415,10 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       case "collection":
         return (
           <TableRow>
-            <TableHead>#</TableHead>
+            <TableHead>#</TableHead> {/* Add numbering column */}
             <TableHead>{t.date}</TableHead>
             <TableHead>{t.borrowerName}</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Status</TableHead>{" "}
             <TableHead>{t.loanAmount}</TableHead>
             <TableHead>Remaining Amount</TableHead>
             <TableHead>Collected Amount</TableHead>
@@ -437,18 +427,17 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       case "borrower":
         return (
           <TableRow>
-            <TableHead>#</TableHead>
+            <TableHead>#</TableHead> {/* Add numbering column */}
             <TableHead>Name</TableHead>
             <TableHead>Phone</TableHead>
-            <TableHead>NIC Number</TableHead>
             <TableHead>Address</TableHead>
-            <TableHead>Total Amount</TableHead>
+            <TableHead>Total Amount</TableHead> {/* Updated columns */}
           </TableRow>
         );
       case "overdue":
         return (
           <TableRow>
-            <TableHead>#</TableHead>
+            <TableHead>#</TableHead> {/* Add numbering column */}
             <TableHead>{t.date}</TableHead>
             <TableHead>{t.borrowerName}</TableHead>
             <TableHead>{t.loanAmount}</TableHead>
@@ -459,34 +448,13 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       case "dailyCollection":
         return (
           <TableRow>
-            <TableHead>#</TableHead>
+            <TableHead>#</TableHead> {/* Add numbering column */}
             <TableHead>{t.paymentDate}</TableHead>
             <TableHead>{t.borrowerName}</TableHead>
             <TableHead>{t.paymentMethod}</TableHead>
             <TableHead>{t.totalLoanAmount}</TableHead>
             <TableHead>{t.remainingLoanAmount}</TableHead>
             <TableHead>{t.paymentAmount}</TableHead>
-          </TableRow>
-        );
-      case "arrears":
-        return (
-          <TableRow>
-            <TableHead>#</TableHead>
-            <TableHead>{t.borrowerName}</TableHead>
-            <TableHead>Loan Amount</TableHead>
-            <TableHead>Interest Rate</TableHead>
-            <TableHead>Arrears Amount</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        );
-      case "reversedPayments":
-        return (
-          <TableRow>
-            <TableHead>#</TableHead>
-            <TableHead>{t.paymentDate}</TableHead>
-            <TableHead>{t.borrowerName}</TableHead>
-            <TableHead>Reversed Amount</TableHead>
-            <TableHead>{t.paymentMethod}</TableHead>
           </TableRow>
         );
       default:

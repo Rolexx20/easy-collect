@@ -68,13 +68,7 @@ const PaymentHistoryDialog = ({
     setIsLoading(true);
     try {
       const paymentsData = await getPaymentsByLoanId(loan.id);
-      // Sort payments by date and time (latest first)
-      const sortedPayments = paymentsData.sort((a, b) => {
-        const dateA = new Date(`${a.payment_date}T${a.payment_time || '00:00:00'}`);
-        const dateB = new Date(`${b.payment_date}T${b.payment_time || '00:00:00'}`);
-        return dateB.getTime() - dateA.getTime();
-      });
-      setPayments(sortedPayments);
+      setPayments(paymentsData);
     } catch (error) {
       console.error("Error loading payments:", error);
     } finally {
@@ -147,18 +141,11 @@ const PaymentHistoryDialog = ({
                         ₹{payment.amount.toLocaleString()}
                       </span>
                       </div>
-                      <div className="flex flex-col items-end">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-gray-500" />
-                          <span className="text-sm text-gray-600 dark:text-gray-300">
-                            {new Date(payment.payment_date).toLocaleDateString()}
-                          </span>
-                        </div>
-                        {payment.payment_time && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {payment.payment_time}
-                          </span>
-                        )}
+                      <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
+                        {new Date(payment.payment_date).toLocaleDateString()}
+                      </span>
                       </div>
                     </div>
                   </div>
