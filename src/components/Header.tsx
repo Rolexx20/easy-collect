@@ -206,54 +206,82 @@ const Header = ({
               </div>
 
               {/* User Profile Button with Icon and Dropdown */}
-              {profile && (
+                {profile && (
                 <div className="relative">
                   <button
-                    className={cn(
-                      "flex items-center gap-2 border-2 rounded-full transition-all duration-300 h-7 px-2 focus:outline-none",
-                      isDark
-                        ? "bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600"
-                        : "bg-gray-100 border-gray-300 text-gray-800 hover:bg-gray-200"
-                    )}
-                    style={{
-                      width: "auto",
-                      minWidth: 0,
-                      justifyContent: "flex-start",
-                      paddingRight: "8px",
-                      paddingLeft: "4px",
-                    }}
-                    onClick={() => setShowProfileMenu((v) => !v)}
+                  className={cn(
+                    "flex items-center gap-2 border-2 rounded-full transition-all duration-300 h-7 px-2 focus:outline-none",
+                    isDark
+                    ? "bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600"
+                    : "bg-gray-100 border-gray-300 text-gray-800 hover:bg-gray-200"
+                  )}
+                  style={{
+                    width: "auto",
+                    minWidth: 0,
+                    justifyContent: "flex-start",
+                    paddingRight: "8px",
+                    paddingLeft: "4px",
+                  }}
+                  onClick={() => setShowProfileMenu((v) => !v)}
                   >
-                    <span
-                      className={cn(
-                        "flex items-center justify-center w-5 h-5 rounded-full font-bold text-xs",
-                        isDark
-                          ? "bg-blue-900 text-blue-200"
-                          : "bg-blue-200 text-blue-800"
-                      )}
-                    >
-                      {getUserInitial(profile.name) || (
-                        <UserIcon className="w-4 h-4" />
-                      )}
-                    </span>
-                    <span className="hidden sm:inline truncate max-w-[60px] text-left">{profile.name?.split(" ")[0]}</span>
+                  <span
+                    className={cn(
+                    "flex items-center justify-center w-5 h-5 rounded-full font-bold text-xs",
+                    isDark
+                      ? "bg-blue-900 text-blue-200"
+                      : "bg-blue-200 text-blue-800"
+                    )}
+                  >
+                    {getUserInitial(profile.name) || (
+                    <UserIcon className="w-4 h-4" />
+                    )}
+                  </span>
+                  <span className="hidden sm:inline truncate max-w-[60px] text-left">{profile.name?.split(" ")[0]}</span>
                   </button>
                   {showProfileMenu && (
+                  <div
+                    className="fixed inset-0 z-50 flex items-center justify-center"
+                    onClick={() => setShowProfileMenu(false)}
+                  >
                     <div
-                      className="absolute right-0 mt-2 w-36 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50"
-                      onMouseLeave={() => setShowProfileMenu(false)}
+                    className="absolute inset-0 bg-black bg-opacity-30"
+                    aria-hidden="true"
+                    />
+                    <div
+                    className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg w-72 max-w-full p-6 flex flex-col items-center"
+                    onClick={e => e.stopPropagation()}
                     >
-                      <button
-                        onClick={signOut}
-                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition"
+                    <div className="flex flex-col items-center mb-4">
+                      <span
+                      className={cn(
+                        "flex items-center justify-center w-12 h-12 rounded-full font-bold text-2xl mb-2",
+                        isDark
+                        ? "bg-blue-900 text-blue-200"
+                        : "bg-blue-200 text-blue-800"
+                      )}
                       >
-                        <LogOut className="w-4 h-4" />
-                        Logout
-                      </button>
+                      {getUserInitial(profile.name) || (
+                        <UserIcon className="w-8 h-8" />
+                      )}
+                      </span>
+                      <span className="font-semibold text-lg">{profile.name}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{profile.email}</span>
                     </div>
+                    <button
+                      onClick={() => {
+                      setShowProfileMenu(false);
+                      signOut();
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                    </div>
+                  </div>
                   )}
                 </div>
-              )}
+                )}
             </div>
           </div>
         </div>
