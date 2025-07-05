@@ -39,6 +39,7 @@ export interface Payment {
   amount: number;
   payment_date: string;
   payment_method: string;
+  payment_time?: string;
   notes?: string;
   is_reversed?: boolean;
 }
