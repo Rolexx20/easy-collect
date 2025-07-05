@@ -10,7 +10,7 @@ import { Plus, Edit, Trash2, Calendar, DollarSign, User, CreditCard, Clock, Tren
 import { toast } from '@/hooks/use-toast';
 import { createLoan, updateLoan, deleteLoan, reversePayment } from '@/lib/database';
 import PaymentCollectionDialog from './PaymentCollectionDialog';
-import PaymentHistoryDialog from './PaymentHistoryDialog';
+import ReversePaymentDialog from './ReversePaymentDialog';
 import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -48,7 +48,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [loanToDelete, setLoanToDelete] = useState<Loan | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [paymentHistoryOpen, setPaymentHistoryOpen] = useState(false);
+  const [reversePaymentOpen, setReversePaymentOpen] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -60,6 +60,8 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
   });
 
   const [search, setSearch] = useState('');
+  // Add state for status filter
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed' | 'overdue'>('all');
 
   // Track original principal for edit validation
   const [originalPrincipal, setOriginalPrincipal] = useState<number | null>(null);
@@ -147,13 +149,17 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       return;
     }
 
-    // Check if a loan already exists for the selected borrower
-    const existingLoan = loans.find((loan) => loan.borrower_id === formData.borrower_id);
-    if (existingLoan && !editingLoan) {
+    // Only prevent new loan if the borrower has an active or overdue loan (allow if all are completed)
+    const existingActiveLoan = loans.find(
+      (loan) =>
+        loan.borrower_id === formData.borrower_id &&
+        loan.status !== 'completed'
+    );
+    if (existingActiveLoan && !editingLoan) {
       toast({
         title: language === 'ta'
-          ? 'இந்த கடன் வாங்குபவருக்கு ஏற்கனவே ஒரு கடன் உள்ளது'
-          : 'A loan already exists for this borrower',
+          ? 'இந்த கடன் வாங்குபவருக்கு முடிக்கப்படாத கடன் உள்ளது'
+          : 'This borrower has an unfinished loan',
         variant: "destructive",
         duration: 3000
       });
@@ -269,9 +275,9 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
     setPaymentDialogOpen(true);
   };
 
-  const handleViewPaymentHistory = (loan: Loan) => {
+  const handleReversePayment = (loan: Loan) => {
     setSelectedLoan(loan);
-    setPaymentHistoryOpen(true);
+    setReversePaymentOpen(true);
   };
 
   const handlePaymentReversed = () => {
@@ -375,6 +381,9 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
   };
 
   const filteredLoans = loans.filter((loan) => {
+    // Filter by status
+    if (statusFilter !== 'all' && loan.status !== statusFilter) return false;
+    // ...existing code...
     const borrowerName = loan.borrowerName || '';
     const principal = loan.principal_amount.toString();
     const status = loan.status || '';
@@ -451,7 +460,14 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                       )
                       : (
                         borrowers
-                          .filter((borrower) => !loans.some((loan) => loan.borrower_id === borrower.id))
+                          // Only allow borrowers who do not have an active or overdue loan
+                          .filter((borrower) =>
+                            !loans.some(
+                              (loan) =>
+                                loan.borrower_id === borrower.id &&
+                                loan.status !== 'completed'
+                            )
+                          )
                           .map((borrower) => (
                             <SelectItem key={borrower.id} value={borrower.id}>
                               {formatDisplayName(borrower)}
@@ -549,7 +565,42 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
         </Dialog>
       </div>
 
-      <div className="mb-1">
+      <div className="mb-1 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                {/* Filter Tag Buttons for Loan Status */}
+        <div className="flex gap-1 mt-2 sm:mt-0">
+          <Button
+            variant={statusFilter === 'all' ? 'default' : 'outline'}
+            size="sm"
+            className={`rounded-full px-3 py-1 text-xs ${statusFilter === 'all' ? 'bg-green-600 text-white' : ''}`}
+            onClick={() => setStatusFilter('all')}
+          >
+            All
+          </Button>
+          <Button
+            variant={statusFilter === 'active' ? 'default' : 'outline'}
+            size="sm"
+            className={`rounded-full px-3 py-1 text-xs ${statusFilter === 'active' ? 'bg-green-500 text-white' : ''}`}
+            onClick={() => setStatusFilter('active')}
+          >
+            {t.active}
+          </Button>
+          <Button
+            variant={statusFilter === 'completed' ? 'default' : 'outline'}
+            size="sm"
+            className={`rounded-full px-3 py-1 text-xs ${statusFilter === 'completed' ? 'bg-blue-500 text-white' : ''}`}
+            onClick={() => setStatusFilter('completed')}
+          >
+            {t.completed}
+          </Button>
+          <Button
+            variant={statusFilter === 'overdue' ? 'default' : 'outline'}
+            size="sm"
+            className={`rounded-full px-3 py-1 text-xs ${statusFilter === 'overdue' ? 'bg-red-500 text-white' : ''}`}
+            onClick={() => setStatusFilter('overdue')}
+          >
+            {t.overdue}
+          </Button>
+        </div>
         <Input
           type="text"
           placeholder="Search by borrower, amount, or status"
@@ -557,6 +608,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
           onChange={(e) => setSearch(e.target.value)}
           className="w-full focus-visible:ring-0 focus-visible:border-green-600 dark:focus-visible:border-green-800"
         />
+
       </div>
 
       {filteredLoans.length === 0 ? (
@@ -781,12 +833,12 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleViewPaymentHistory(loan)}
-                      className="flex-0 text-xs px-2 py-1 border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:bg-purple-50 dark:hover:bg-purple-900 hover:border-purple-400 dark:hover:border-purple-400 transition-all duration-150"
+                      onClick={() => handleReversePayment(loan)}
+                      className="flex-0 text-xs px-2 py-1 border-gray-300 dark:border-gray-700 rounded-lg shadow-sm hover:bg-yellow-50 dark:hover:bg-yellow-900 hover:border-yellow-400 dark:hover:border-yellow-400 transition-all duration-150"
                       disabled={isLoading}
                       style={{ minWidth: 0 }}
                     >
-                      <History className="w-4 h-4 text-purple-600 dark:text-purple-300" />
+                      <Undo2 className="w-4 h-4 text-yellow-600 dark:text-yellow-300" />
                     </Button>
                     <Button
                       variant="outline"
@@ -863,14 +915,14 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
             language={language}
           />
 
-          <PaymentHistoryDialog
-            isOpen={paymentHistoryOpen}
+          <ReversePaymentDialog
+            isOpen={reversePaymentOpen}
             onClose={() => {
-              setPaymentHistoryOpen(false);
+              setReversePaymentOpen(false);
               setSelectedLoan(null);
             }}
             loan={selectedLoan}
-            onPaymentReversed={handlePaymentReversed} // Pass handler to refresh loan table
+            onPaymentReversed={handlePaymentReversed}
             language={language}
           />
         </>

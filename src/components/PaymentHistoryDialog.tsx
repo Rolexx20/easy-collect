@@ -6,7 +6,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { History, DollarSign, Calendar, CreditCard, Undo2 } from "lucide-react";
+import {
+  History,
+  DollarSign,
+  Calendar,
+  CreditCard,
+  Undo2,
+  Clock,
+} from "lucide-react";
 import { getPaymentsByLoanId, type Payment, type Loan } from "@/lib/database";
 import ReversePaymentDialog from "./ReversePaymentDialog";
 
@@ -38,6 +45,7 @@ const PaymentHistoryDialog = ({
       method: "Payment Method",
       notes: "Notes",
       reversePayment: "Reverse Payment",
+      reverseShort: "Reverse",
       totalPaid: "Total Paid",
       remaining: "Remaining",
     },
@@ -49,6 +57,7 @@ const PaymentHistoryDialog = ({
       method: "பணம் செலுத்தும் முறை",
       notes: "குறிப்புகள்",
       reversePayment: "பணம் திரும்பப் பெறுதல்",
+      reverseShort: "திரும்பப் பெறு",
       totalPaid: "மொத்தம் செலுத்தப்பட்டது",
       remaining: "மீதமுள்ளது",
     },
@@ -70,8 +79,12 @@ const PaymentHistoryDialog = ({
       const paymentsData = await getPaymentsByLoanId(loan.id);
       // Sort payments by date and time (latest first)
       const sortedPayments = paymentsData.sort((a, b) => {
-        const dateA = new Date(`${a.payment_date}T${a.payment_time || '00:00:00'}`);
-        const dateB = new Date(`${b.payment_date}T${b.payment_time || '00:00:00'}`);
+        const dateA = new Date(
+          `${a.payment_date}T${a.payment_time || "00:00:00"}`
+        );
+        const dateB = new Date(
+          `${b.payment_date}T${b.payment_time || "00:00:00"}`
+        );
         return dateB.getTime() - dateA.getTime();
       });
       setPayments(sortedPayments);
@@ -113,7 +126,7 @@ const PaymentHistoryDialog = ({
                   {t.totalPaid}
                 </span>
                 <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                  ₹{loan.amount_paid.toLocaleString()}
+                  ₹ {loan.amount_paid.toLocaleString()}
                 </span>
               </div>
               <div className="flex flex-col">
@@ -121,7 +134,7 @@ const PaymentHistoryDialog = ({
                   {t.remaining}
                 </span>
                 <span className="text-lg font-bold text-red-600 dark:text-red-400">
-                  ₹{(loan.total_amount - loan.amount_paid).toLocaleString()}
+                  ₹ {(loan.total_amount - loan.amount_paid).toLocaleString()}
                 </span>
               </div>
             </div>
@@ -142,23 +155,36 @@ const PaymentHistoryDialog = ({
                   >
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-green-600" />
-                      <span className="font-bold text-green-600 dark:text-green-400">
-                        ₹{payment.amount.toLocaleString()}
-                      </span>
+                        <DollarSign className="w-4 h-4 text-green-600" />
+                        <span className="font-bold text-green-600 dark:text-green-400">
+                          {payment.amount.toLocaleString()}
+                        </span>
                       </div>
                       <div className="flex flex-col items-end">
                         <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-gray-500" />
-                          <span className="text-sm text-gray-600 dark:text-gray-300">
-                            {new Date(payment.payment_date).toLocaleDateString()}
+                          <Calendar className="w-3 h-3 text-gray-500" />
+                          <span className="text-xs text-gray-600 dark:text-gray-300">
+                            {new Date(
+                              payment.payment_date
+                            ).toLocaleDateString()}
                           </span>
+                          {payment.payment_time && (
+                            <>
+                              <Clock className="w-3 h-3 text-gray-500 ml-2" />
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                {new Date(`1970-01-01T${payment.payment_time}`)
+                                  .toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                  })
+                                  .replace(/am|pm/i, (match) =>
+                                    match.toUpperCase()
+                                  )}
+                              </span>
+                            </>
+                          )}
                         </div>
-                        {payment.payment_time && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {payment.payment_time}
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -174,7 +200,7 @@ const PaymentHistoryDialog = ({
                   className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-lg flex items-center gap-2"
                 >
                   <Undo2 className="w-4 h-4" />
-                  {t.reversePayment}
+                  {t.reverseShort}
                 </Button>
               </div>
             )}

@@ -10,7 +10,6 @@ import { Plus, Edit, Trash2, Phone, MapPin, User, CircleAlert, CreditCard } from
 import { toast } from '@/hooks/use-toast';
 import { deleteBorrower, getLoans, createBorrower, updateBorrower } from '@/lib/database';
 import DeleteConfirmationDialog from './DeleteConfirmationDialog';
-import PaymentHistoryDialog from './PaymentHistoryDialog';
 import React from 'react';
 
 interface Borrower {
@@ -616,20 +615,7 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
         itemName={borrowerToDelete?.name}
         language={language}
       />
-      {selectedBorrowerLoan && (
-        <>
-          <PaymentHistoryDialog
-            isOpen={isPaymentHistoryOpen}
-            onClose={() => {
-              setIsPaymentHistoryOpen(false);
-              setSelectedBorrowerLoan(null);
-            }}
-            loan={selectedBorrowerLoan}
-            onPaymentReversed={onDataChange}
-            language={language}
-          />
-        </>
-      )}
+      
     </div>
   );
 };

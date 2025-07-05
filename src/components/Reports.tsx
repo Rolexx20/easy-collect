@@ -50,6 +50,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       status: "Status",
       remainingAmount: "Remaining Amount",
       paymentDate: "Payment Date",
+      paymentTime: "Payment Time",
       paymentMethod: "Payment Method",
       notes: "Notes",
       remainingLoanAmount: "Remaining Amount",
@@ -77,6 +78,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       status: "நிலை",
       remainingAmount: "மீதமுள்ள தொகை",
       paymentDate: "பணம் செலுத்திய தேதி",
+      paymentTime: "பணம் செலுத்திய நேரம்",
       paymentMethod: "பணம் செலுத்தும் முறை",
       notes: "குறிப்புகள்",
       remainingLoanAmount: "மீதமுள்ள கடன் தொகை",
@@ -110,8 +112,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     { id: "overdue", label: t.overdueReport },
     { id: "collection", label: t.collectionReport },
     { id: "borrower", label: t.borrowerReport },
-    { id: "arrears", label: "Arrears Report" },
-    { id: "reversedPayments", label: "Reversed Payments Report" },
+    // Removed "arrears" and "reversedPayments" from selection
   ];
 
   const fileTypes = [
@@ -162,14 +163,11 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           });
         });
       });
-      // Sort all payments by payment_date descending (latest first), then by remainingLoanAmount ascending
+      // Sort all payments by payment_date and payment_time descending (latest first)
       paymentsWithLoanDetails.sort((a, b) => {
-        const dateA = new Date(a.payment_date).getTime();
-        const dateB = new Date(b.payment_date).getTime();
-        if (dateA !== dateB) {
-          return dateB - dateA; // latest date first
-        }
-        return (a.remainingLoanAmount || 0) - (b.remainingLoanAmount || 0); // lower remaining first if same date
+        const dateTimeA = new Date(`${a.payment_date}T${a.payment_time || "00:00:00"}`).getTime();
+        const dateTimeB = new Date(`${b.payment_date}T${b.payment_time || "00:00:00"}`).getTime();
+        return dateTimeB - dateTimeA; // latest first
       });
       setPayments(paymentsWithLoanDetails);
     } catch (error) {
@@ -206,12 +204,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       case "dailyCollection":
         data = payments;
         break;
-      case "arrears":
-        data = loans.filter((loan) => loan.status === "overdue" || (loan.arrears && loan.arrears > 0));
-        break;
-      case "reversedPayments":
-        data = payments.filter((payment) => payment.is_reversed === true);
-        break;
+      // Removed "arrears" and "reversedPayments" cases
       default:
         data = [];
     }
@@ -256,6 +249,22 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     return data;
   };
 
+  // Utility to format time as HH:MM:SS AM/PM (AM/PM in uppercase)
+  const formatTime12Hour = (timeStr?: string) => {
+    if (!timeStr) return "";
+    const [h, m, s] = timeStr.split(":");
+    if (h !== undefined && m !== undefined) {
+      const date = new Date();
+      date.setHours(Number(h), Number(m), Number(s || 0));
+      // toLocaleTimeString returns AM/PM in uppercase in most browsers, but force it just in case
+      return date
+        .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true })
+        .replace("am", "AM")
+        .replace("pm", "PM");
+    }
+    return timeStr;
+  };
+
   const exportToCSV = (data: any[], filename: string) => {
     let csvContent = "";
     if (selectedReportType === "collection") {
@@ -284,9 +293,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       });
     } else if (selectedReportType === "dailyCollection") {
       csvContent =
-        "No,Payment Date,Borrower Name,Payment Method,Total Loan Amount,Remaining Loan Amount,Payment Amount\n";
+        "No,Payment Date,Payment Time,Borrower Name,Payment Method,Total Loan Amount,Remaining Loan Amount,Payment Amount\n";
       data.forEach((payment, index) => {
-        csvContent += `${index + 1},${payment.payment_date},${
+        csvContent += `${index + 1},${payment.payment_date},${formatTime12Hour(payment.payment_time)},${
           formatReportBorrowerName(payment.borrowerName || "N/A")
         },${payment.payment_method || "cash"},${payment.totalLoanAmount || 0},${
           payment.remainingLoanAmount || 0
@@ -366,15 +375,17 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       head = [
         "No",
         "Payment Date",
+        "Payment Time",
         "Borrower Name",
         "Payment Method",
         "Total Loan Amount",
         "Remaining Loan Amount",
         "Payment Amount",
-      ]; // Match table column order
+      ]; // Added Payment Time column
       body = data.map((payment, index) => [
         index + 1,
         payment.payment_date,
+        formatTime12Hour(payment.payment_time),
         formatReportBorrowerName(payment.borrowerName || "N/A"),
         payment.payment_method || "cash",
         payment.totalLoanAmount || 0,
@@ -461,32 +472,12 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           <TableRow>
             <TableHead>#</TableHead>
             <TableHead>{t.paymentDate}</TableHead>
+            <TableHead>{t.paymentTime}</TableHead>
             <TableHead>{t.borrowerName}</TableHead>
             <TableHead>{t.paymentMethod}</TableHead>
             <TableHead>{t.totalLoanAmount}</TableHead>
             <TableHead>{t.remainingLoanAmount}</TableHead>
             <TableHead>{t.paymentAmount}</TableHead>
-          </TableRow>
-        );
-      case "arrears":
-        return (
-          <TableRow>
-            <TableHead>#</TableHead>
-            <TableHead>{t.borrowerName}</TableHead>
-            <TableHead>Loan Amount</TableHead>
-            <TableHead>Interest Rate</TableHead>
-            <TableHead>Arrears Amount</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        );
-      case "reversedPayments":
-        return (
-          <TableRow>
-            <TableHead>#</TableHead>
-            <TableHead>{t.paymentDate}</TableHead>
-            <TableHead>{t.borrowerName}</TableHead>
-            <TableHead>Reversed Amount</TableHead>
-            <TableHead>{t.paymentMethod}</TableHead>
           </TableRow>
         );
       default:
@@ -539,7 +530,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     const paginatedData = data.slice(startIdx, startIdx + rowsPerPage);
 
     return paginatedData.map((item, index) => {
-      const rowNumber = startIdx + index + 1; // Calculate row number
+      const rowNumber = startIdx + index + 1;
       switch (selectedReportType) {
         case "collection":
           return (
@@ -608,6 +599,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             <TableRow key={index}>
               <TableCell>{rowNumber}</TableCell>
               <TableCell>{item.payment_date}</TableCell>
+              <TableCell>{formatTime12Hour(item.payment_time) || "-"}</TableCell>
               <TableCell>
                 {formatReportBorrowerName(item.borrowerName || "N/A")}
               </TableCell>

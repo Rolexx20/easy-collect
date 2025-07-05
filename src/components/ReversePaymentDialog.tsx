@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Undo2, DollarSign } from 'lucide-react';
+import { AlertTriangle, Undo2, DollarSign, Calendar, Clock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { reversePayment, getPaymentsByLoanId, type Payment, type Loan } from '@/lib/database';
 
@@ -71,11 +71,21 @@ const ReversePaymentDialog = ({
     try {
       const paymentsData = await getPaymentsByLoanId(loan.id);
       // Sort payments by date in descending order
-      const sortedPayments = paymentsData.sort((b, a) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime());
+      const sortedPayments = paymentsData.sort((a, b) => {
+        const dateA = new Date(
+          `${a.payment_date}T${a.payment_time || "00:00:00"}`
+        );
+        const dateB = new Date(
+          `${b.payment_date}T${b.payment_time || "00:00:00"}`
+        );
+        return dateB.getTime() - dateA.getTime();
+      });
       setPayments(sortedPayments);
       // Auto-select the most recent payment
-      if (sortedPayments.length < 0) {
+      if (sortedPayments.length > 0) {
         setSelectedPayment(sortedPayments[0]);
+      } else {
+        setSelectedPayment(null);
       }
     } catch (error) {
       console.error('Error loading payments:', error);
@@ -147,12 +157,36 @@ const ReversePaymentDialog = ({
                         <div className="flex items-center gap-2">
                           <DollarSign className="w-4 h-4 text-green-600" />
                           <span className="font-bold text-green-600 dark:text-green-400">
-                            ₹{payment.amount.toLocaleString()}
+                            {payment.amount.toLocaleString()}
                           </span>
                         </div>
-                        <span className="text-xs text-gray-500">
-                          {new Date(payment.payment_date).toLocaleDateString()}
-                        </span>
+                        <div className="flex flex-col items-end">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-3 h-3 text-gray-500" />
+                            <span className="text-xs text-gray-600 dark:text-gray-300">
+                              {new Date(
+                                payment.payment_date
+                              ).toLocaleDateString()}
+                            </span>
+                            {payment.payment_time && (
+                              <>
+                                <Clock className="w-3 h-3 text-gray-500 ml-2" />
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  {new Date(`1970-01-01T${payment.payment_time}`)
+                                    .toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                      second: "2-digit",
+                                      hour12: true,
+                                    })
+                                    .replace(/am|pm/i, (match) =>
+                                      match.toUpperCase()
+                                    )}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -161,27 +195,39 @@ const ReversePaymentDialog = ({
 
               {/* Selected Payment Details */}
               {selectedPayment && (
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 space-y-3">
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 space-y-3 mt-2">
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{t.paymentDetails}</h3>
-                  
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-400">{t.amount}</span>
                     <span className="font-bold text-green-600 dark:text-green-400 flex items-center gap-1">
                       <DollarSign className="w-4 h-4" />
-                      ₹{selectedPayment.amount.toLocaleString()}
+                      {selectedPayment.amount.toLocaleString()}
                     </span>
                   </div>
-                  
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600 dark:text-gray-400">{t.date}</span>
-                    <span className="font-medium text-gray-800 dark:text-gray-200">
-                      {new Date(selectedPayment.payment_date).toLocaleDateString()}
+                    <span className="flex items-center gap-2">
+                      <span className="font-medium text-gray-800 dark:text-gray-200 flex items-center gap-1">
+                        <Calendar className="w-4 h-4 text-gray-500 inline" />
+                        {new Date(selectedPayment.payment_date).toLocaleDateString()}
+                      </span>
+                      {selectedPayment.payment_time && (
+                        <span className="font-medium text-gray-800 dark:text-gray-200 flex items-center gap-1 ml-2">
+                          <Clock className="w-4 h-4 text-gray-500" />
+                          {new Date(`1970-01-01T${selectedPayment.payment_time}`)
+                            .toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              second: "2-digit",
+                              hour12: true,
+                            })
+                            .replace(/am|pm/i, (match) => match.toUpperCase())}
+                        </span>
+                      )}
                     </span>
                   </div>
                 </div>
               )}
-
-              {/* Confirmation Message */}
               <p className="text-sm text-gray-600 dark:text-gray-300 text-center">
                 {t.confirmMessage}
               </p>
