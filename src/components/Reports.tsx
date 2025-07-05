@@ -159,14 +159,20 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             borrowerName: loan?.borrowerName || "N/A",
             totalLoanAmount: loan?.total_amount || 0,
             remainingLoanAmount: beforePayment,
-            displayAmount: payment.is_reversed ? -Math.abs(payment.amount) : payment.amount,
+            displayAmount: payment.is_reversed
+              ? -Math.abs(payment.amount)
+              : payment.amount,
           });
         });
       });
       // Sort all payments by payment_date and payment_time descending (latest first)
       paymentsWithLoanDetails.sort((a, b) => {
-        const dateTimeA = new Date(`${a.payment_date}T${a.payment_time || "00:00:00"}`).getTime();
-        const dateTimeB = new Date(`${b.payment_date}T${b.payment_time || "00:00:00"}`).getTime();
+        const dateTimeA = new Date(
+          `${a.payment_date}T${a.payment_time || "00:00:00"}`
+        ).getTime();
+        const dateTimeB = new Date(
+          `${b.payment_date}T${b.payment_time || "00:00:00"}`
+        ).getTime();
         return dateTimeB - dateTimeA; // latest first
       });
       setPayments(paymentsWithLoanDetails);
@@ -193,7 +199,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     let data: any[] = [];
     switch (selectedReportType) {
       case "collection":
-        data = loans.filter((loan) => loan.amount_paid > 0);
+        data = loans; // Show all loans, not just those with amount_paid > 0
         break;
       case "overdue":
         data = loans.filter((loan) => loan.status === "overdue");
@@ -220,7 +226,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     ) {
       data = data.filter((item) => {
         const date =
-          selectedReportType === "dailyCollection" || selectedReportType === "reversedPayments"
+          selectedReportType === "dailyCollection" ||
+          selectedReportType === "reversedPayments"
             ? new Date(item.payment_date)
             : new Date(item.start_date);
         const from = fromDate ? new Date(fromDate) : null;
@@ -258,7 +265,12 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       date.setHours(Number(h), Number(m), Number(s || 0));
       // toLocaleTimeString returns AM/PM in uppercase in most browsers, but force it just in case
       return date
-        .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true })
+        .toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        })
         .replace("am", "AM")
         .replace("pm", "PM");
     }
@@ -271,35 +283,44 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       csvContent =
         "No,Date,Borrower Name,Status,Loan Amount,Remaining Amount,Collected Amount\n";
       data.forEach((loan, index) => {
-        csvContent += `${index + 1},${loan.start_date},${
-          formatReportBorrowerName(loan.borrowerName || "N/A")
-        },${loan.status || "Active"},${loan.total_amount},${
-          loan.total_amount - loan.amount_paid
-        },${loan.amount_paid}\n`;
+        csvContent += `${index + 1},${
+          loan.start_date
+        },${formatReportBorrowerName(loan.borrowerName || "N/A")},${
+          loan.status || "Active"
+        },${loan.total_amount},${loan.total_amount - loan.amount_paid},${
+          loan.amount_paid
+        }\n`;
       });
     } else if (selectedReportType === "borrower") {
-      csvContent = "No,Name,Phone,Address,Total Amount\n";
+      csvContent = "No,Name,Phone,Address,Total Loans,Total Amount\n";
       data.forEach((borrower, index) => {
+        const totalLoans = loans.filter(
+          (l) => l.borrower_id === borrower.id
+        ).length;
         csvContent += `${index + 1},${borrower.name},${borrower.phone},${
           borrower.address
-        },${borrower.total_amount || 0}\n`;
+        },${totalLoans},${borrower.total_amount || 0}\n`;
       });
     } else if (selectedReportType === "overdue") {
       csvContent = "No,Date,Borrower Name,Loan Amount,Payment Amount,Status\n";
       data.forEach((loan, index) => {
-        csvContent += `${index + 1},${loan.start_date},${
-          formatReportBorrowerName(loan.borrowerName || "N/A")
-        },${loan.total_amount},${loan.amount_paid},${loan.status}\n`;
+        csvContent += `${index + 1},${
+          loan.start_date
+        },${formatReportBorrowerName(loan.borrowerName || "N/A")},${
+          loan.total_amount
+        },${loan.amount_paid},${loan.status}\n`;
       });
     } else if (selectedReportType === "dailyCollection") {
       csvContent =
         "No,Payment Date,Payment Time,Borrower Name,Payment Method,Total Loan Amount,Remaining Loan Amount,Payment Amount\n";
       data.forEach((payment, index) => {
-        csvContent += `${index + 1},${payment.payment_date},${formatTime12Hour(payment.payment_time)},${
-          formatReportBorrowerName(payment.borrowerName || "N/A")
-        },${payment.payment_method || "cash"},${payment.totalLoanAmount || 0},${
-          payment.remainingLoanAmount || 0
-        },${payment.displayAmount || payment.amount}\n`;
+        csvContent += `${index + 1},${payment.payment_date},${formatTime12Hour(
+          payment.payment_time
+        )},${formatReportBorrowerName(payment.borrowerName || "N/A")},${
+          payment.payment_method || "cash"
+        },${payment.totalLoanAmount || 0},${payment.remainingLoanAmount || 0},${
+          payment.displayAmount || payment.amount
+        }\n`;
       });
     }
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -344,12 +365,13 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       ]);
       title = t.collectionReport;
     } else if (selectedReportType === "borrower") {
-      head = ["No", "Name", "Phone", "Address", "Total Amount"]; // Match table column order
+      head = ["No", "Name", "Phone", "Address", "Total Loans", "Total Amount"];
       body = data.map((borrower, index) => [
         index + 1,
         borrower.name,
         borrower.phone,
         borrower.address,
+        loans.filter((l) => l.borrower_id === borrower.id).length,
         borrower.total_amount || 0,
       ]);
       title = t.borrowerReport;
@@ -453,6 +475,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             <TableHead>Phone</TableHead>
             <TableHead>NIC Number</TableHead>
             <TableHead>Address</TableHead>
+            <TableHead>Total Loans</TableHead>
             <TableHead>Total Amount</TableHead>
           </TableRow>
         );
@@ -514,7 +537,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           <TableCell
             colSpan={
               selectedReportType === "borrower"
-                ? 5
+                ? 6 // updated from 5 to 6 for new column
                 : selectedReportType === "dailyCollection"
                 ? 7
                 : 6
@@ -563,6 +586,10 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             </TableRow>
           );
         case "borrower":
+          // Count total loans for this borrower
+          const totalLoans = loans.filter(
+            (l) => l.borrower_id === item.id
+          ).length;
           return (
             <TableRow key={index}>
               <TableCell>{rowNumber}</TableCell>
@@ -570,6 +597,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
               <TableCell>{item.phone}</TableCell>
               <TableCell>{item.nic || item.nic_number || ""}</TableCell>
               <TableCell>{item.address}</TableCell>
+              <TableCell>
+                <span className="font-bold">{totalLoans}</span>
+              </TableCell>
               <TableCell>
                 <span className="text-purple-700 dark:text-purple-500 font-bold">
                   ₹ {(item.total_amount || 0).toLocaleString()}
@@ -599,7 +629,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             <TableRow key={index}>
               <TableCell>{rowNumber}</TableCell>
               <TableCell>{item.payment_date}</TableCell>
-              <TableCell>{formatTime12Hour(item.payment_time) || "-"}</TableCell>
+              <TableCell>
+                {formatTime12Hour(item.payment_time) || "-"}
+              </TableCell>
               <TableCell>
                 {formatReportBorrowerName(item.borrowerName || "N/A")}
               </TableCell>
@@ -617,7 +649,13 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
                 </span>
               </TableCell>
               <TableCell>
-                <span className={`font-bold ${(item.displayAmount || item.amount) < 0 ? 'text-red-700 dark:text-red-500' : 'text-green-700 dark:text-green-500'}`}>
+                <span
+                  className={`font-bold ${
+                    (item.displayAmount || item.amount) < 0
+                      ? "text-red-700 dark:text-red-500"
+                      : "text-green-700 dark:text-green-500"
+                  }`}
+                >
                   ₹ {(item.displayAmount || item.amount)?.toLocaleString()}
                 </span>
               </TableCell>
