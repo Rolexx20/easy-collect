@@ -577,6 +577,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
               <TableCell>{rowNumber}</TableCell>
               <TableCell>{item.name}</TableCell>
               <TableCell>{item.phone}</TableCell>
+              <TableCell>{item.nic || item.nic_number || ""}</TableCell>
               <TableCell>{item.address}</TableCell>
               <TableCell>
                 <span className="text-purple-700 dark:text-purple-500 font-bold">
