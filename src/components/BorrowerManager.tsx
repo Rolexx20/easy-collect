@@ -36,21 +36,6 @@ interface BorrowerManagerProps {
   onDataChange: () => void;
 }
 
-// Utility function to format display name
-const formatDisplayName = (borrower: Borrower) => {
-  if (borrower.name) {
-    const parts = borrower.name.trim().split(" ");
-    if (parts.length === 3) {
-      const first = parts[0];
-      const second = parts[1].charAt(0).toUpperCase() + ".";
-      const third = parts[2];
-      return `${first} ${second} ${third}`;
-    }
-    return borrower.name;
-  }
-  return "Unknown Borrower";
-};
-
 // BorrowerCard component (from BorrowerCard.tsx)
 const BorrowerCard = ({
   borrower,
@@ -97,11 +82,11 @@ const BorrowerCard = ({
             </span>
             <span
               className="truncate text-lg font-bold text-gray-800 dark:text-gray-100 cursor-pointer"
-              title={formatDisplayName(borrower)}
+              title={borrower.name}
             >
-              {formatDisplayName(borrower).length > 15
-                ? `${formatDisplayName(borrower).slice(0, 15)}...`
-                : formatDisplayName(borrower)}
+              {borrower.name.length > 15
+                ? `${borrower.name.slice(0, 17)}..`
+                : borrower.name}
             </span>
           </div>
           <div className="flex gap-2 ml-2">
@@ -224,23 +209,21 @@ const BorrowerFormDialog = ({
   const initialNameParts = extractNameParts(editingBorrower);
 
   const [formData, setFormData] = useState(() => ({
-    title: initialNameParts.title,
-    first_name: initialNameParts.first_name,
-    last_name: initialNameParts.last_name,
+    title: editingBorrower?.title || initialNameParts.title,
+    first_name: editingBorrower?.first_name || initialNameParts.first_name,
+    last_name: editingBorrower?.last_name || initialNameParts.last_name,
     nic_number: editingBorrower?.nic_number || '',
     phone: editingBorrower?.phone?.startsWith('+94') ? editingBorrower.phone.replace('+94', '0') : editingBorrower?.phone || '',
     address: editingBorrower?.address || ''
   }));
 
   // When editingBorrower changes, update formData accordingly
-  // (so dialog always shows correct values)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(() => {
     const nameParts = extractNameParts(editingBorrower);
     setFormData({
-      title: nameParts.title,
-      first_name: nameParts.first_name,
-      last_name: nameParts.last_name,
+      title: editingBorrower?.title || nameParts.title,
+      first_name: editingBorrower?.first_name || nameParts.first_name,
+      last_name: editingBorrower?.last_name || nameParts.last_name,
       nic_number: editingBorrower?.nic_number || '',
       phone: editingBorrower?.phone?.startsWith('+94') ? editingBorrower.phone.replace('+94', '0') : editingBorrower?.phone || '',
       address: editingBorrower?.address || ''
@@ -306,7 +289,7 @@ const BorrowerFormDialog = ({
     }
     setIsLoading(true);
     try {
-      const fullName = `${formData.title} ${formData.first_name}. ${formData.last_name}`;
+      const fullName = `${formData.title} ${formData.first_name.charAt(0).toUpperCase()}. ${formData.last_name}`;
       const phoneWithCountryCode = `+94${phoneWithoutCountryCode}`;
       const borrowerData = {
         title: formData.title,
