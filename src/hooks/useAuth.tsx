@@ -34,21 +34,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        if (!isMounted) return;
+        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
           // Defer profile fetching to avoid deadlocks
-          setTimeout(async () => {
-            try {
-              const userProfile = await getUserProfile();
-              setProfile(userProfile);
-            } catch (error) {
-              console.error('Error fetching user profile:', error);
-            }
+          setTimeout(() => {
+            if (!isMounted) return;
+            getUserProfile()
+              .then((userProfile) => {
+                if (isMounted) setProfile(userProfile);
+              })
+              .catch((error) => {
+                console.error('Error fetching user profile:', error);
+                if (isMounted) setProfile(null);
+              });
           }, 0);
         } else {
           setProfile(null);
@@ -60,17 +67,27 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
       // Clean up existing state
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+
       try {
         await supabase.auth.signOut({ scope: 'global' });
       } catch (err) {
