@@ -30,6 +30,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [payments, setPayments] = useState<any[]>([]);
+  const [loanStatusFilter, setLoanStatusFilter] = useState("all"); // For collection report
+  const [showTodayOnly, setShowTodayOnly] = useState("all"); // "all" | "today" | "week" | "month"
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -200,6 +202,10 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     switch (selectedReportType) {
       case "collection":
         data = loans; // Show all loans, not just those with amount_paid > 0
+        // Loan Status filter
+        if (loanStatusFilter !== "all") {
+          data = data.filter((loan) => (loan.status || "active").toLowerCase() === loanStatusFilter);
+        }
         break;
       case "overdue":
         data = loans.filter((loan) => loan.status === "overdue");
@@ -209,6 +215,30 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         break;
       case "dailyCollection":
         data = payments;
+        // Date range filter for Today/Week/Month
+        if (showTodayOnly === "today") {
+          const todayStr = new Date().toISOString().split("T")[0];
+          data = data.filter((p) => p.payment_date === todayStr);
+        } else if (showTodayOnly === "week") {
+          const now = new Date();
+          const startOfWeek = new Date(now);
+          startOfWeek.setDate(now.getDate() - now.getDay());
+          startOfWeek.setHours(0, 0, 0, 0);
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 6);
+          data = data.filter((p) => {
+            const d = new Date(p.payment_date);
+            return d >= startOfWeek && d <= endOfWeek;
+          });
+        } else if (showTodayOnly === "month") {
+          const now = new Date();
+          const month = now.getMonth();
+          const year = now.getFullYear();
+          data = data.filter((p) => {
+            const d = new Date(p.payment_date);
+            return d.getMonth() === month && d.getFullYear() === year;
+          });
+        }
         break;
       // Removed "arrears" and "reversedPayments" cases
       default:
@@ -521,6 +551,11 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     return name;
   };
 
+  // Utility for full name in borrower report
+  const getBorrowerFullName = (borrower: any) => {
+    return [borrower.title, borrower.first_name, borrower.last_name].filter(Boolean).join(" ");
+  };
+
   const renderTableRows = () => {
     const data = getReportData();
     if (data.length === 0) {
@@ -593,7 +628,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           return (
             <TableRow key={index}>
               <TableCell>{rowNumber}</TableCell>
-              <TableCell>{item.name}</TableCell>
+              <TableCell>{getBorrowerFullName(item)}</TableCell>
               <TableCell>{item.phone}</TableCell>
               <TableCell>{item.nic || item.nic_number || ""}</TableCell>
               <TableCell>{item.address}</TableCell>
@@ -832,6 +867,78 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
                   placeholder="To date"
                 />
               </>
+            )}
+            {/* Loan Status Filter for Collection Report */}
+            {selectedReportType === "collection" && (
+              <>
+              {/* Desktop: Button group */}
+              <div className="hidden sm:flex gap-2 items-center">
+                {[
+                { value: "all", label: "All" },
+                { value: "active", label: "Active" },
+                { value: "closed", label: "Completed" },
+                { value: "overdue", label: "Overdue" },
+                ].map((status) => (
+                <button
+                  key={status.value}
+                  type="button"
+                  onClick={() => setLoanStatusFilter(status.value)}
+                  className={`px-4 py-2 rounded-full border text-sm font-semibold transition-colors ${
+                  loanStatusFilter === status.value
+                    ? "bg-blue-600 text-white border-gray-600"
+                    : "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-300 border-gray-400 hover:bg-green-50 dark:hover:bg-blue-900"
+                  }`}
+                >
+                  {status.label}
+                </button>
+                ))}
+              </div>
+              {/* Mobile: Dropdown */}
+              <div className="sm:hidden w-full">
+                <select
+                value={loanStatusFilter}
+                onChange={(e) => setLoanStatusFilter(e.target.value)}
+                className="w-full px-4 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                >
+                {[
+                  { value: "all", label: "All" },
+                  { value: "active", label: "Active" },
+                  { value: "closed", label: "Completed" },
+                  { value: "overdue", label: "Overdue" },
+                ].map((status) => (
+                  <option key={status.value} value={status.value}>
+                  {status.label}
+                  </option>
+                ))}
+                </select>
+              </div>
+              </>
+            )}
+            {/* Today/Week/Month Tag Filters for Daily Collection */}
+            {selectedReportType === "dailyCollection" && (
+              <div className="flex gap-2 items-center">
+                { [
+                  { label: "Today", value: "today" },
+                  { label: "Week", value: "week" },
+                  { label: "Month", value: "month" },
+                ].map((range) => (
+                  <button
+                    key={range.value}
+                    type="button"
+                    onClick={() => setShowTodayOnly(range.value)}
+                    className={`px-4 py-2 rounded-full border text-sm font-semibold transition-colors
+                      ${
+                        showTodayOnly === range.value
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-blue-100 dark:hover:bg-blue-900"
+                      }
+                    `}
+                    style={{ minWidth: 80 }}
+                  >
+                    {range.label}
+                  </button>
+                ))}
+              </div>
             )}
             <input
               type="text"

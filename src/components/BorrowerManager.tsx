@@ -6,7 +6,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader as UIDialogHeader, D
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Edit, Trash2, Phone, MapPin, User, CircleAlert, CreditCard } from 'lucide-react';
+import { Plus, Edit, Trash2, Phone, MapPin, User, CircleAlert, CreditCard, Eye } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { deleteBorrower, getLoans, createBorrower, updateBorrower } from '@/lib/database';
 import DeleteConfirmationDialog from './DeleteConfirmationDialog';
@@ -57,6 +57,8 @@ const BorrowerCard = ({
   onDelete,
   isLoading,
   language,
+  onViewPaymentHistory,
+  onView,
 }: {
   borrower: Borrower;
   onEdit: (borrower: Borrower) => void;
@@ -64,6 +66,7 @@ const BorrowerCard = ({
   isLoading: boolean;
   language: string;
   onViewPaymentHistory?: (borrower: Borrower) => void;
+  onView?: (borrower: Borrower) => void;
 }) => {
   const translations = {
     en: {
@@ -102,8 +105,22 @@ const BorrowerCard = ({
                 : formatDisplayName(borrower)}
             </span>
           </div>
-          <div className="flex gap-2 ml-2">
-            <span className="border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 flex items-center h-8 w-8 justify-center transition-colors duration-150 hover:border-blue-400 dark:hover:border-blue-400">
+            <div className="flex gap-2 ml-2">
+              {/* View Button - now first */}
+              <span className="border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 flex items-center h-8 w-8 justify-center transition-colors duration-150 hover:border-green-400 dark:hover:border-green-400">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onView && onView(borrower)}
+                className="p-2 hover:bg-green-100 dark:hover:bg-green-900 rounded h-8 w-8"
+                disabled={isLoading}
+                aria-label="View"
+              >
+                <Eye className="w-4 h-4 text-green-600 dark:text-green-300" />
+              </Button>
+              </span>
+              {/* Edit Button */}
+              <span className="border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 flex items-center h-8 w-8 justify-center transition-colors duration-150 hover:border-blue-400 dark:hover:border-blue-400">
               <Button
                 variant="ghost"
                 size="icon"
@@ -114,46 +131,48 @@ const BorrowerCard = ({
               >
                 <Edit className="w-4 h-4 text-blue-600 dark:text-blue-300" />
               </Button>
-            </span>
-            <TooltipProvider>
+              </span>
+              {/* Delete Button */}
+              <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="flex-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (hasPendingLoans(borrower)) {
-                          toast({
-                            title: t.deleteWarning,
-                            variant: "destructive",
-                          });
-                        } else {
-                          onDelete(borrower);
-                        }
-                      }}
-                      className={`p-0.5 hover:bg-red-100 dark:hover:bg-red-900 rounded h-8 w-8 ${hasPendingLoans(borrower) ? "opacity-50 cursor-not-allowed" : ""}`}
-                      disabled={isLoading}
-                      style={{ minWidth: 0 }}
-                      aria-label={t.delete}
-                    >
-                      <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
-                    </Button>
-                  </span>
+                <span className="border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 flex items-center h-8 w-8 justify-center transition-colors duration-150 hover:border-red-400 dark:hover:border-red-400">
+                  <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    if (hasPendingLoans(borrower)) {
+                    toast({
+                      title: t.deleteWarning,
+                      variant: "destructive",
+                    });
+                    } else {
+                    onDelete(borrower);
+                    }
+                  }}
+                  className={`p-2 hover:bg-red-100 dark:hover:bg-red-900 rounded h-8 w-8 ${hasPendingLoans(borrower) ? "opacity-50 cursor-not-allowed" : ""}`}
+                  disabled={isLoading}
+                  style={{ minWidth: 0 }}
+                  aria-label={t.delete}
+                  >
+                  <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+                  </Button>
+                </span>
                 </TooltipTrigger>
                 {hasPendingLoans(borrower) && (
-                  <TooltipContent className="bg-red-700 text-white flex items-center gap-1">
-                    <CircleAlert className="w-4 h-4" />
-                    <span className="text-xs">{t.deleteWarning}</span>
-                  </TooltipContent>
+                <TooltipContent className="bg-red-700 text-white flex items-center gap-1">
+                  <CircleAlert className="w-4 h-4" />
+                  <span className="text-xs">{t.deleteWarning}</span>
+                </TooltipContent>
                 )}
               </Tooltip>
-            </TooltipProvider>
-          </div>
+              </TooltipProvider>
+            </div>
         </div>
       </CardHeader>
+      {/* Card content with improved visual separation */}
       <CardContent className="space-y-3 pt-3">
-        <div className="flex flex-col gap-2 text-sm text-gray-700 dark:text-gray-300">
+        <div className="flex flex-col gap-2 text-sm text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-gray-900/60 rounded-lg p-3 shadow-inner">
           <div className="flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-green-500" />
             <span className="truncate">{borrower.nic_number}</span>
@@ -167,7 +186,13 @@ const BorrowerCard = ({
             <span className="truncate">{borrower.address}</span>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2 pt-0">
+        <div className="grid grid-cols-3 gap-2 pt-0">
+          <div className="flex flex-col items-center flex-1 bg-blue-50 dark:bg-blue-950/30 rounded-lg py-2">
+            <div className="text-lg font-bold text-blue-700 dark:text-blue-300">
+              {borrower.total_loans ?? 0}
+            </div>
+            <div className="text-xs text-gray-500">Total Loans</div>
+          </div>
           <div className="flex flex-col items-center flex-1 bg-purple-50 dark:bg-purple-950/30 rounded-lg py-2">
             <div className="text-lg font-bold text-purple-700 dark:text-purple-300">
               ₹{(borrower.total_amount || 0).toLocaleString()}
@@ -450,6 +475,110 @@ const BorrowerFormDialog = ({
   );
 };
 
+// BorrowerViewDialog component
+const BorrowerViewDialog = ({
+  isOpen,
+  onClose,
+  borrower,
+  language,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  borrower: Borrower | null;
+  language: string;
+}) => {
+  if (!borrower) return null;
+  const translations = {
+    en: {
+      title: "Borrower Details",
+      fullName: "Full Name",
+      nic: "NIC Number",
+      phone: "Phone Number",
+      address: "Address",
+      totalLoans: "Total Loans",
+      activeLoans: "Active Loans",
+      totalAmount: "Total Amount",
+      pendingPayment: "Pending Payment",
+      close: "Close",
+      personalDetails: "Personal Details",
+      loanDetails: "Loan Details",
+    },
+    ta: {
+      title: "கடன் வாங்குபவர் விவரங்கள்",
+      fullName: "முழு பெயர்",
+      nic: "அடையாள அட்டை எண்",
+      phone: "தொலைபேசி எண்",
+      address: "முகவரி",
+      totalLoans: "மொத்த கடன்கள்",
+      activeLoans: "செயலில் உள்ள கடன்கள்",
+      totalAmount: "மொத்த தொகை",
+      pendingPayment: "நிலுவை தொகை",
+      close: "மூடு",
+      personalDetails: "தனிப்பட்ட விவரங்கள்",
+      loanDetails: "கடன் விவரங்கள்",
+    }
+  };
+  const t = translations[language as keyof typeof translations];
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg w-full p-0 overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-900">
+        <UIDialogHeader className="px-6 pt-4 pb-2 border-b dark:border-gray-800">
+          <DialogTitle className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
+            {t.title}
+          </DialogTitle>
+        </UIDialogHeader>
+        <div className="px-6 py-6 space-y-6">
+          <div>
+            <div className="text-lg font-bold mb-2 text-blue-700 dark:text-blue-300">{t.fullName}</div>
+            <div className="text-xl font-semibold text-gray-900 dark:text-gray-100">{borrower.title} {borrower.first_name} {borrower.last_name}</div>
+          </div>
+          <div>
+            <div className="font-semibold text-purple-700 dark:text-purple-300 mb-1">{t.loanDetails}</div>
+            <div className="grid grid-cols-2 gap-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg p-3">
+              <div>
+                <div className="text-xs text-gray-500">{t.totalLoans}</div>
+                <div className="font-bold text-purple-700 dark:text-purple-200">{borrower.total_loans ?? 0}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500">{t.activeLoans}</div>
+                <div className="font-bold text-purple-700 dark:text-purple-200">{borrower.active_loans ?? 0}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500">{t.totalAmount}</div>
+                <div className="font-bold text-green-700 dark:text-green-200">₹{(borrower.total_amount ?? 0).toLocaleString()}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500">{t.pendingPayment}</div>
+                <div className="font-bold text-red-700 dark:text-red-200">₹{(borrower.pending_payment ?? borrower.remaining_amount ?? 0).toLocaleString()}</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="font-semibold text-blue-700 dark:text-blue-300 mb-1">{t.personalDetails}</div>
+            <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-green-500" />
+                <span className="text-gray-700 dark:text-gray-200">{t.nic}: {borrower.nic_number}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-blue-500" />
+                <span className="text-gray-700 dark:text-gray-200">{t.phone}: {borrower.phone}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-blue-500" />
+                <span className="text-gray-700 dark:text-gray-200">{t.address}: {borrower.address}</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button onClick={onClose} className="bg-blue-600 hover:bg-blue-700 text-white">{t.close}</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBorrower, setEditingBorrower] = useState<Borrower | null>(null);
@@ -459,6 +588,8 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
   const [search, setSearch] = useState('');
   const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
   const [selectedBorrowerLoan, setSelectedBorrowerLoan] = useState<any>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [viewBorrower, setViewBorrower] = useState<Borrower | null>(null);
 
   const translations = {
     en: {
@@ -557,26 +688,32 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
     );
   });
 
+  // Calculate total loans count for filtered borrowers
+  const totalLoansCount = filteredBorrowers.reduce((sum, borrower) => sum + (borrower.total_loans ?? 0), 0);
+
   return (
     <div className="p-6 space-y-6 pt-5">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl md:text-3xl font-bold text-left text-gray-800 dark:text-gray-200 flex-1">
           {t.title}
         </h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              onClick={() => {
-                setEditingBorrower(null);
-                setIsDialogOpen(true);
-              }}
-              className="bg-gradient-to-r from-blue-600 to-red-800 hover:from-blue-700 hover:to-red-900 text-white dark:text-white px-3 py-2 text-sm md:text-base flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4 mr-0" />
-              <span className="hidden sm:inline">{t.addBorrower}</span>
-            </Button>
-          </DialogTrigger>
-        </Dialog>
+        {/* Total Loans Count Card + Add Button */}
+        <div className="flex items-center gap-4">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                onClick={() => {
+                  setEditingBorrower(null);
+                  setIsDialogOpen(true);
+                }}
+                className="bg-gradient-to-r from-blue-600 to-red-800 hover:from-blue-700 hover:to-red-900 text-white dark:text-white px-3 py-2 text-sm md:text-base flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4 mr-0" />
+                <span className="hidden sm:inline">{t.addBorrower}</span>
+              </Button>
+            </DialogTrigger>
+          </Dialog>
+        </div>
       </div>
       <div className="mb-1">
         <Input
@@ -606,6 +743,10 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
               onViewPaymentHistory={handleViewPaymentHistory}
               isLoading={isLoading}
               language={language}
+              onView={(b) => {
+                setViewBorrower(b);
+                setIsViewDialogOpen(true);
+              }}
             />
           ))}
         </div>
@@ -629,7 +770,12 @@ const BorrowerManager = ({ language, borrowers, onDataChange }: BorrowerManagerP
         itemName={borrowerToDelete?.name}
         language={language}
       />
-      
+      <BorrowerViewDialog
+        isOpen={isViewDialogOpen}
+        onClose={() => setIsViewDialogOpen(false)}
+        borrower={viewBorrower}
+        language={language}
+      />
     </div>
   );
 };

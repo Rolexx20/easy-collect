@@ -941,5 +941,5 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
   );
 };
 
-export default LoanManager;
+
 
