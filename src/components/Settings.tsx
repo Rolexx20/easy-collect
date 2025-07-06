@@ -129,6 +129,9 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
           phone: userData.phone || "",
           nicNo: userData.nic_no || "",
         });
+      } else {
+        // Handle case where no profile exists yet
+        console.log('No user profile found');
       }
     } catch (error) {
       console.error('Error loading user profile:', error);

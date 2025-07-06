@@ -50,11 +50,39 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             if (!isMounted) return;
             getUserProfile()
               .then((userProfile) => {
-                if (isMounted) setProfile(userProfile);
+                if (isMounted) {
+                  // Create a default profile if none exists
+                  if (!userProfile && session.user) {
+                    setProfile({
+                      id: session.user.id,
+                      email: session.user.email || '',
+                      name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                      password_hash: '',
+                      phone: session.user.user_metadata?.phone || null,
+                      nic_no: null,
+                      created_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString()
+                    });
+                  } else {
+                    setProfile(userProfile);
+                  }
+                }
               })
               .catch((error) => {
                 console.error('Error fetching user profile:', error);
-                if (isMounted) setProfile(null);
+                if (isMounted && session.user) {
+                  // Fallback profile from auth user
+                  setProfile({
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                    password_hash: '',
+                    phone: session.user.user_metadata?.phone || null,
+                    nic_no: null,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                  });
+                }
               });
           }, 0);
         } else {

@@ -278,7 +278,7 @@ export const getUserProfile = async (): Promise<UserProfile | null> => {
   const { data, error } = await supabase
     .from('user_profiles')
     .select('*')
-    .single();
+    .maybeSingle();
     
   if (error) {
     console.error('Error fetching user profile:', error);
