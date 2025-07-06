@@ -21,12 +21,33 @@ const Index = () => {
   
   const queryClient = useQueryClient();
 
-  // Redirect to auth if not authenticated
+  // Fetch borrowers - always call hooks in the same order
+  const { data: borrowers = [], isLoading: borrowersLoading, error: borrowersError } = useQuery({
+    queryKey: ['borrowers'],
+    queryFn: getBorrowers,
+    enabled: !!user // Only run query when user is authenticated
+  });
+
+  // Fetch loans
+  const { data: loans = [], isLoading: loansLoading, error: loansError } = useQuery({
+    queryKey: ['loans'],
+    queryFn: getLoans,
+    enabled: !!user // Only run query when user is authenticated
+  });
+
+  // Fetch dashboard stats
+  const { data: dashboardStats, error: dashboardError } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: getDashboardStats,
+    enabled: !!user // Only run query when user is authenticated
+  });
+
+  // Redirect to auth if not authenticated - AFTER all hooks
   if (!loading && !user) {
     return <Navigate to="/auth" replace />;
   }
 
-  // Show loading while checking authentication
+  // Show loading while checking authentication - AFTER all hooks
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -37,24 +58,6 @@ const Index = () => {
       </div>
     );
   }
-
-  // Fetch borrowers
-  const { data: borrowers = [], isLoading: borrowersLoading, error: borrowersError } = useQuery({
-    queryKey: ['borrowers'],
-    queryFn: getBorrowers
-  });
-
-  // Fetch loans
-  const { data: loans = [], isLoading: loansLoading, error: loansError } = useQuery({
-    queryKey: ['loans'],
-    queryFn: getLoans
-  });
-
-  // Fetch dashboard stats
-  const { data: dashboardStats, error: dashboardError } = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: getDashboardStats
-  });
 
   // Handle errors
   useEffect(() => {
