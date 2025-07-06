@@ -321,8 +321,8 @@ const Dashboard = ({
                     fill="#3b82f6"
                     barSize={22}
                     radius={[4, 4, 0, 0]}
-                    onMouseOver={(e) => (e.target.style.fill = "#2563eb")}
-                    onMouseOut={(e) => (e.target.style.fill = "#3b82f6")}
+                    onMouseOver={(e) => e.target && (e.target.style.fill = "#2563eb")}
+                    onMouseOut={(e) => e.target && (e.target.style.fill = "#3b82f6")}
                   />
                   <Bar
                     dataKey="paid"
@@ -330,8 +330,8 @@ const Dashboard = ({
                     fill="#10b981"
                     barSize={14}
                     radius={[4, 4, 0, 0]}
-                    onMouseOver={(e) => (e.target.style.fill = "#059669")}
-                    onMouseOut={(e) => (e.target.style.fill = "#10b981")}
+                    onMouseOver={(e) => e.target && (e.target.style.fill = "#059669")}
+                    onMouseOut={(e) => e.target && (e.target.style.fill = "#10b981")}
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -443,6 +443,8 @@ const Dashboard = ({
                   .map((loan) => {
                     const arrears = loan.arrears || 0;
                     const dailyPayment = loan.total_amount / (loan.duration_months * 30);
+                    // Find borrower details
+                    const borrower = borrowers.find(b => b.id === loan.borrower_id);
                     
                     return (
                       <div
@@ -474,6 +476,12 @@ const Dashboard = ({
                               <Calendar className="w-3 h-3" />
                               Daily: ₹{dailyPayment.toFixed(0)}
                             </div>
+                            {borrower && (
+                              <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                <User className="w-3 h-3" />
+                                Phone: {borrower.phone} | Address: {borrower.address?.substring(0, 20)}...
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="text-right">
@@ -495,53 +503,61 @@ const Dashboard = ({
           </CardContent>
         </Card>
 
-        {/* Pending Loan Details Section */}
+        {/* Pending Loan Details Section - After Duration Loans */}
         <div className="flex-1 min-w-0">
           <Card className="hover:shadow-lg transition-shadow h-full flex flex-col">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-orange-600" />
-                {t.pendingAmount} {t.overdueLoans}
+                Pending Amount Overdue Loans
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col">
               {loans.filter(
-                (loan) => loan.status === "active" || loan.status === "overdue"
+                (loan) => {
+                  // Calculate end date based on start date + duration_months
+                  const startDate = new Date(loan.start_date);
+                  const endDate = new Date(startDate);
+                  endDate.setMonth(endDate.getMonth() + loan.duration_months);
+                  const today = new Date();
+                  
+                  // Show loans that are past duration and not fully settled
+                  return today > endDate && loan.amount_paid < loan.total_amount;
+                }
               ).length === 0 ? (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   <AlertTriangle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No pending loans</p>
+                  <p>No overdue loans after duration</p>
                 </div>
               ) : (
                 <div className="max-h-96 overflow-y-auto space-y-3">
                   {loans
                     .filter(
-                      (loan) =>
-                        loan.status === "active" || loan.status === "overdue"
+                      (loan) => {
+                        // Calculate end date based on start date + duration_months
+                        const startDate = new Date(loan.start_date);
+                        const endDate = new Date(startDate);
+                        endDate.setMonth(endDate.getMonth() + loan.duration_months);
+                        const today = new Date();
+                        
+                        // Show loans that are past duration and not fully settled
+                        return today > endDate && loan.amount_paid < loan.total_amount;
+                      }
                     )
                     .sort((a, b) => {
-                      // Overdue loans first, then by due date if available
-                      if (a.status !== b.status) {
-                        return a.status === "overdue" ? -1 : 1;
-                      }
-                      return 0;
+                      // Sort by pending amount (highest first)
+                      const pendingA = a.total_amount - a.amount_paid;
+                      const pendingB = b.total_amount - b.amount_paid;
+                      return pendingB - pendingA;
                     })
                     .map((loan) => {
-                      // Calculate actual loan end date: created_date + duration (assuming duration is in days)
-                      let endDateStr = "No end date";
-                      if (loan.created_date && loan.duration) {
-                        const created = new Date(loan.created_date);
-                        const durationDays = Number(loan.duration);
-                        if (!isNaN(created.getTime()) && !isNaN(durationDays)) {
-                          const endDate = new Date(created);
-                          endDate.setDate(endDate.getDate() + durationDays);
-                          endDateStr = `End: ${endDate
-                            .toISOString()
-                            .slice(0, 10)}`;
-                        }
-                      } else if (loan.due_date) {
-                        endDateStr = `End: ${loan.due_date}`;
-                      }
+                      // Calculate end date
+                      const startDate = new Date(loan.start_date);
+                      const endDate = new Date(startDate);
+                      endDate.setMonth(endDate.getMonth() + loan.duration_months);
+                      const endDateStr = endDate.toISOString().slice(0, 10);
+                      const pendingAmount = loan.total_amount - loan.amount_paid;
+                      
                       return (
                         <div
                           key={loan.id}
@@ -552,7 +568,7 @@ const Dashboard = ({
                               <User className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                             </div>
                             <div>
-                             <div className="font-medium text-gray-900 dark:text-gray-100">
+                              <div className="font-medium text-gray-900 dark:text-gray-100">
                                 {loan.borrowerName ? (() => {
                                   const parts = loan.borrowerName.trim().split(" ");
                                   if (parts.length === 3) {
@@ -564,20 +580,22 @@ const Dashboard = ({
                                   return loan.borrowerName;
                                 })() : "Unknown"}
                               </div>
-                              {endDateStr && (
-                                <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  {endDateStr}
-                                </div>
-                              )}
+                              <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                <DollarSign className="w-3 h-3" />
+                                Loan: ₹{loan.total_amount.toLocaleString()}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                Start: {loan.start_date} | End: {endDateStr}
+                              </div>
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="font-bold text-orange-700 dark:text-orange-300 flex items-center gap-1">
-                              ₹{" "}
-                              {(
-                                loan.total_amount - loan.amount_paid
-                              ).toLocaleString()}
+                            <div className="font-bold text-orange-700 dark:text-orange-300">
+                              Pending: ₹{pendingAmount.toLocaleString()}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              Paid: ₹{loan.amount_paid.toLocaleString()}
                             </div>
                             <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">
                               {loan.status}
