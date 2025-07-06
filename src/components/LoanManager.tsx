@@ -732,29 +732,29 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                     </div>
                     {/* Row 3 */}
                     <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
-                      <span className="text-[12px] text-red-600 dark:text-red-400 flex items-center gap-1 truncate">
+                      <span className="text-[12px] text-red-600 dark:text-red-500 flex items-center gap-1 truncate">
                         <AlertTriangle className="w-2.5 h-2.5" />
                         Arrears
                       </span>
-                      <span className="text-xs font-bold text-red-700 dark:text-red-300 truncate">
+                      <span className="text-xs font-bold text-red-700 dark:text-red-500 truncate">
                         ₹ {calculateArrears(loan).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                       </span>
                     </div>
                     <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
-                      <span className="text-[12px] text-red-600 dark:text-red-400 flex items-center gap-1 truncate">
+                      <span className="text-[12px] text-red-600 dark:text-red-500 flex items-center gap-1 truncate">
                         <Clock10 className="w-2.5 h-2.5" />
                         Missed Days
                       </span>
-                      <span className="text-xs font-bold text-red-700 dark:text-red-300 truncate">
+                      <span className="text-xs font-bold text-red-700 dark:text-red-500 truncate">
                         {calculateMissedDays(loan)} days
                       </span>
                     </div>
                     <div className="bg-gray-50/80 dark:bg-gray-800/80 rounded-lg px-2 py-1 flex flex-col items-start text-left min-w-0">
-                      <span className="text-[12px] text-blue-600 dark:text-blue-400 flex items-center gap-1 truncate">
+                      <span className="text-[12px] text-blue-600 dark:text-blue-500 flex items-center gap-1 truncate">
                         <Calendar className="w-2.5 h-2.5" />
                         Next Pay
                       </span>
-                      <span className="text-xs font-bold text-blue-700 dark:text-blue-300 truncate">
+                      <span className="text-xs font-bold text-blue-700 dark:text-blue-00 truncate">
                         {(() => {
                           // Calculate next unpaid day based on amount_paid and today's date
                           const start = new Date(loan.start_date);

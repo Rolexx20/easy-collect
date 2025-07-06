@@ -35,6 +35,21 @@ interface BorrowerManagerProps {
   onDataChange: () => void;
 }
 
+  // Utility function to format display name like BorrowerManager
+  const formatDisplayName = (borrower: Borrower) => {
+    if (borrower.name) {
+      const parts = borrower.name.trim().split(" ");
+      if (parts.length === 3) {
+        const first = parts[0];
+        const second = parts[1].charAt(0).toUpperCase() + ".";
+        const third = parts[2];
+        return ` ${second} ${third}`;
+      }
+      return borrower.name;
+    }
+    return "Unknown Borrower";
+  };
+
 // BorrowerCard component (from BorrowerCard.tsx)
 const BorrowerCard = ({
   borrower,
@@ -42,7 +57,6 @@ const BorrowerCard = ({
   onDelete,
   isLoading,
   language,
-  onViewPaymentHistory
 }: {
   borrower: Borrower;
   onEdit: (borrower: Borrower) => void;
@@ -83,9 +97,9 @@ const BorrowerCard = ({
               className="truncate text-lg font-bold text-gray-800 dark:text-gray-100 cursor-pointer"
               title={borrower.name}
             >
-              {borrower.name.length > 15
-                ? `${borrower.name.slice(0, 17)}..`
-                : borrower.name}
+              {formatDisplayName(borrower).length > 15
+                ? `${formatDisplayName(borrower).slice(0, 17)}..`
+                : formatDisplayName(borrower)}
             </span>
           </div>
           <div className="flex gap-2 ml-2">

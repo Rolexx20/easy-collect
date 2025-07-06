@@ -63,7 +63,7 @@ const PaymentCollectionDialog = ({
       collect: "Collect Payment",
       cancel: "Cancel",
       totalAmount: "Total Loan Amount",
-      paidAmount: "Already Paid",
+      paidAmount: "Paid Amount",
       remainingAmount: "Remaining Amount",
       paymentProgress: "Payment Progress",
       paymentCollected: "Payment collected successfully",
@@ -444,17 +444,6 @@ const PaymentCollectionDialog = ({
               </span>
             </div>
 
-            {loan.arrears && loan.arrears > 0 && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Current Arrears
-                </span>
-                <span className="font-bold text-orange-600 dark:text-orange-400">
-                  ₹{loan.arrears.toLocaleString()}
-                </span>
-              </div>
-            )}
-
             {/* Current Progress */}
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
@@ -513,25 +502,6 @@ const PaymentCollectionDialog = ({
                   {t.amounterror}
                 </p>
               )}
-            </div>
-
-            <div>
-              <Label htmlFor="arrears" className="flex items-center gap-2 mb-2">
-                <DollarSign className="w-4 h-4" />
-                {t.arrears}
-              </Label>
-              <Input
-                id="arrears"
-                type="number"
-                step="1"
-                value={formData.arrears}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData({ ...formData, arrears: value });
-                }}
-                placeholder="0"
-                className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-              />
             </div>
 
             <div>
