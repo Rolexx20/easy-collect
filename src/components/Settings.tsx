@@ -3,7 +3,6 @@ import {
   User,
   Download,
   Upload,
-  Save,
   Database,
   Languages,
   Globe2,
@@ -38,18 +37,9 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
   const [profile, setProfile] = useState({
     name: "",
     email: "",
-    phone: "",
-    nicNo: "",
   });
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-  const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
-  const [isLoadingPassword, setIsLoadingPassword] = useState(false);
   const [authData, setAuthData] = useState<any>(null);
   const [showSessionDetails, setShowSessionDetails] = useState(false);
 
@@ -60,8 +50,6 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       profileDesc: "Manage your profile information",
       name: "Full Name",
       email: "Email Address",
-      phone: "Phone Number",
-      nicNo: "NIC No",
       saveProfile: "Save Profile",
       dataManagement: "Data Management",
       dataDesc: "Backup and restore your data",
@@ -100,8 +88,6 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       profileDesc: "உங்கள் சுயவிவர தகவலை நிர்வகிக்கவும்",
       name: "முழு பெயர்",
       email: "மின்னஞ்சல் முகவரி",
-      phone: "தொலைபேசி எண்",
-      nicNo: "தேசிய அடையாள அட்டை எண்",
       saveProfile: "சுயவிவரத்தை சேமிக்கவும்",
       dataManagement: "தரவு மேலாண்மை",
       dataDesc: "உங்கள் தரவை காப்புப்படுத்தி மீட்டமைக்கவும்",
@@ -173,8 +159,6 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
         setProfile({
           name: userData.name || "",
           email: userData.email || "",
-          phone: userData.phone || "",
-          nicNo: userData.nic_no || "",
         });
       } else {
         // Create a default profile from auth user if none exists
@@ -185,8 +169,6 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
             email: user.email || "",
             name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
             password_hash: '$2a$10$' + btoa('Keliz~7227').slice(0, 53),
-            phone: user.user_metadata?.phone || '',
-            nic_no: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           };
@@ -201,8 +183,6 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
             setProfile({
               name: defaultProfile.name,
               email: defaultProfile.email,
-              phone: defaultProfile.phone || "",
-              nicNo: defaultProfile.nic_no || "",
             });
           } catch (error) {
             console.error('Error creating default profile:', error);
@@ -210,120 +190,12 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
             setProfile({
               name: defaultProfile.name,
               email: defaultProfile.email,
-              phone: defaultProfile.phone || "",
-              nicNo: defaultProfile.nic_no || "",
             });
           }
         }
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
-    }
-  };
-
-  const handleSaveProfile = async () => {
-    setIsLoadingProfile(true);
-    try {
-      if (userProfile) {
-        // Update existing profile
-        await updateUserProfile(userProfile.id, {
-          name: profile.name,
-          email: profile.email,
-          phone: profile.phone,
-          nic_no: profile.nicNo,
-        });
-      } else {
-        // Create new profile
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const newProfile = {
-            id: user.id,
-            email: profile.email,
-            name: profile.name,
-            password_hash: '$2a$10$' + btoa('Keliz~7227').slice(0, 53),
-            phone: profile.phone,
-            nic_no: profile.nicNo,
-          };
-          
-          await supabase
-            .from('user_profiles')
-            .insert([newProfile]);
-            
-          setUserProfile(newProfile);
-        }
-      }
-      
-      toast({
-        title: t.profileUpdated,
-        description: "Your profile has been updated successfully.",
-        duration: 3000,
-      });
-      
-      // Reload the profile to get updated data
-      await loadUserProfile();
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update profile. Please try again.",
-        variant: "destructive",
-        duration: 3000,
-      });
-    } finally {
-      setIsLoadingProfile(false);
-    }
-  };
-
-  const handlePasswordChange = async () => {
-    if (!userProfile) return;
-    
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast({
-        title: t.passwordMismatch,
-        variant: "destructive",
-        duration: 3000,
-      });
-      return;
-    }
-
-    // Basic check - in a real app you'd verify against hashed password
-    if (passwordForm.currentPassword !== "Keliz~7227") {
-      toast({
-        title: t.invalidCurrentPassword,
-        variant: "destructive",
-        duration: 3000,
-      });
-      return;
-    }
-
-    setIsLoadingPassword(true);
-    try {
-      // In a real app, you'd hash the password properly
-      const newPasswordHash = '$2a$10$' + btoa(passwordForm.newPassword).slice(0, 53);
-      await changePassword(userProfile.id, newPasswordHash);
-      
-      toast({
-        title: t.passwordChanged,
-        description: "Your password has been changed successfully.",
-        duration: 3000,
-      });
-      
-      setPasswordForm({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-      setShowPasswordChange(false);
-    } catch (error) {
-      console.error('Error changing password:', error);
-      toast({
-        title: "Error",
-        description: "Failed to change password. Please try again.",
-        variant: "destructive",
-        duration: 3000,
-      });
-    } finally {
-      setIsLoadingPassword(false);
     }
   };
 
@@ -484,9 +356,9 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                 <Input
                   id="name"
                   value={profile.name}
-                  onChange={(e) =>
-                    setProfile({ ...profile, name: e.target.value })
-                  }
+                  readOnly
+                  disabled
+                  className="bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
                 />
               </div>
               <div className="space-y-2">
@@ -495,106 +367,12 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                   id="email"
                   type="email"
                   value={profile.email}
-                  onChange={(e) =>
-                    setProfile({ ...profile, email: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">{t.phone}</Label>
-                <Input
-                  id="phone"
-                  value={profile.phone}
-                  onChange={(e) =>
-                    setProfile({ ...profile, phone: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="nicNo">{t.nicNo}</Label>
-                <Input
-                  id="nicNo"
-                  value={profile.nicNo}
-                  onChange={(e) =>
-                    setProfile({ ...profile, nicNo: e.target.value })
-                  }
+                  readOnly
+                  disabled
+                  className="bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
                 />
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleSaveProfile}
-                disabled={isLoadingProfile}
-                className="bg-blue-700 text-white hover:bg-blue-800 dark:hover:bg-blue-600"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {isLoadingProfile ? "Saving..." : t.saveProfile}
-              </Button>
-              <Button
-                onClick={() => setShowPasswordChange(!showPasswordChange)}
-                variant="outline"
-                className="border-gray-300 dark:border-gray-700"
-              >
-                <Lock className="w-4 h-4 mr-2" />
-                {showPasswordChange ? t.hidePasswordForm : t.showPasswordForm}
-              </Button>
-            </div>
-
-            {/* Password Change Form */}
-            {showPasswordChange && (
-              <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <h4 className="font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                  <Key className="w-4 h-4" />
-                  {t.changePassword}
-                </h4>
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="currentPassword">{t.currentPassword}</Label>
-                    <Input
-                      id="currentPassword"
-                      type="password"
-                      value={passwordForm.currentPassword}
-                      onChange={(e) =>
-                        setPasswordForm({ ...passwordForm, currentPassword: e.target.value })
-                      }
-                      placeholder="Enter current password (default: Keliz~7227)"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="newPassword">{t.newPassword}</Label>
-                    <Input
-                      id="newPassword"
-                      type="password"
-                      value={passwordForm.newPassword}
-                      onChange={(e) =>
-                        setPasswordForm({ ...passwordForm, newPassword: e.target.value })
-                      }
-                      placeholder="Enter new password"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">{t.confirmPassword}</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={passwordForm.confirmPassword}
-                      onChange={(e) =>
-                        setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })
-                      }
-                      placeholder="Confirm new password"
-                    />
-                  </div>
-                  <Button
-                    onClick={handlePasswordChange}
-                    disabled={isLoadingPassword || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
-                    className="bg-orange-600 text-white hover:bg-orange-700"
-                  >
-                    <Lock className="w-4 h-4 mr-2" />
-                    {isLoadingPassword ? "Changing..." : t.changePassword}
-                  </Button>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 

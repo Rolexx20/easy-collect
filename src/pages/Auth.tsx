@@ -219,6 +219,14 @@ const Auth = () => {
             <Button
               variant="link"
               onClick={() => {
+                if (isLogin) {
+                  // Ask for special password before allowing registration
+                  const pwd = window.prompt("Enter the registration password:");
+                  if (pwd !== "Keliz~7227") {
+                    setError("Incorrect registration password. Can't create account.");
+                    return;
+                  }
+                }
                 setIsLogin(!isLogin);
                 setError(null);
                 setFormData({ email: '', password: '', name: '' });
