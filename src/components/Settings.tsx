@@ -9,6 +9,9 @@ import {
   Globe2,
   Lock,
   Key,
+  Shield,
+  Monitor,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +50,8 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isLoadingPassword, setIsLoadingPassword] = useState(false);
+  const [authData, setAuthData] = useState<any>(null);
+  const [showSessionDetails, setShowSessionDetails] = useState(false);
 
   const translations = {
     en: {
@@ -78,6 +83,16 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       invalidCurrentPassword: "Invalid current password",
       showPasswordForm: "Show Password Change",
       hidePasswordForm: "Hide Password Change",
+      sessionManagement: "Session Management",
+      sessionDesc: "View and manage your authentication sessions",
+      currentSession: "Current Session",
+      userId: "User ID",
+      userRole: "User Role",
+      loginTime: "Login Time",
+      lastActive: "Last Active",
+      sessionDetails: "Session Details",
+      showSessionDetails: "Show Session Details",
+      hideSessionDetails: "Hide Session Details",
     },
     ta: {
       settings: "அமைப்புகள்",
@@ -109,15 +124,46 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       invalidCurrentPassword: "தவறான தற்போதைய கடவுச்சொல்",
       showPasswordForm: "கடவுச்சொல் மாற்றத்தைக் காட்டு",
       hidePasswordForm: "கடவுச்சொல் மாற்றத்தை மறைக்க",
+      sessionManagement: "அமர்வு மேலாண்மை",
+      sessionDesc: "உங்கள் அங்கீகார அமர்வுகளைப் பார்த்து நிர்வகிக்கவும்",
+      currentSession: "தற்போதைய அமர்வு",
+      userId: "பயனர் ஐடி",
+      userRole: "பயனர் பாத்திரம்",
+      loginTime: "உள்நுழைவு நேரம்",
+      lastActive: "கடைசியாக செயலில்",
+      sessionDetails: "அமர்வு விவரங்கள்",
+      showSessionDetails: "அமர்வு விவரங்களைக் காட்டு",
+      hideSessionDetails: "அமர்வு விவரங்களை மறைக்க",
     },
   };
 
   const t = translations[language as keyof typeof translations];
 
-  // Load user profile on component mount
+  // Load user profile and auth data on component mount
   useEffect(() => {
     loadUserProfile();
+    loadAuthData();
   }, []);
+
+  const loadAuthData = async () => {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (user && session) {
+        setAuthData({
+          user,
+          session,
+          loginTime: user.created_at ? new Date(user.created_at).toLocaleString() : 'Current session',
+          lastActive: new Date().toLocaleString(),
+          provider: user.app_metadata?.provider || 'email',
+          role: user.role || 'authenticated',
+        });
+      }
+    } catch (error) {
+      console.error('Error loading auth data:', error);
+    }
+  };
 
   const loadUserProfile = async () => {
     try {
@@ -606,6 +652,112 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Session Management Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="w-5 h-5" />
+            {t.sessionManagement}
+          </CardTitle>
+          <CardDescription>{t.sessionDesc}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {authData && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Current Session Info */}
+              <div className="space-y-4">
+                <h3 className="font-medium flex items-center gap-2">
+                  <Monitor className="w-4 h-4" />
+                  {t.currentSession}
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">{t.userId}:</span>
+                    <span className="font-mono text-xs">{authData.user.id.slice(0, 8)}...</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">{t.email}:</span>
+                    <span>{authData.user.email}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">{t.userRole}:</span>
+                    <span className="capitalize">{authData.role}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Provider:</span>
+                    <span className="capitalize">{authData.provider}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Session Activity */}
+              <div className="space-y-4">
+                <h3 className="font-medium flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Activity
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">{t.loginTime}:</span>
+                    <span>{authData.loginTime}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">{t.lastActive}:</span>
+                    <span>{authData.lastActive}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Status:</span>
+                    <span className="text-green-600 dark:text-green-400">Active</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Session Details Toggle */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <Button
+              onClick={() => setShowSessionDetails(!showSessionDetails)}
+              variant="outline"
+              className="w-full"
+            >
+              <Shield className="w-4 h-4 mr-2" />
+              {showSessionDetails ? t.hideSessionDetails : t.showSessionDetails}
+            </Button>
+
+            {/* Detailed Session Information */}
+            {showSessionDetails && authData && (
+              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <h4 className="font-medium mb-3 text-gray-700 dark:text-gray-300">
+                  {t.sessionDetails}
+                </h4>
+                <div className="space-y-2 text-xs font-mono">
+                  <div>
+                    <span className="text-gray-600 dark:text-gray-400">Session ID:</span>
+                    <br />
+                    <span className="break-all">{authData.session.access_token.slice(0, 50)}...</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 dark:text-gray-400">User Metadata:</span>
+                    <br />
+                    <pre className="text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded mt-1 overflow-x-auto">
+                      {JSON.stringify(authData.user.user_metadata, null, 2)}
+                    </pre>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 dark:text-gray-400">App Metadata:</span>
+                    <br />
+                    <pre className="text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded mt-1 overflow-x-auto">
+                      {JSON.stringify(authData.user.app_metadata, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
