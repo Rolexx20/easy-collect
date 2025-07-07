@@ -14,8 +14,32 @@ import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
   const { user, loading } = useAuth();
+  const [isDark, setIsDark] = useState(false);
+  const [language, setLanguage] = useState('en');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const queryClient = useQueryClient();
 
-  // 🔒 Gate before running hooks
+  // Always call useQuery hooks - they handle enabled state internally
+  const { data: borrowers = [], isLoading: borrowersLoading, error: borrowersError } = useQuery({
+    queryKey: ['borrowers'],
+    queryFn: getBorrowers,
+    enabled: !!user && !loading
+  });
+
+  const { data: loans = [], isLoading: loansLoading, error: loansError } = useQuery({
+    queryKey: ['loans'],
+    queryFn: getLoans,
+    enabled: !!user && !loading
+  });
+
+  const { data: dashboardStats, error: dashboardError } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: getDashboardStats,
+    enabled: !!user && !loading
+  });
+
+  // Early returns after all hooks
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -30,31 +54,6 @@ const Index = () => {
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
-
-  // ✅ Safe to use hooks now
-  const [isDark, setIsDark] = useState(false);
-  const [language, setLanguage] = useState('en');
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const queryClient = useQueryClient();
-
-  const { data: borrowers = [], isLoading: borrowersLoading, error: borrowersError } = useQuery({
-    queryKey: ['borrowers'],
-    queryFn: getBorrowers,
-    enabled: true
-  });
-
-  const { data: loans = [], isLoading: loansLoading, error: loansError } = useQuery({
-    queryKey: ['loans'],
-    queryFn: getLoans,
-    enabled: true
-  });
-
-  const { data: dashboardStats, error: dashboardError } = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: getDashboardStats,
-    enabled: true
-  });
 
   useEffect(() => {
     if (borrowersError) {

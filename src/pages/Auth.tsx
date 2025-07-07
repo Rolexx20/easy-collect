@@ -16,7 +16,7 @@ const Auth = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
+    password: 'Keliz~7227', // Default password
     name: ''
   });
   const [error, setError] = useState<string | null>(null);
@@ -163,7 +163,7 @@ const Auth = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder={isLogin ? "Enter your password" : "Default: Keliz~7227"}
                   required
                   className="h-11 pr-10"
                   minLength={6}

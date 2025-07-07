@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { getUserProfile, updateUserProfile, changePassword, type UserProfile } from "@/lib/database";
+import { getUserProfile, updateUserProfile, changePassword, type UserProfile, getBorrowers, getLoans, getPayments, createBorrower, createLoan, createPayment } from "@/lib/database";
 
 interface SettingsProps {
   language: string;
@@ -184,7 +184,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
     }
 
     // Basic check - in a real app you'd verify against hashed password
-    if (passwordForm.currentPassword !== "12345678") {
+    if (passwordForm.currentPassword !== "Keliz~7227") {
       toast({
         title: t.invalidCurrentPassword,
         variant: "destructive",
@@ -224,43 +224,108 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
     }
   };
 
-  const handleExportData = () => {
-    // Create a sample JSON file for demo
-    const data = {
-      borrowers: [],
-      loans: [],
-      exportDate: new Date().toISOString(),
-    };
+  const handleExportData = async () => {
+    try {
+      // Fetch real data from database
+      const [borrowersData, loansData, paymentsData] = await Promise.all([
+        getBorrowers(),
+        getLoans(),
+        getPayments()
+      ]);
+      
+      const data = {
+        borrowers: borrowersData,
+        loans: loansData,
+        payments: paymentsData,
+        exportDate: new Date().toISOString(),
+        version: "1.0"
+      };
 
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `easycollect-backup-${
-      new Date().toISOString().split("T")[0]
-    }.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `easycollect-backup-${
+        new Date().toISOString().split("T")[0]
+      }.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
-    toast({
-      title: t.dataExported,
-      description: "Your data has been exported successfully.",
-      duration: 3000, // Close after 3 seconds
-    });
+      toast({
+        title: t.dataExported,
+        description: "Your data has been exported successfully.",
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export data. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
   };
 
-  const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportData = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      // Validate data structure
+      if (!data.borrowers || !data.loans || !data.payments) {
+        throw new Error('Invalid backup file format');
+      }
+
+      // Import borrowers
+      if (data.borrowers.length > 0) {
+        for (const borrower of data.borrowers) {
+          const { id, created_at, updated_at, ...borrowerData } = borrower;
+          await createBorrower(borrowerData);
+        }
+      }
+
+      // Import loans  
+      if (data.loans.length > 0) {
+        for (const loan of data.loans) {
+          const { id, borrowerName, amount_paid, created_at, updated_at, ...loanData } = loan;
+          await createLoan(loanData);
+        }
+      }
+
+      // Import payments
+      if (data.payments.length > 0) {
+        for (const payment of data.payments) {
+          const { id, created_at, ...paymentData } = payment;
+          await createPayment(paymentData);
+        }
+      }
+
       toast({
         title: t.dataImported,
         description: "Your data has been imported successfully.",
-        duration: 3000, // Close after 3 seconds
+        duration: 3000,
       });
+
+      // Reset the file input
+      event.target.value = '';
+    } catch (error) {
+      console.error('Error importing data:', error);
+      toast({
+        title: "Import Failed",
+        description: "Failed to import data. Please check the file format.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      // Reset the file input
+      event.target.value = '';
     }
   };
 
@@ -389,7 +454,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                       onChange={(e) =>
                         setPasswordForm({ ...passwordForm, currentPassword: e.target.value })
                       }
-                      placeholder="Enter current password (default: 12345678)"
+                      placeholder="Enter current password (default: Keliz~7227)"
                     />
                   </div>
                   <div className="space-y-2">
