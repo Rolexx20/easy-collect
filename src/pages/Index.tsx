@@ -14,40 +14,8 @@ import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
   const { user, loading } = useAuth();
-  const [isDark, setIsDark] = useState(false);
-  const [language, setLanguage] = useState('en');
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  
-  const queryClient = useQueryClient();
 
-  // Fetch borrowers - always call hooks in the same order
-  const { data: borrowers = [], isLoading: borrowersLoading, error: borrowersError } = useQuery({
-    queryKey: ['borrowers'],
-    queryFn: getBorrowers,
-    enabled: !!user // Only run query when user is authenticated
-  });
-
-  // Fetch loans
-  const { data: loans = [], isLoading: loansLoading, error: loansError } = useQuery({
-    queryKey: ['loans'],
-    queryFn: getLoans,
-    enabled: !!user // Only run query when user is authenticated
-  });
-
-  // Fetch dashboard stats
-  const { data: dashboardStats, error: dashboardError } = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: getDashboardStats,
-    enabled: !!user // Only run query when user is authenticated
-  });
-
-  // Redirect to auth if not authenticated - AFTER all hooks
-  if (!loading && !user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  // Show loading while checking authentication - AFTER all hooks
+  // 🔒 Gate before running hooks
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -59,7 +27,35 @@ const Index = () => {
     );
   }
 
-  // Handle errors
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  // ✅ Safe to use hooks now
+  const [isDark, setIsDark] = useState(false);
+  const [language, setLanguage] = useState('en');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: borrowers = [], isLoading: borrowersLoading, error: borrowersError } = useQuery({
+    queryKey: ['borrowers'],
+    queryFn: getBorrowers,
+    enabled: true
+  });
+
+  const { data: loans = [], isLoading: loansLoading, error: loansError } = useQuery({
+    queryKey: ['loans'],
+    queryFn: getLoans,
+    enabled: true
+  });
+
+  const { data: dashboardStats, error: dashboardError } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: getDashboardStats,
+    enabled: true
+  });
+
   useEffect(() => {
     if (borrowersError) {
       console.error('Error loading borrowers:', borrowersError);
@@ -88,14 +84,6 @@ const Index = () => {
     }
   }, [dashboardError]);
 
-  // Refresh data function
-  const refreshData = () => {
-    queryClient.invalidateQueries({ queryKey: ['borrowers'] });
-    queryClient.invalidateQueries({ queryKey: ['loans'] });
-    queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-  };
-
-  // Theme effect
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add('dark');
@@ -104,7 +92,6 @@ const Index = () => {
     }
   }, [isDark]);
 
-  // Handle mobile sidebar auto-collapse
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 768) {
@@ -118,6 +105,12 @@ const Index = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const refreshData = () => {
+    queryClient.invalidateQueries({ queryKey: ['borrowers'] });
+    queryClient.invalidateQueries({ queryKey: ['loans'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+  };
 
   const renderContent = () => {
     if (borrowersLoading || loansLoading) {
@@ -149,10 +142,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 w-full flex">
-      {/* Sidebar is hidden */}
-      <div className={cn(
-        "flex-1 flex flex-col w-full transition-all duration-300"
-      )}>
+      <div className={cn("flex-1 flex flex-col w-full transition-all duration-300")}>
         <Header 
           isDark={isDark} 
           setIsDark={setIsDark} 
