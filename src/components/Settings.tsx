@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { getUserProfile, updateUserProfile, changePassword, type UserProfile, getBorrowers, getLoans, getPayments, createBorrower, createLoan, createPayment } from "@/lib/database";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SettingsProps {
   language: string;
@@ -130,8 +131,44 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
           nicNo: userData.nic_no || "",
         });
       } else {
-        // Handle case where no profile exists yet
-        console.log('No user profile found');
+        // Create a default profile from auth user if none exists
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const defaultProfile = {
+            id: user.id,
+            email: user.email || "",
+            name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+            password_hash: '$2a$10$' + btoa('Keliz~7227').slice(0, 53),
+            phone: user.user_metadata?.phone || '',
+            nic_no: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          
+          // Try to create the profile
+          try {
+            await supabase
+              .from('user_profiles')
+              .insert([defaultProfile]);
+            
+            setUserProfile(defaultProfile);
+            setProfile({
+              name: defaultProfile.name,
+              email: defaultProfile.email,
+              phone: defaultProfile.phone || "",
+              nicNo: defaultProfile.nic_no || "",
+            });
+          } catch (error) {
+            console.error('Error creating default profile:', error);
+            // Still set the profile data for display
+            setProfile({
+              name: defaultProfile.name,
+              email: defaultProfile.email,
+              phone: defaultProfile.phone || "",
+              nicNo: defaultProfile.nic_no || "",
+            });
+          }
+        }
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
@@ -139,16 +176,36 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
   };
 
   const handleSaveProfile = async () => {
-    if (!userProfile) return;
-    
     setIsLoadingProfile(true);
     try {
-      await updateUserProfile(userProfile.id, {
-        name: profile.name,
-        email: profile.email,
-        phone: profile.phone,
-        nic_no: profile.nicNo,
-      });
+      if (userProfile) {
+        // Update existing profile
+        await updateUserProfile(userProfile.id, {
+          name: profile.name,
+          email: profile.email,
+          phone: profile.phone,
+          nic_no: profile.nicNo,
+        });
+      } else {
+        // Create new profile
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const newProfile = {
+            id: user.id,
+            email: profile.email,
+            name: profile.name,
+            password_hash: '$2a$10$' + btoa('Keliz~7227').slice(0, 53),
+            phone: profile.phone,
+            nic_no: profile.nicNo,
+          };
+          
+          await supabase
+            .from('user_profiles')
+            .insert([newProfile]);
+            
+          setUserProfile(newProfile);
+        }
+      }
       
       toast({
         title: t.profileUpdated,
@@ -287,7 +344,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       // Import borrowers
       if (data.borrowers.length > 0) {
         for (const borrower of data.borrowers) {
-          const { id, created_at, updated_at, ...borrowerData } = borrower;
+          const { id, created_at, updated_at, total_loans, active_loans, total_amount, total_paid, remaining_amount, pending_payment, ...borrowerData } = borrower;
           await createBorrower(borrowerData);
         }
       }
