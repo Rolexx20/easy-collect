@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
+  // All hooks must be defined before any return
   const { user, loading } = useAuth();
   const [isDark, setIsDark] = useState(false);
   const [language, setLanguage] = useState('en');
@@ -20,7 +21,6 @@ const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const queryClient = useQueryClient();
 
-  // Always call useQuery hooks - they handle enabled state internally
   const { data: borrowers = [], isLoading: borrowersLoading, error: borrowersError } = useQuery({
     queryKey: ['borrowers'],
     queryFn: getBorrowers,
@@ -39,29 +39,13 @@ const Index = () => {
     enabled: !!user && !loading
   });
 
-  // Early returns after all hooks
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
   useEffect(() => {
     if (borrowersError) {
       console.error('Error loading borrowers:', borrowersError);
       toast({
-        title: "Error loading borrowers",
-        description: "Please check your connection and try again.",
-        variant: "destructive"
+        title: 'Error loading borrowers',
+        description: 'Please check your connection and try again.',
+        variant: 'destructive'
       });
     }
   }, [borrowersError]);
@@ -70,9 +54,9 @@ const Index = () => {
     if (loansError) {
       console.error('Error loading loans:', loansError);
       toast({
-        title: "Error loading loans",
-        description: "Please check your connection and try again.",
-        variant: "destructive"
+        title: 'Error loading loans',
+        description: 'Please check your connection and try again.',
+        variant: 'destructive'
       });
     }
   }, [loansError]);
@@ -93,11 +77,7 @@ const Index = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 768) {
-        setSidebarCollapsed(false);
-      } else {
-        setSidebarCollapsed(true);
-      }
+      setSidebarCollapsed(window.innerWidth < 768);
     };
 
     handleResize();
@@ -139,12 +119,27 @@ const Index = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 w-full flex">
-      <div className={cn("flex-1 flex flex-col w-full transition-all duration-300")}>
-        <Header 
-          isDark={isDark} 
-          setIsDark={setIsDark} 
+      <div className={cn('flex-1 flex flex-col w-full transition-all duration-300')}>
+        <Header
+          isDark={isDark}
+          setIsDark={setIsDark}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           sidebarCollapsed={sidebarCollapsed}
