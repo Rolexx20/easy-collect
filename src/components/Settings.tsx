@@ -305,8 +305,8 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
   };
 
   return (
-    <div className="p-6 pt-5 pb-20 md:pb-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-6 pt-5 pb-20 md:pb-6 space-y-8 max-w-5xl mx-auto">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           {t.settings}
         </h1>
@@ -339,9 +339,10 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
         </Button>
       </div>
 
-      {/* User Profile Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
+      {/* User Profile & Data Management */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* User Profile Section */}
+        <Card className="shadow-sm border border-gray-200 dark:border-gray-700">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="w-5 h-5" />
@@ -349,35 +350,32 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
             </CardTitle>
             <CardDescription>{t.profileDesc}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="space-y-6">
+            <div className="flex flex-col gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">{t.name}</Label>
-                <Input
+                <div
+                  className="bg-gray-100 dark:bg-gray-800 rounded px-4 py-2 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
                   id="name"
-                  value={profile.name}
-                  readOnly
-                  disabled
-                  className="bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
-                />
+                >
+                  {profile.name}
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">{t.email}</Label>
-                <Input
+                <div
+                  className="bg-gray-100 dark:bg-gray-800 rounded px-4 py-2 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
                   id="email"
-                  type="email"
-                  value={profile.email}
-                  readOnly
-                  disabled
-                  className="bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
-                />
+                >
+                  {profile.email}
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Data Management Section */}
-        <Card>
+        <Card className="shadow-sm border border-gray-200 dark:border-gray-700">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Database className="w-5 h-5" />
@@ -385,8 +383,8 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
             </CardTitle>
             <CardDescription>{t.dataDesc}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="space-y-6">
+            <div className="flex flex-col gap-6">
               <div className="space-y-2">
                 <h3 className="font-medium">{t.exportData}</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -432,7 +430,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       </div>
 
       {/* Session Management Section */}
-      <Card>
+      <Card className="shadow-sm border border-gray-200 dark:border-gray-700">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="w-5 h-5" />
@@ -440,9 +438,9 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
           </CardTitle>
           <CardDescription>{t.sessionDesc}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           {authData && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Current Session Info */}
               <div className="space-y-4">
                 <h3 className="font-medium flex items-center gap-2">
