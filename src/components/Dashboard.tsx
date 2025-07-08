@@ -511,11 +511,12 @@ const Dashboard = ({
                         key={loan.id}
                         className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/30 rounded-lg hover:bg-red-100 dark:hover:bg-red-800/50 transition-colors"
                       >
-                        <div className="flex items-center gap-3">
+                        {/* Left section: Borrower name and last missed date */}
+                        <div className="flex items-center gap-3 text-left">
                           <div className="w-10 h-10 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
                             <User className="w-5 h-5 text-red-600 dark:text-red-400" />
                           </div>
-                          <div>
+                          <div className="flex flex-col">
                             <div className="font-medium text-gray-900 dark:text-gray-100">
                               {formatBorrowerName(loan)}
                             </div>
@@ -524,12 +525,14 @@ const Dashboard = ({
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
+
+                        {/* Right section: Arrears amount and missed days */}
+                        <div className="flex flex-col items-end text-right">
                           <div className="font-bold text-red-700 dark:text-red-300 flex items-center gap-1">
                             ₹ {arrears.toLocaleString()}
                           </div>
                           <div className="text-xs text-gray-600 dark:text-gray-400">
-                            Missed: {missedDays} days
+                            Missing: {missedDays} days
                           </div>
                         </div>
                       </div>
