@@ -156,13 +156,18 @@ const Dashboard = ({
       loan.total_amount
     );
     const arrears = Math.max(0, expectedPaymentByNow - loan.amount_paid);
-    return arrears;
+    return Math.round(arrears);
   };
 
   const calculateMissedDays = (loan: any) => {
     const dailyPayment = loan.total_amount / (loan.duration_months * 30);
     const arrears = calculateArrears(loan);
-    return Math.floor(arrears / dailyPayment);
+    if (arrears <= 0) return 0;
+
+    const missed = arrears / dailyPayment;
+
+    // If missed is less than 1 but arrears > 0, return 1
+    return missed < 1 ? 1 : Math.floor(missed);
   };
 
   const getLastMissedDate = (loan: any) => {
