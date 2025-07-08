@@ -49,6 +49,8 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
     confirmPassword: ''
   });
   const [totalUsers, setTotalUsers] = useState(0);
+  const [editProfile, setEditProfile] = useState(false);
+  const [editProfileData, setEditProfileData] = useState({ name: "", email: "" });
 
   const translations = {
     en: {
@@ -378,6 +380,44 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
     }
   };
 
+  const handleEditProfile = () => {
+    setEditProfileData(profile);
+    setEditProfile(true);
+  };
+
+  const handleCancelEditProfile = () => {
+    setEditProfile(false);
+    setEditProfileData(profile);
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      setIsLoadingProfile(true);
+      // updateUserProfile now expects two arguments: id and profile
+      await updateUserProfile(userProfile?.id, {
+        name: editProfileData.name,
+        email: editProfileData.email,
+      });
+      setProfile(editProfileData);
+      setEditProfile(false);
+      toast({
+        title: t.profileUpdated,
+        duration: 3000,
+      });
+      // Optionally reload profile from DB
+      loadUserProfile();
+    } catch (error) {
+      toast({
+        title: "Update Failed",
+        description: "Could not update profile.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
   return (
     <div className="p-6 pt-5 pb-20 md:pb-6 max-w-5xl mx-auto">
       {/* Header and Language Toggle */}
@@ -413,7 +453,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       {/* 2x2 Grid for Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* User Profile */}
-        <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#23272f] transition-colors">
+        <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors flex flex-col justify-between min-h-[320px]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="w-5 h-5" />
@@ -421,74 +461,138 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
             </CardTitle>
             <CardDescription>{t.profileDesc}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex flex-col gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">{t.name}</Label>
-                <div
-                  className="bg-gray-100 dark:bg-[#2d323c] rounded px-4 py-2 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
-                  id="name"
-                >
-                  {profile.name}
+          <CardContent className="flex-1 flex flex-col justify-between">
+            {!editProfile ? (
+              <form className="space-y-4 flex flex-col h-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">{t.name}</Label>
+                    <div
+                      className="bg-gray-100 dark:bg-[#2d323c] rounded-md px-4 py-2 mt-1 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                      id="name"
+                    >
+                      {profile.name}
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="email">{t.email}</Label>
+                    <div
+                      className="bg-gray-100 dark:bg-[#2d323c] rounded-md px-4 py-2 mt-1 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                      id="email"
+                    >
+                      {profile.email}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">{t.email}</Label>
-                <div
-                  className="bg-gray-100 dark:bg-[#2d323c] rounded px-4 py-2 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
-                  id="email"
-                >
-                  {profile.email}
+                {/* Password Section */}
+                <div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="newPassword">{t.newPassword}</Label>
+                      <Input
+                        id="newPassword"
+                        type="password"
+                        value={passwordData.newPassword}
+                        onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))
+                        }
+                        placeholder={t.newPassword}
+                        className="mt-1 bg-gray-100 dark:bg-[#23272f] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="confirmPassword">{t.confirmPassword}</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))
+                        }
+                        placeholder={t.confirmPassword}
+                        className="mt-1 bg-gray-100 dark:bg-[#23272f] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col md:flex-row gap-2 mt-5">
+                    <Button
+                      onClick={handlePasswordChange}
+                      className="flex items-center gap-2 md:flex-1 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                      variant="outline"
+                      type="button"
+                      style={{ backgroundColor: "#2563eb", color: "#fff" }}
+                      disabled={!passwordData.newPassword || !passwordData.confirmPassword}
+                    >
+                      <Lock className="w-4 h-4" />
+                      {t.changePassword}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex items-center gap-2 md:flex-1 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                      type="button"
+                      onClick={handleEditProfile}
+                    >
+                      <User className="w-4 h-4" />
+                      Edit Profile
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </div>
-            {/* Password Change Section */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-              <Button
-                onClick={() => setShowPasswordForm(!showPasswordForm)}
-                variant="outline"
-                className="w-full"
-              >
-                <Lock className="w-4 h-4 mr-2" />
-                {showPasswordForm ? t.hidePasswordForm : t.showPasswordForm}
-              </Button>
-              {showPasswordForm && (
-                <div className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="newPassword">{t.newPassword}</Label>
+              </form>
+            ) : (
+              <form className="space-y-4 flex flex-col h-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-name">{t.name}</Label>
                     <Input
-                      id="newPassword"
-                      type="password"
-                      value={passwordData.newPassword}
-                      onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                      placeholder="Enter new password"
+                      id="edit-name"
+                      value={editProfileData.name}
+                      onChange={e => setEditProfileData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Enter full name"
+                      className="mt-1 bg-gray-100 dark:bg-[#23272f] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">{t.confirmPassword}</Label>
+                  <div>
+                    <Label htmlFor="edit-email">{t.email}</Label>
                     <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={passwordData.confirmPassword}
-                      onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                      placeholder="Confirm new password"
+                      id="edit-email"
+                      value={editProfileData.email}
+                      onChange={e => setEditProfileData(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="Enter email address"
+                      className="mt-1 bg-gray-100 dark:bg-[#23272f] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
-                  <Button 
-                    onClick={handlePasswordChange}
-                    className="w-full"
-                    disabled={!passwordData.newPassword || !passwordData.confirmPassword}
+                </div>
+                <div className="flex flex-col md:flex-row gap-2 mt-5">
+                  <Button
+                    onClick={async () => {
+                      await handleSaveProfile();
+                    }}
+                    className="flex-1 flex items-center gap-2 bg-gray-100 dark:bg-[#1d4ed8] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                    disabled={
+                      isLoadingProfile ||
+                      !editProfileData.name ||
+                      !editProfileData.email
+                    }
+                    type="button"
                   >
-                    {t.changePassword}
+                    <User className="w-4 h-4" />
+                    {isLoadingProfile ? "Saving..." : t.saveProfile}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                    onClick={handleCancelEditProfile}
+                    disabled={isLoadingProfile}
+                    type="button"
+                  >
+                    Cancel
                   </Button>
                 </div>
-              )}
-            </div>
+              </form>
+            )}
           </CardContent>
         </Card>
 
         {/* Data Management */}
-        <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#23272f] transition-colors">
+        <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors h-full flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Database className="w-5 h-5" />
@@ -496,28 +600,30 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
             </CardTitle>
             <CardDescription>{t.dataDesc}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-8">
-            <div className="flex flex-col gap-8">
-              <div className="space-y-2">
-                <h3 className="font-medium">{t.exportData}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+          <CardContent className="flex-1 flex flex-col justify-between">
+            <div className="space-y-6">
+              {/* Export Section */}
+              <div>
+                <h3 className="font-medium mb-1">{t.exportData}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                   {t.exportDesc}
                 </p>
                 <Button
                   onClick={handleExportData}
                   variant="outline"
-                  className="w-full"
+                  className="w-full flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
                 >
-                  <Download className="w-4 h-4 mr-2" />
+                  <Download className="w-4 h-4" />
                   {t.exportData}
                 </Button>
               </div>
-              <div className="space-y-2">
-                <h3 className="font-medium">{t.importData}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+              {/* Import Section */}
+              <div>
+                <h3 className="font-medium mb-1">{t.importData}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                   {t.importDesc}
                 </p>
-                <div className="relative">
+                <label htmlFor="import-file" className="w-full">
                   <Input
                     type="file"
                     accept=".json"
@@ -525,41 +631,21 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                     className="hidden"
                     id="import-file"
                   />
-                  <div
-                    className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer bg-white dark:bg-[#262b34]"
-                    onClick={() => document.getElementById("import-file")?.click()}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const file = e.dataTransfer.files[0];
-                      if (file) {
-                        const event = { target: { files: [file], value: '' } } as any;
-                        handleImportData(event);
-                      }
-                    }}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDragEnter={(e) => e.preventDefault()}
+                  <Button
+                    variant="outline"
+                    className="w-full flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                    type="button"
                   >
-                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      Drop backup file here or click to browse
-                    </p>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      type="button"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      {t.importData}
-                    </Button>
-                  </div>
-                </div>
+                    <Upload className="w-4 h-4" />
+                    {t.importData}
+                  </Button>
+                </label>
               </div>
             </div>
           </CardContent>
         </Card>
-
         {/* Session Management */}
-        <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#23272f] transition-colors">
+        <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors h-full flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="w-5 h-5" />
@@ -625,7 +711,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
               <Button
                 onClick={() => setShowSessionDetails(!showSessionDetails)}
                 variant="outline"
-                className="w-full"
+                className="w-full dark:bg-[#1d4ed8]"
               >
                 <Shield className="w-4 h-4 mr-2" />
                 {showSessionDetails ? t.hideSessionDetails : t.showSessionDetails}
@@ -664,7 +750,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
         </Card>
 
         {/* System Access */}
-        <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#23272f] transition-colors">
+        <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors h-full flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Monitor className="w-5 h-5" />
