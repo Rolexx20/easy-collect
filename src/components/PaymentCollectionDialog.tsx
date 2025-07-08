@@ -370,7 +370,7 @@ const PaymentCollectionDialog = ({
     });
 
     // Thank You
-    y += dividerPadY + 2;
+    y += dividerPadY + 3;
     doc.setFontSize(11);
     doc.setFont(undefined, "bold");
     doc.text("* THANK YOU *", (pageWidth + margin * 2) / 2, y, {
@@ -380,7 +380,7 @@ const PaymentCollectionDialog = ({
     doc.setFontSize(8);
 
     // Divider (centered)
-    y += dividerPadY + 2;
+    y += dividerPadY + 1;
     doc.text("-".repeat(pageWidth), (pageWidth + margin * 2) / 2, y, {
       align: "center",
     });

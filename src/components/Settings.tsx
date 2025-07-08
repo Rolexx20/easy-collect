@@ -379,13 +379,12 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
   };
 
   return (
-    <div className="p-6 pt-5 pb-20 md:pb-6 space-y-8 max-w-5xl mx-auto">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+    <div className="p-6 pt-5 pb-20 md:pb-6 max-w-5xl mx-auto">
+      {/* Header and Language Toggle */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           {t.settings}
         </h1>
-
-        {/* Language Toggle */}
         <Button
           variant="outline"
           size="sm"
@@ -399,13 +398,11 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
         >
           {language === "en" ? (
             <>
-              {/* English Icon */}
               <Languages className="w-4 h-4" />
               <span className="text-xs font-medium">English</span>
             </>
           ) : (
             <>
-              {/* Tamil Icon */}
               <Globe2 className="w-4 h-4" />
               <span className="text-xs font-medium">தமிழ்</span>
             </>
@@ -413,10 +410,10 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
         </Button>
       </div>
 
-      {/* User Profile & Data Management */}
+      {/* 2x2 Grid for Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* User Profile Section */}
-        <Card className="shadow-sm border border-gray-200 dark:border-gray-700">
+        {/* User Profile */}
+        <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#23272f] transition-colors">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="w-5 h-5" />
@@ -429,7 +426,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
               <div className="space-y-2">
                 <Label htmlFor="name">{t.name}</Label>
                 <div
-                  className="bg-gray-100 dark:bg-gray-800 rounded px-4 py-2 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                  className="bg-gray-100 dark:bg-[#2d323c] rounded px-4 py-2 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
                   id="name"
                 >
                   {profile.name}
@@ -438,16 +435,15 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
               <div className="space-y-2">
                 <Label htmlFor="email">{t.email}</Label>
                 <div
-                  className="bg-gray-100 dark:bg-gray-800 rounded px-4 py-2 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                  className="bg-gray-100 dark:bg-[#2d323c] rounded px-4 py-2 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
                   id="email"
                 >
                   {profile.email}
                 </div>
               </div>
             </div>
-
-            {/* Password Change Section - Moved here from bottom */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            {/* Password Change Section */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
               <Button
                 onClick={() => setShowPasswordForm(!showPasswordForm)}
                 variant="outline"
@@ -456,7 +452,6 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                 <Lock className="w-4 h-4 mr-2" />
                 {showPasswordForm ? t.hidePasswordForm : t.showPasswordForm}
               </Button>
-
               {showPasswordForm && (
                 <div className="space-y-4 mt-4">
                   <div className="space-y-2">
@@ -492,8 +487,8 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
           </CardContent>
         </Card>
 
-        {/* Data Management Section */}
-        <Card className="shadow-sm border border-gray-200 dark:border-gray-700">
+        {/* Data Management */}
+        <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#23272f] transition-colors">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Database className="w-5 h-5" />
@@ -501,8 +496,8 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
             </CardTitle>
             <CardDescription>{t.dataDesc}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex flex-col gap-6">
+          <CardContent className="space-y-8">
+            <div className="flex flex-col gap-8">
               <div className="space-y-2">
                 <h3 className="font-medium">{t.exportData}</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -522,158 +517,154 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   {t.importDesc}
                 </p>
-                  <div className="relative">
-                    <Input
-                      type="file"
-                      accept=".json"
-                      onChange={handleImportData}
-                      className="hidden"
-                      id="import-file"
-                    />
-                    <div
-                      className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer"
-                      onClick={() => document.getElementById("import-file")?.click()}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        const file = e.dataTransfer.files[0];
-                        if (file) {
-                          const event = { target: { files: [file], value: '' } } as any;
-                          handleImportData(event);
-                        }
-                      }}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDragEnter={(e) => e.preventDefault()}
+                <div className="relative">
+                  <Input
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportData}
+                    className="hidden"
+                    id="import-file"
+                  />
+                  <div
+                    className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer bg-white dark:bg-[#262b34]"
+                    onClick={() => document.getElementById("import-file")?.click()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const file = e.dataTransfer.files[0];
+                      if (file) {
+                        const event = { target: { files: [file], value: '' } } as any;
+                        handleImportData(event);
+                      }
+                    }}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDragEnter={(e) => e.preventDefault()}
+                  >
+                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      Drop backup file here or click to browse
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      type="button"
                     >
-                      <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        Drop backup file here or click to browse
-                      </p>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        type="button"
-                      >
-                        <Upload className="w-4 h-4 mr-2" />
-                        {t.importData}
-                      </Button>
-                    </div>
+                      <Upload className="w-4 h-4 mr-2" />
+                      {t.importData}
+                    </Button>
                   </div>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Session Management Section */}
-      <Card className="shadow-sm border border-gray-200 dark:border-gray-700">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="w-5 h-5" />
-            {t.sessionManagement}
-          </CardTitle>
-          <CardDescription>{t.sessionDesc}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {authData && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Current Session Info */}
-              <div className="space-y-4">
-                <h3 className="font-medium flex items-center gap-2">
-                  <Monitor className="w-4 h-4" />
-                  {t.currentSession}
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">{t.userId}:</span>
-                    <span className="font-mono text-xs">{authData.user.id.slice(0, 8)}...</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">{t.email}:</span>
-                    <span>{authData.user.email}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">{t.userRole}:</span>
-                    <span className="capitalize">{authData.role}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Provider:</span>
-                    <span className="capitalize">{authData.provider}</span>
+        {/* Session Management */}
+        <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#23272f] transition-colors">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              {t.sessionManagement}
+            </CardTitle>
+            <CardDescription>{t.sessionDesc}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {authData && (
+              <div className="grid grid-cols-1 gap-8">
+                {/* Current Session Info */}
+                <div className="space-y-4">
+                  <h3 className="font-medium flex items-center gap-2">
+                    <Monitor className="w-4 h-4" />
+                    {t.currentSession}
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">{t.userId}:</span>
+                      <span className="font-mono text-xs">{authData.user.id.slice(0, 8)}...</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">{t.email}:</span>
+                      <span>{authData.user.email}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">{t.userRole}:</span>
+                      <span className="capitalize">{authData.role}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Provider:</span>
+                      <span className="capitalize">{authData.provider}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Session Activity */}
-              <div className="space-y-4">
-                <h3 className="font-medium flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  Activity
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">{t.loginTime}:</span>
-                    <span>{authData.loginTime}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">{t.lastActive}:</span>
-                    <span>{authData.lastActive}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Status:</span>
-                    <span className="text-green-600 dark:text-green-400">Active</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Session Details Toggle */}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-            <Button
-              onClick={() => setShowSessionDetails(!showSessionDetails)}
-              variant="outline"
-              className="w-full"
-            >
-              <Shield className="w-4 h-4 mr-2" />
-              {showSessionDetails ? t.hideSessionDetails : t.showSessionDetails}
-            </Button>
-
-            {/* Detailed Session Information */}
-            {showSessionDetails && authData && (
-              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <h4 className="font-medium mb-3 text-gray-700 dark:text-gray-300">
-                  {t.sessionDetails}
-                </h4>
-                <div className="space-y-2 text-xs font-mono">
-                  <div>
-                    <span className="text-gray-600 dark:text-gray-400">Session ID:</span>
-                    <br />
-                    <span className="break-all">{authData.session.access_token.slice(0, 50)}...</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600 dark:text-gray-400">User Metadata:</span>
-                    <br />
-                    <pre className="text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded mt-1 overflow-x-auto">
-                      {JSON.stringify(authData.user.user_metadata, null, 2)}
-                    </pre>
-                  </div>
-                  <div>
-                    <span className="text-gray-600 dark:text-gray-400">App Metadata:</span>
-                    <br />
-                    <pre className="text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded mt-1 overflow-x-auto">
-                      {JSON.stringify(authData.user.app_metadata, null, 2)}
-                    </pre>
+                {/* Session Activity */}
+                <div className="space-y-4">
+                  <h3 className="font-medium flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Activity
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">{t.loginTime}:</span>
+                      <span>{authData.loginTime}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">{t.lastActive}:</span>
+                      <span>{authData.lastActive}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Status:</span>
+                      <span className="text-green-600 dark:text-green-400">Active</span>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* System Access Section */}
-      <div className="grid grid-cols-1 md:grid-cols-1 gap-8">
-        {/* System Access Section */}
-        <Card className="shadow-sm border border-gray-200 dark:border-gray-700">
+            {/* Session Details Toggle */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+              <Button
+                onClick={() => setShowSessionDetails(!showSessionDetails)}
+                variant="outline"
+                className="w-full"
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                {showSessionDetails ? t.hideSessionDetails : t.showSessionDetails}
+              </Button>
+              {/* Detailed Session Information */}
+              {showSessionDetails && authData && (
+                <div className="mt-4 p-4 bg-gray-50 dark:bg-[#262b34] rounded-lg">
+                  <h4 className="font-medium mb-3 text-gray-700 dark:text-gray-300">
+                    {t.sessionDetails}
+                  </h4>
+                  <div className="space-y-2 text-xs font-mono">
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400">Session ID:</span>
+                      <br />
+                      <span className="break-all">{authData.session.access_token.slice(0, 50)}...</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400">User Metadata:</span>
+                      <br />
+                      <pre className="text-xs bg-gray-100 dark:bg-[#23272f] p-2 rounded mt-1 overflow-x-auto">
+                        {JSON.stringify(authData.user.user_metadata, null, 2)}
+                      </pre>
+                    </div>
+                    <div>
+                      <span className="text-gray-600 dark:text-gray-400">App Metadata:</span>
+                      <br />
+                      <pre className="text-xs bg-gray-100 dark:bg-[#23272f] p-2 rounded mt-1 overflow-x-auto">
+                        {JSON.stringify(authData.user.app_metadata, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* System Access */}
+        <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#23272f] transition-colors">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Monitor className="w-5 h-5" />
@@ -683,22 +674,20 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-4">
-              <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-[#262b34] rounded-lg">
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4 text-blue-600" />
                   <span className="font-medium">{t.totalUsers}</span>
                 </div>
                 <span className="text-2xl font-bold text-blue-600">{totalUsers}</span>
               </div>
-              
-              <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-[#262b34] rounded-lg">
                 <div className="flex items-center gap-2">
                   <Shield className="w-4 h-4 text-green-600" />
                   <span className="font-medium">{t.activeUsers}</span>
                 </div>
                 <span className="text-2xl font-bold text-green-600">1</span>
               </div>
-              
               <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
                 Current session: {authData?.user?.email || 'Unknown'}
               </div>
