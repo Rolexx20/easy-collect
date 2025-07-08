@@ -131,7 +131,7 @@ const Dashboard = ({
   const getBorrowerNameForPayment = (loanId: string) => {
     const loan = loans.find((l) => l.id === loanId);
     const name = loan?.borrowerName || "Unknown";
-    
+
     // Format name with initials
     const parts = name.trim().split(" ");
     if (parts.length === 3) {
@@ -141,6 +141,58 @@ const Dashboard = ({
       return `${first} ${second} ${third}`;
     }
     return name;
+  };
+
+  // Add arrears calculation helpers
+  const calculateArrears = (loan: any) => {
+    const today = new Date();
+    const startDate = new Date(loan.start_date);
+    const daysSinceStart = Math.floor(
+      (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    const dailyPayment = loan.total_amount / (loan.duration_months * 30);
+    const expectedPaymentByNow = Math.min(
+      dailyPayment * daysSinceStart,
+      loan.total_amount
+    );
+    const arrears = Math.max(0, expectedPaymentByNow - loan.amount_paid);
+    return arrears;
+  };
+
+  const calculateMissedDays = (loan: any) => {
+    const dailyPayment = loan.total_amount / (loan.duration_months * 30);
+    const arrears = calculateArrears(loan);
+    return Math.floor(arrears / dailyPayment);
+  };
+
+  const getLastMissedDate = (loan: any) => {
+    const dailyPayment = loan.total_amount / (loan.duration_months * 30);
+    const missedDays = calculateMissedDays(loan);
+    const startDate = new Date(loan.start_date);
+    // Last missed date is start date + (paid days + missedDays - 1)
+    const paidDays = Math.floor(loan.amount_paid / dailyPayment);
+    const lastMissedDayIndex = paidDays + missedDays - 1;
+    const lastMissedDate = new Date(startDate);
+    lastMissedDate.setDate(startDate.getDate() + lastMissedDayIndex);
+    return lastMissedDate.toLocaleDateString(undefined, {
+      year: "2-digit",
+      month: "short",
+      day: "2-digit",
+    });
+  };
+
+  const formatBorrowerName = (loan: any) => {
+    if (loan.borrowerName) {
+      const parts = loan.borrowerName.trim().split(" ");
+      if (parts.length === 3) {
+        const first = parts[0];
+        const second = parts[1].charAt(0).toUpperCase() + ".";
+        const third = parts[2];
+        return `${first} ${second} ${third}`;
+      }
+      return loan.borrowerName;
+    }
+    return "Unknown";
   };
 
   return (
@@ -321,8 +373,12 @@ const Dashboard = ({
                     fill="#3b82f6"
                     barSize={22}
                     radius={[4, 4, 0, 0]}
-                    onMouseOver={(e) => e.target && (e.target.style.fill = "#2563eb")}
-                    onMouseOut={(e) => e.target && (e.target.style.fill = "#3b82f6")}
+                    onMouseOver={(e) =>
+                      e.target && (e.target.style.fill = "#2563eb")
+                    }
+                    onMouseOut={(e) =>
+                      e.target && (e.target.style.fill = "#3b82f6")
+                    }
                   />
                   <Bar
                     dataKey="paid"
@@ -330,8 +386,12 @@ const Dashboard = ({
                     fill="#10b981"
                     barSize={14}
                     radius={[4, 4, 0, 0]}
-                    onMouseOver={(e) => e.target && (e.target.style.fill = "#059669")}
-                    onMouseOut={(e) => e.target && (e.target.style.fill = "#10b981")}
+                    onMouseOver={(e) =>
+                      e.target && (e.target.style.fill = "#059669")
+                    }
+                    onMouseOut={(e) =>
+                      e.target && (e.target.style.fill = "#10b981")
+                    }
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -425,7 +485,8 @@ const Dashboard = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {loans.filter((loan) => loan.status === "overdue" || (loan.arrears && loan.arrears > 0)).length === 0 ? (
+            {/* Use dynamic arrears calculation */}
+            {loans.filter((loan) => calculateArrears(loan) > 0).length === 0 ? (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 <AlertTriangle className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>No arrears found</p>
@@ -433,19 +494,13 @@ const Dashboard = ({
             ) : (
               <div className="max-h-80 overflow-y-auto space-y-3">
                 {loans
-                  .filter((loan) => loan.status === "overdue" || (loan.arrears && loan.arrears > 0))
-                  .sort((a, b) => {
-                    // Sort by arrears amount (highest first)
-                    const arrearsA = a.arrears || 0;
-                    const arrearsB = b.arrears || 0;
-                    return arrearsB - arrearsA;
-                  })
+                  .filter((loan) => calculateArrears(loan) > 0)
+                  .sort((a, b) => calculateArrears(b) - calculateArrears(a))
                   .map((loan) => {
-                    const arrears = loan.arrears || 0;
-                    const dailyPayment = loan.total_amount / (loan.duration_months * 30);
-                    // Find borrower details
-                    const borrower = borrowers.find(b => b.id === loan.borrower_id);
-                    
+                    const arrears = calculateArrears(loan);
+                    const missedDays = calculateMissedDays(loan);
+                    const lastMissedDate = getLastMissedDate(loan);
+
                     return (
                       <div
                         key={loan.id}
@@ -457,42 +512,19 @@ const Dashboard = ({
                           </div>
                           <div>
                             <div className="font-medium text-gray-900 dark:text-gray-100">
-                              {loan.borrowerName ? (() => {
-                                const parts = loan.borrowerName.trim().split(" ");
-                                if (parts.length === 3) {
-                                  const first = parts[0];
-                                  const second = parts[1].charAt(0).toUpperCase() + ".";
-                                  const third = parts[2];
-                                  return `${first} ${second} ${third}`;
-                                }
-                                return loan.borrowerName;
-                              })() : "Unknown"}
+                              {formatBorrowerName(loan)}
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                              <DollarSign className="w-3 h-3" />
-                              Amount: ₹{loan.principal_amount.toLocaleString()} | Rate: {loan.interest_rate}%
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                              Last Missed: {lastMissedDate}
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              Daily: ₹{dailyPayment.toFixed(0)}
-                            </div>
-                            {borrower && (
-                              <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <User className="w-3 h-3" />
-                                Phone: {borrower.phone} | Address: {borrower.address?.substring(0, 20)}...
-                              </div>
-                            )}
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="font-bold text-red-700 dark:text-red-300 flex items-center gap-1">
-                            Arrears: ₹{arrears.toLocaleString()}
+                            ₹ {arrears.toLocaleString()}
                           </div>
-                          <div className="text-xs text-red-600 dark:text-red-400">
-                            Remaining: ₹{(loan.total_amount - loan.amount_paid).toLocaleString()}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                            {loan.status}
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            Missed: {missedDays} days
                           </div>
                         </div>
                       </div>
@@ -513,18 +545,16 @@ const Dashboard = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col">
-              {loans.filter(
-                (loan) => {
-                  // Calculate end date based on start date + duration_months
-                  const startDate = new Date(loan.start_date);
-                  const endDate = new Date(startDate);
-                  endDate.setMonth(endDate.getMonth() + loan.duration_months);
-                  const today = new Date();
-                  
-                  // Show loans that are past duration and not fully settled
-                  return today > endDate && loan.amount_paid < loan.total_amount;
-                }
-              ).length === 0 ? (
+              {loans.filter((loan) => {
+                // Calculate end date based on start date + duration_months
+                const startDate = new Date(loan.start_date);
+                const endDate = new Date(startDate);
+                endDate.setMonth(endDate.getMonth() + loan.duration_months);
+                const today = new Date();
+
+                // Show loans that are past duration and not fully settled
+                return today > endDate && loan.amount_paid < loan.total_amount;
+              }).length === 0 ? (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   <AlertTriangle className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>No overdue loans after duration</p>
@@ -532,18 +562,20 @@ const Dashboard = ({
               ) : (
                 <div className="max-h-96 overflow-y-auto space-y-3">
                   {loans
-                    .filter(
-                      (loan) => {
-                        // Calculate end date based on start date + duration_months
-                        const startDate = new Date(loan.start_date);
-                        const endDate = new Date(startDate);
-                        endDate.setMonth(endDate.getMonth() + loan.duration_months);
-                        const today = new Date();
-                        
-                        // Show loans that are past duration and not fully settled
-                        return today > endDate && loan.amount_paid < loan.total_amount;
-                      }
-                    )
+                    .filter((loan) => {
+                      // Calculate end date based on start date + duration_months
+                      const startDate = new Date(loan.start_date);
+                      const endDate = new Date(startDate);
+                      endDate.setMonth(
+                        endDate.getMonth() + loan.duration_months
+                      );
+                      const today = new Date();
+
+                      // Show loans that are past duration and not fully settled
+                      return (
+                        today > endDate && loan.amount_paid < loan.total_amount
+                      );
+                    })
                     .sort((a, b) => {
                       // Sort by pending amount (highest first)
                       const pendingA = a.total_amount - a.amount_paid;
@@ -554,10 +586,13 @@ const Dashboard = ({
                       // Calculate end date
                       const startDate = new Date(loan.start_date);
                       const endDate = new Date(startDate);
-                      endDate.setMonth(endDate.getMonth() + loan.duration_months);
+                      endDate.setMonth(
+                        endDate.getMonth() + loan.duration_months
+                      );
                       const endDateStr = endDate.toISOString().slice(0, 10);
-                      const pendingAmount = loan.total_amount - loan.amount_paid;
-                      
+                      const pendingAmount =
+                        loan.total_amount - loan.amount_paid;
+
                       return (
                         <div
                           key={loan.id}
@@ -569,16 +604,22 @@ const Dashboard = ({
                             </div>
                             <div>
                               <div className="font-medium text-gray-900 dark:text-gray-100">
-                                {loan.borrowerName ? (() => {
-                                  const parts = loan.borrowerName.trim().split(" ");
-                                  if (parts.length === 3) {
-                                    const first = parts[0];
-                                    const second = parts[1].charAt(0).toUpperCase() + ".";
-                                    const third = parts[2];
-                                    return `${first} ${second} ${third}`;
-                                  }
-                                  return loan.borrowerName;
-                                })() : "Unknown"}
+                                {loan.borrowerName
+                                  ? (() => {
+                                      const parts = loan.borrowerName
+                                        .trim()
+                                        .split(" ");
+                                      if (parts.length === 3) {
+                                        const first = parts[0];
+                                        const second =
+                                          parts[1].charAt(0).toUpperCase() +
+                                          ".";
+                                        const third = parts[2];
+                                        return `${first} ${second} ${third}`;
+                                      }
+                                      return loan.borrowerName;
+                                    })()
+                                  : "Unknown"}
                               </div>
                               <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                                 <DollarSign className="w-3 h-3" />
