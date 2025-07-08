@@ -392,6 +392,12 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       principal.includes(search) ||
       status.toLowerCase().includes(search.toLowerCase())
     );
+  }).sort((a, b) => {
+    // Sort completed loans to the bottom
+    if (a.status === 'completed' && b.status !== 'completed') return 1;
+    if (a.status !== 'completed' && b.status === 'completed') return -1;
+    // Within same status, sort by start_date (newest first)
+    return new Date(b.start_date).getTime() - new Date(a.start_date).getTime();
   });
   
   // Utility function to format display name like BorrowerManager

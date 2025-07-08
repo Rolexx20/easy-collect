@@ -204,7 +204,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         data = loans; // Show all loans, not just those with amount_paid > 0
         // Loan Status filter
         if (loanStatusFilter !== "all") {
-          data = data.filter((loan) => (loan.status || "active").toLowerCase() === loanStatusFilter);
+          const filterStatus = loanStatusFilter === "closed" ? "completed" : loanStatusFilter;
+          data = data.filter((loan) => (loan.status || "active").toLowerCase() === filterStatus);
         }
         break;
       case "overdue":
@@ -599,8 +600,16 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
                 {formatReportBorrowerName(item.borrowerName || "N/A")}
               </TableCell>
               <TableCell>
-                <span className="px-2 py-1 font-bold rounded-full text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                  {item.status || "Active"}
+                <span className={`px-2 py-1 font-bold rounded-full text-xs ${
+                  (item.status || "active") === "active" 
+                    ? "bg-success/20 text-success border border-success/30"
+                    : (item.status || "active") === "completed"
+                    ? "bg-info/20 text-info border border-info/30"
+                    : (item.status || "active") === "overdue"
+                    ? "bg-destructive/20 text-destructive border border-destructive/30"
+                    : "bg-muted text-muted-foreground border border-border"
+                }`}>
+                  {item.status === "completed" ? "Completed" : item.status || "Active"}
                 </span>
               </TableCell>
               <TableCell>

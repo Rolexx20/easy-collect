@@ -445,6 +445,50 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                 </div>
               </div>
             </div>
+
+            {/* Password Change Section - Moved here from bottom */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <Button
+                onClick={() => setShowPasswordForm(!showPasswordForm)}
+                variant="outline"
+                className="w-full"
+              >
+                <Lock className="w-4 h-4 mr-2" />
+                {showPasswordForm ? t.hidePasswordForm : t.showPasswordForm}
+              </Button>
+
+              {showPasswordForm && (
+                <div className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">{t.newPassword}</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      value={passwordData.newPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                      placeholder="Enter new password"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">{t.confirmPassword}</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={passwordData.confirmPassword}
+                      onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      placeholder="Confirm new password"
+                    />
+                  </div>
+                  <Button 
+                    onClick={handlePasswordChange}
+                    className="w-full"
+                    disabled={!passwordData.newPassword || !passwordData.confirmPassword}
+                  >
+                    {t.changePassword}
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -478,25 +522,42 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   {t.importDesc}
                 </p>
-                <div className="relative">
-                  <Input
-                    type="file"
-                    accept=".json"
-                    onChange={handleImportData}
-                    className="hidden"
-                    id="import-file"
-                  />
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() =>
-                      document.getElementById("import-file")?.click()
-                    }
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {t.importData}
-                  </Button>
-                </div>
+                  <div className="relative">
+                    <Input
+                      type="file"
+                      accept=".json"
+                      onChange={handleImportData}
+                      className="hidden"
+                      id="import-file"
+                    />
+                    <div
+                      className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer"
+                      onClick={() => document.getElementById("import-file")?.click()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const file = e.dataTransfer.files[0];
+                        if (file) {
+                          const event = { target: { files: [file], value: '' } } as any;
+                          handleImportData(event);
+                        }
+                      }}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDragEnter={(e) => e.preventDefault()}
+                    >
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Drop backup file here or click to browse
+                      </p>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        type="button"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {t.importData}
+                      </Button>
+                    </div>
+                  </div>
               </div>
             </div>
           </CardContent>
@@ -609,61 +670,8 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
         </CardContent>
       </Card>
 
-      {/* Password Change & System Access */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Password Change Section */}
-        <Card className="shadow-sm border border-gray-200 dark:border-gray-700">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Key className="w-5 h-5" />
-              {t.changePassword}
-            </CardTitle>
-            <CardDescription>Change your account password</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <Button
-              onClick={() => setShowPasswordForm(!showPasswordForm)}
-              variant="outline"
-              className="w-full"
-            >
-              <Lock className="w-4 h-4 mr-2" />
-              {showPasswordForm ? t.hidePasswordForm : t.showPasswordForm}
-            </Button>
-
-            {showPasswordForm && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="newPassword">{t.newPassword}</Label>
-                  <Input
-                    id="newPassword"
-                    type="password"
-                    value={passwordData.newPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                    placeholder="Enter new password"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">{t.confirmPassword}</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={passwordData.confirmPassword}
-                    onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    placeholder="Confirm new password"
-                  />
-                </div>
-                <Button 
-                  onClick={handlePasswordChange}
-                  className="w-full"
-                  disabled={!passwordData.newPassword || !passwordData.confirmPassword}
-                >
-                  {t.changePassword}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
+      {/* System Access Section */}
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-8">
         {/* System Access Section */}
         <Card className="shadow-sm border border-gray-200 dark:border-gray-700">
           <CardHeader>
