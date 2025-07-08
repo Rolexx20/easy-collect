@@ -9,6 +9,7 @@ export interface ReceiptData {
   closingBalance: number;
   date: string;
   route?: string;
+  arrears?: number;
 }
 
 export class BluetoothPrinter {
@@ -102,7 +103,7 @@ Total Paid : ${data.totalPaid.toLocaleString()}
 Total Due : ${data.totalDue.toLocaleString()}
 Today Paid : ${data.paymentAmount.toLocaleString()}
 Brought Forward : ${(data.totalPaid - data.paymentAmount).toLocaleString()}
-Arrears : 0
+Arrears : ${(data.arrears || 0).toLocaleString()}
 Closing Balance : ${data.closingBalance.toLocaleString()}
 
 --------------------------------

@@ -42,6 +42,13 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [authData, setAuthData] = useState<any>(null);
   const [showSessionDetails, setShowSessionDetails] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [totalUsers, setTotalUsers] = useState(0);
 
   const translations = {
     en: {
@@ -81,6 +88,10 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       sessionDetails: "Session Details",
       showSessionDetails: "Show Session Details",
       hideSessionDetails: "Hide Session Details",
+      systemAccess: "System Access",
+      systemAccessDesc: "View system access statistics",
+      totalUsers: "Total Users",
+      activeUsers: "Active Users",
     },
     ta: {
       settings: "அமைப்புகள்",
@@ -120,6 +131,10 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       sessionDetails: "அமர்வு விவரங்கள்",
       showSessionDetails: "அமர்வு விவரங்களைக் காட்டு",
       hideSessionDetails: "அமர்வு விவரங்களை மறைக்க",
+      systemAccess: "கணினி அணுகல்",
+      systemAccessDesc: "கணினி அணுகல் புள்ளிவிவரங்களைப் பார்க்கவும்",
+      totalUsers: "மொத்த பயனர்கள்",
+      activeUsers: "செயலில் உள்ள பயனர்கள்",
     },
   };
 
@@ -129,7 +144,19 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
   useEffect(() => {
     loadUserProfile();
     loadAuthData();
+    loadUserStats();
   }, []);
+
+  const loadUserStats = async () => {
+    try {
+      const { count } = await supabase
+        .from('user_profiles')
+        .select('*', { count: 'exact', head: true });
+      setTotalUsers(count || 0);
+    } catch (error) {
+      console.error('Error loading user stats:', error);
+    }
+  };
 
   const loadAuthData = async () => {
     try {
@@ -301,6 +328,53 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       });
       // Reset the file input
       event.target.value = '';
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    try {
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        toast({
+          title: t.passwordMismatch,
+          variant: "destructive",
+          duration: 3000,
+        });
+        return;
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
+      });
+
+      if (error) {
+        toast({
+          title: "Password change failed",
+          description: error.message,
+          variant: "destructive",
+          duration: 3000,
+        });
+        return;
+      }
+
+      toast({
+        title: t.passwordChanged,
+        duration: 3000,
+      });
+
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setShowPasswordForm(false);
+    } catch (error) {
+      console.error('Error changing password:', error);
+      toast({
+        title: "Password change failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+        duration: 3000,
+      });
     }
   };
 
@@ -534,6 +608,96 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Password Change & System Access */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Password Change Section */}
+        <Card className="shadow-sm border border-gray-200 dark:border-gray-700">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Key className="w-5 h-5" />
+              {t.changePassword}
+            </CardTitle>
+            <CardDescription>Change your account password</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <Button
+              onClick={() => setShowPasswordForm(!showPasswordForm)}
+              variant="outline"
+              className="w-full"
+            >
+              <Lock className="w-4 h-4 mr-2" />
+              {showPasswordForm ? t.hidePasswordForm : t.showPasswordForm}
+            </Button>
+
+            {showPasswordForm && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">{t.newPassword}</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                    placeholder="Enter new password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">{t.confirmPassword}</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    placeholder="Confirm new password"
+                  />
+                </div>
+                <Button 
+                  onClick={handlePasswordChange}
+                  className="w-full"
+                  disabled={!passwordData.newPassword || !passwordData.confirmPassword}
+                >
+                  {t.changePassword}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* System Access Section */}
+        <Card className="shadow-sm border border-gray-200 dark:border-gray-700">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Monitor className="w-5 h-5" />
+              {t.systemAccess}
+            </CardTitle>
+            <CardDescription>{t.systemAccessDesc}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-blue-600" />
+                  <span className="font-medium">{t.totalUsers}</span>
+                </div>
+                <span className="text-2xl font-bold text-blue-600">{totalUsers}</span>
+              </div>
+              
+              <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-green-600" />
+                  <span className="font-medium">{t.activeUsers}</span>
+                </div>
+                <span className="text-2xl font-bold text-green-600">1</span>
+              </div>
+              
+              <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                Current session: {authData?.user?.email || 'Unknown'}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
