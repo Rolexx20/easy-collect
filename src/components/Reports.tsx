@@ -11,7 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { getPayments } from "@/lib/database";
@@ -50,7 +49,7 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       loanAmount: "Loan Amount",
       paymentAmount: "Paid Amount",
       status: "Status",
-      remainingAmount: "Remaining Amount",
+
       paymentDate: "Payment Date",
       paymentTime: "Payment Time",
       paymentMethod: "Payment Method",
@@ -201,15 +200,42 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     let data: any[] = [];
     switch (selectedReportType) {
       case "collection":
-        data = loans; // Show all loans, not just those with amount_paid > 0
-        // Loan Status filter
+        data = loans;
         if (loanStatusFilter !== "all") {
-          const filterStatus = loanStatusFilter === "closed" ? "completed" : loanStatusFilter;
-          data = data.filter((loan) => (loan.status || "active").toLowerCase() === filterStatus);
+          const filterStatus =
+            loanStatusFilter === "closed" ? "completed" : loanStatusFilter;
+          if (filterStatus === "overdue") {
+            data = data.filter((loan) => {
+              const startDate = loan.start_date
+                ? new Date(loan.start_date)
+                : null;
+              const durationMonths = loan.duration_months || loan.duration || 0;
+              let endDate = startDate ? new Date(startDate) : null;
+              if (endDate && durationMonths) {
+                endDate.setMonth(endDate.getMonth() + durationMonths);
+              }
+              const today = new Date();
+              return endDate && endDate < today;
+            });
+          } else {
+            data = data.filter(
+              (loan) => (loan.status || "active").toLowerCase() === filterStatus
+            );
+          }
         }
         break;
       case "overdue":
-        data = loans.filter((loan) => loan.status === "overdue");
+        // Overdue: start_date + duration < today OR status is "overdue"
+        data = loans.filter((loan) => {
+          const startDate = loan.start_date ? new Date(loan.start_date) : null;
+          const durationMonths = loan.duration_months || loan.duration || 0;
+          let dueDate = startDate ? new Date(startDate) : null;
+          if (dueDate && durationMonths) {
+            dueDate.setMonth(dueDate.getMonth() + durationMonths);
+          }
+          const today = new Date();
+          return loan.status === "overdue" || (dueDate && dueDate < today);
+        });
         break;
       case "borrower":
         data = borrowers;
@@ -312,34 +338,69 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     let csvContent = "";
     if (selectedReportType === "collection") {
       csvContent =
-        "No,Date,Borrower Name,Status,Loan Amount,Remaining Amount,Collected Amount\n";
+        "No,Start Date,End Date,Borrower Name,Status,Loan Amount,Remaining Amount,Collected Amount\n";
       data.forEach((loan, index) => {
-        csvContent += `${index + 1},${
-          loan.start_date
+        const startDate = loan.start_date ? new Date(loan.start_date) : null;
+        const durationMonths = loan.duration_months || loan.duration || 0;
+        let loanEndDate = startDate ? new Date(startDate) : null;
+        if (loanEndDate && durationMonths) {
+          loanEndDate.setMonth(loanEndDate.getMonth() + durationMonths);
+        }
+        const today = new Date();
+        const isOverdue = loanEndDate && loanEndDate < today;
+        csvContent += `${index + 1},${loan.start_date},${
+          loanEndDate ? loanEndDate.toISOString().split("T")[0] : ""
         },${formatReportBorrowerName(loan.borrowerName || "N/A")},${
-          loan.status || "Active"
+          isOverdue ? "Overdue" : loan.status || "Active"
         },${loan.total_amount},${loan.total_amount - loan.amount_paid},${
           loan.amount_paid
         }\n`;
       });
     } else if (selectedReportType === "borrower") {
-      csvContent = "No,Name,Phone,Address,Total Loans,Total Amount\n";
+      csvContent =
+        "No,Start Date,End Date,Name,Phone,NIC Number,Address,Total Loans,Total Amount\n";
       data.forEach((borrower, index) => {
-        const totalLoans = loans.filter(
+        const borrowerLoans = loans.filter(
           (l) => l.borrower_id === borrower.id
-        ).length;
-        csvContent += `${index + 1},${borrower.name},${borrower.phone},${
+        );
+        const firstLoan = borrowerLoans[0];
+        const startDateB = firstLoan?.start_date || "";
+        let loanEndDateB = "";
+        if (firstLoan) {
+          const sd = firstLoan.start_date
+            ? new Date(firstLoan.start_date)
+            : null;
+          const dm = firstLoan.duration_months || firstLoan.duration || 0;
+          if (sd && dm) {
+            sd.setMonth(sd.getMonth() + dm);
+            loanEndDateB = sd.toISOString().split("T")[0];
+          }
+        }
+        csvContent += `${index + 1},${startDateB},${loanEndDateB},${
+          borrower.name
+        },${borrower.phone},${borrower.nic || borrower.nic_number || ""},${
           borrower.address
-        },${totalLoans},${borrower.total_amount || 0}\n`;
+        },${borrowerLoans.length},${borrower.total_amount || 0}\n`;
       });
     } else if (selectedReportType === "overdue") {
-      csvContent = "No,Date,Borrower Name,Loan Amount,Payment Amount,Status\n";
+      csvContent =
+        "No,Start Date,End Date,Borrower Name,Loan Amount,Paid Amount,Remaining Amount\n";
       data.forEach((loan, index) => {
-        csvContent += `${index + 1},${
-          loan.start_date
-        },${formatReportBorrowerName(loan.borrowerName || "N/A")},${
-          loan.total_amount
-        },${loan.amount_paid},${loan.status}\n`;
+        const startDateO = loan.start_date || "";
+        let loanEndDateO = "";
+        const sdO = loan.start_date ? new Date(loan.start_date) : null;
+        const dmO = loan.duration_months || loan.duration || 0;
+        if (sdO && dmO) {
+          sdO.setMonth(sdO.getMonth() + dmO);
+          loanEndDateO = sdO.toISOString().split("T")[0];
+        }
+        csvContent += `${
+          index + 1
+        },${startDateO},${loanEndDateO},${formatReportBorrowerName(
+          loan.borrowerName || "N/A"
+        )},${loan.total_amount},${loan.amount_paid},${
+          loan.total_amount - loan.amount_paid
+        }\n`;
       });
     } else if (selectedReportType === "dailyCollection") {
       csvContent =
@@ -378,51 +439,106 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     if (selectedReportType === "collection") {
       head = [
         "No",
-        "Date",
+        "Start Date",
+        "End Date",
         "Borrower Name",
         "Status",
         "Loan Amount",
         "Remaining Amount",
         "Collected Amount",
-      ]; // Updated column order
-      body = data.map((loan, index) => [
-        index + 1,
-        loan.start_date,
-        formatReportBorrowerName(loan.borrowerName || "N/A"),
-        loan.status || "Active",
-        loan.total_amount,
-        loan.total_amount - loan.amount_paid,
-        loan.amount_paid,
-      ]);
+      ];
+      body = data.map((loan, index) => {
+        const startDate = loan.start_date ? new Date(loan.start_date) : null;
+        const durationMonths = loan.duration_months || loan.duration || 0;
+        let loanEndDate = startDate ? new Date(startDate) : null;
+        if (loanEndDate && durationMonths) {
+          loanEndDate.setMonth(loanEndDate.getMonth() + durationMonths);
+        }
+        const today = new Date();
+        const isOverdue = loanEndDate && loanEndDate < today;
+        return [
+          index + 1,
+          loan.start_date,
+          loanEndDate ? loanEndDate.toISOString().split("T")[0] : "",
+          formatReportBorrowerName(loan.borrowerName || "N/A"),
+          isOverdue ? "Overdue" : loan.status || "Active",
+          loan.total_amount,
+          loan.total_amount - loan.amount_paid,
+          loan.amount_paid,
+        ];
+      });
       title = t.collectionReport;
     } else if (selectedReportType === "borrower") {
-      head = ["No", "Name", "Phone", "Address", "Total Loans", "Total Amount"];
-      body = data.map((borrower, index) => [
-        index + 1,
-        borrower.name,
-        borrower.phone,
-        borrower.address,
-        loans.filter((l) => l.borrower_id === borrower.id).length,
-        borrower.total_amount || 0,
-      ]);
+      head = [
+        "No",
+        "Start Date",
+        "End Date",
+        "Name",
+        "Phone",
+        "NIC Number",
+        "Address",
+        "Total Loans",
+        "Total Amount",
+      ];
+      body = data.map((borrower, index) => {
+        const borrowerLoans = loans.filter(
+          (l) => l.borrower_id === borrower.id
+        );
+        const firstLoan = borrowerLoans[0];
+        const startDateB = firstLoan?.start_date || "";
+        let loanEndDateB = "";
+        if (firstLoan) {
+          const sd = firstLoan.start_date
+            ? new Date(firstLoan.start_date)
+            : null;
+          const dm = firstLoan.duration_months || firstLoan.duration || 0;
+          if (sd && dm) {
+            sd.setMonth(sd.getMonth() + dm);
+            loanEndDateB = sd.toISOString().split("T")[0];
+          }
+        }
+        return [
+          index + 1,
+          startDateB,
+          loanEndDateB,
+          borrower.name,
+          borrower.phone,
+          borrower.nic || borrower.nic_number || "",
+          borrower.address,
+          borrowerLoans.length,
+          borrower.total_amount || 0,
+        ];
+      });
       title = t.borrowerReport;
     } else if (selectedReportType === "overdue") {
       head = [
         "No",
-        "Date",
+        "Start Date",
+        "End Date",
         "Borrower Name",
         "Loan Amount",
-        "Payment Amount",
-        "Status",
-      ]; // Match table column order
-      body = data.map((loan, index) => [
-        index + 1,
-        loan.start_date,
-        formatReportBorrowerName(loan.borrowerName || "N/A"),
-        loan.total_amount,
-        loan.amount_paid,
-        loan.status,
-      ]);
+        "Paid Amount",
+        "Remaining Amount",
+      ];
+      body = data.map((loan, index) => {
+        const startDateO = loan.start_date || "";
+        let loanEndDateO = "";
+        const sdO = loan.start_date ? new Date(loan.start_date) : null;
+        const dmO = loan.duration_months || loan.duration || 0;
+        if (sdO && dmO) {
+          sdO.setMonth(sdO.getMonth() + dmO);
+          loanEndDateO = sdO.toISOString().split("T")[0];
+        }
+        return [
+          index + 1,
+          startDateO,
+          loanEndDateO,
+          formatReportBorrowerName(loan.borrowerName || "N/A"),
+          loan.total_amount,
+          loan.amount_paid,
+          loan.total_amount - loan.amount_paid,
+        ];
+      });
       title = t.overdueReport;
     } else if (selectedReportType === "dailyCollection") {
       head = [
@@ -490,7 +606,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         return (
           <TableRow>
             <TableHead>#</TableHead>
-            <TableHead>{t.date}</TableHead>
+            <TableHead>Start Date</TableHead>
+            <TableHead>End Date</TableHead>
             <TableHead>{t.borrowerName}</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>{t.loanAmount}</TableHead>
@@ -502,6 +619,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         return (
           <TableRow>
             <TableHead>#</TableHead>
+            <TableHead>Start Date</TableHead>
+            <TableHead>End Date</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Phone</TableHead>
             <TableHead>NIC Number</TableHead>
@@ -514,11 +633,12 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         return (
           <TableRow>
             <TableHead>#</TableHead>
-            <TableHead>{t.date}</TableHead>
+            <TableHead>Start Date</TableHead>
+            <TableHead>End Date</TableHead>
             <TableHead>{t.borrowerName}</TableHead>
             <TableHead>{t.loanAmount}</TableHead>
             <TableHead>{t.paymentAmount}</TableHead>
-            <TableHead>{t.status}</TableHead>
+            <TableHead>Remaining Amount</TableHead>
           </TableRow>
         );
       case "dailyCollection":
@@ -554,7 +674,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
 
   // Utility for full name in borrower report
   const getBorrowerFullName = (borrower: any) => {
-    return [borrower.title, borrower.first_name, borrower.last_name].filter(Boolean).join(" ");
+    return [borrower.title, borrower.first_name, borrower.last_name]
+      .filter(Boolean)
+      .join(" ");
   };
 
   const renderTableRows = () => {
@@ -573,7 +695,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           <TableCell
             colSpan={
               selectedReportType === "borrower"
-                ? 6 // updated from 5 to 6 for new column
+                ? 8 // updated for new columns
+                : selectedReportType === "collection"
+                ? 8 // updated for new column
                 : selectedReportType === "dailyCollection"
                 ? 7
                 : 6
@@ -592,24 +716,41 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       const rowNumber = startIdx + index + 1;
       switch (selectedReportType) {
         case "collection":
+          const startDate = item.start_date ? new Date(item.start_date) : null;
+          const durationMonths = item.duration_months || item.duration || 0;
+          let loanEndDate = startDate ? new Date(startDate) : null;
+          if (loanEndDate && durationMonths) {
+            loanEndDate.setMonth(loanEndDate.getMonth() + durationMonths);
+          }
+          const today = new Date();
+          const isOverdue = loanEndDate && loanEndDate < today;
           return (
             <TableRow key={index}>
               <TableCell>{rowNumber}</TableCell>
               <TableCell>{item.start_date}</TableCell>
               <TableCell>
+                {loanEndDate ? loanEndDate.toISOString().split("T")[0] : ""}
+              </TableCell>
+              <TableCell>
                 {formatReportBorrowerName(item.borrowerName || "N/A")}
               </TableCell>
               <TableCell>
-                <span className={`px-2 py-1 font-bold rounded-full text-xs ${
-                  (item.status || "active") === "active" 
-                    ? "bg-success/20 text-success border border-success/30"
-                    : (item.status || "active") === "completed"
-                    ? "bg-info/20 text-info border border-info/30"
-                    : (item.status || "active") === "overdue"
-                    ? "bg-destructive/20 text-destructive border border-destructive/30"
-                    : "bg-muted text-muted-foreground border border-border"
-                }`}>
-                  {item.status === "completed" ? "Completed" : item.status || "Active"}
+                <span
+                  className={`px-2 py-1 font-bold rounded-full text-xs ${
+                    isOverdue
+                      ? "bg-destructive/20 text-destructive border border-destructive/30"
+                      : (item.status || "active") === "active"
+                      ? "bg-success/20 text-success border border-success/30"
+                      : (item.status || "active") === "completed"
+                      ? "bg-info/20 text-info border border-info/30"
+                      : "bg-muted text-muted-foreground border border-border"
+                  }`}
+                >
+                  {isOverdue
+                    ? "Overdue"
+                    : item.status === "completed"
+                    ? "Completed"
+                    : item.status || "Active"}
                 </span>
               </TableCell>
               <TableCell>
@@ -630,19 +771,32 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             </TableRow>
           );
         case "borrower":
-          // Count total loans for this borrower
-          const totalLoans = loans.filter(
-            (l) => l.borrower_id === item.id
-          ).length;
+          // Show first loan's start/end date, total loans, total amount
+          const borrowerLoans = loans.filter((l) => l.borrower_id === item.id);
+          const firstLoan = borrowerLoans[0];
+          const startDateB = firstLoan?.start_date || "";
+          let loanEndDateB = "";
+          if (firstLoan) {
+            const sd = firstLoan.start_date
+              ? new Date(firstLoan.start_date)
+              : null;
+            const dm = firstLoan.duration_months || firstLoan.duration || 0;
+            if (sd && dm) {
+              sd.setMonth(sd.getMonth() + dm);
+              loanEndDateB = sd.toISOString().split("T")[0];
+            }
+          }
           return (
             <TableRow key={index}>
               <TableCell>{rowNumber}</TableCell>
+              <TableCell>{startDateB}</TableCell>
+              <TableCell>{loanEndDateB}</TableCell>
               <TableCell>{getBorrowerFullName(item)}</TableCell>
               <TableCell>{item.phone}</TableCell>
               <TableCell>{item.nic || item.nic_number || ""}</TableCell>
               <TableCell>{item.address}</TableCell>
               <TableCell>
-                <span className="font-bold">{totalLoans}</span>
+                <span className="font-bold">{borrowerLoans.length}</span>
               </TableCell>
               <TableCell>
                 <span className="text-purple-700 dark:text-purple-500 font-bold">
@@ -652,18 +806,36 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             </TableRow>
           );
         case "overdue":
+          // Show start/end date, borrower name, loan amount, paid amount, remaining amount
+          const startDateO = item.start_date || "";
+          let loanEndDateO = "";
+          const sdO = item.start_date ? new Date(item.start_date) : null;
+          const dmO = item.duration_months || item.duration || 0;
+          if (sdO && dmO) {
+            sdO.setMonth(sdO.getMonth() + dmO);
+            loanEndDateO = sdO.toISOString().split("T")[0];
+          }
           return (
             <TableRow key={index}>
               <TableCell>{rowNumber}</TableCell>
-              <TableCell>{item.start_date}</TableCell>
+              <TableCell>{startDateO}</TableCell>
+              <TableCell>{loanEndDateO}</TableCell>
               <TableCell>
                 {formatReportBorrowerName(item.borrowerName || "N/A")}
               </TableCell>
-              <TableCell>₹ {item.total_amount?.toLocaleString()}</TableCell>
-              <TableCell>₹ {item.amount_paid?.toLocaleString()}</TableCell>
               <TableCell>
-                <span className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                  {item.status}
+                <span className="text-purple-700 dark:text-purple-500 font-bold">
+                  ₹ {item.total_amount?.toLocaleString()}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span className="text-green-700 dark:text-green-500 font-bold">
+                  ₹ {item.amount_paid?.toLocaleString()}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span className="text-red-600 dark:text-red-500 font-bold">
+                  ₹ {(item.total_amount - item.amount_paid)?.toLocaleString()}
                 </span>
               </TableCell>
             </TableRow>
@@ -880,53 +1052,68 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             {/* Loan Status Filter for Collection Report */}
             {selectedReportType === "collection" && (
               <>
-              {/* Desktop: Button group */}
-              <div className="hidden sm:flex gap-2 items-center">
-                {[
-                { value: "all", label: "All" },
-                { value: "active", label: "Active" },
-                { value: "closed", label: "Completed" },
-                { value: "overdue", label: "Overdue" },
-                ].map((status) => (
-                <button
-                  key={status.value}
-                  type="button"
-                  onClick={() => setLoanStatusFilter(status.value)}
-                  className={`px-4 py-2 rounded-full border text-sm font-semibold transition-colors ${
-                  loanStatusFilter === status.value
-                    ? "bg-blue-600 text-white border-gray-600"
-                    : "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-300 border-gray-400 hover:bg-green-50 dark:hover:bg-blue-900"
-                  }`}
-                >
-                  {status.label}
-                </button>
-                ))}
-              </div>
-              {/* Mobile: Dropdown */}
-              <div className="sm:hidden w-full">
-                <select
-                value={loanStatusFilter}
-                onChange={(e) => setLoanStatusFilter(e.target.value)}
-                className="w-full px-4 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                >
-                {[
-                  { value: "all", label: "All" },
-                  { value: "active", label: "Active" },
-                  { value: "closed", label: "Completed" },
-                  { value: "overdue", label: "Overdue" },
-                ].map((status) => (
-                  <option key={status.value} value={status.value}>
-                  {status.label}
-                  </option>
-                ))}
-                </select>
-              </div>
+                {/* Desktop: Button group */}
+                <div className="hidden sm:flex gap-2 items-center">
+                  {[
+                    { value: "all", label: "All" },
+                    { value: "active", label: "Active" },
+                    { value: "closed", label: "Completed" },
+                    { value: "overdue", label: "Overdue" },
+                  ].map((status) => (
+                    <button
+                      key={status.value}
+                      type="button"
+                      onClick={() => setLoanStatusFilter(status.value)}
+                      className={`px-4 py-2 rounded-full border text-sm font-semibold transition-colors ${
+                        loanStatusFilter === status.value
+                          ? "bg-blue-600 text-white border-gray-600"
+                          : "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-300 border-gray-400 hover:bg-green-50 dark:hover:bg-blue-900"
+                      }`}
+                    >
+                      {status.label}
+                    </button>
+                  ))}
+                </div>
+                {/* Mobile: Dropdown */}
+                <div className="sm:hidden w-full">
+                  <select
+                    value={loanStatusFilter}
+                    onChange={(e) => setLoanStatusFilter(e.target.value)}
+                    className="w-full px-4 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  >
+                    {[
+                      { value: "all", label: "All" },
+                      { value: "active", label: "Active" },
+                      { value: "closed", label: "Completed" },
+                      { value: "overdue", label: "Overdue" },
+                    ].map((status) => (
+                      <option key={status.value} value={status.value}>
+                        {status.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </>
             )}
             {/* Today/Week/Month Tag Filters for Daily Collection */}
             {selectedReportType === "dailyCollection" && (
               <div className="flex gap-2 items-center">
-                { [
+                {/* Add "Show All" button before other filters */}
+                <button
+                  type="button"
+                  onClick={() => setShowTodayOnly("all")}
+                  className={`px-4 py-2 rounded-full border text-sm font-semibold transition-colors
+                    ${
+                      showTodayOnly === "all"
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-blue-100 dark:hover:bg-blue-900"
+                    }
+                  `}
+                  style={{ minWidth: 80 }}
+                >
+                  All
+                </button>
+                {[
                   { label: "Today", value: "today" },
                   { label: "Week", value: "week" },
                   { label: "Month", value: "month" },

@@ -61,7 +61,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
 
   const [search, setSearch] = useState('');
   // Add state for status filter
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed' | 'overdue'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed' | 'overdue'>('active');
 
   // Track original principal for edit validation
   const [originalPrincipal, setOriginalPrincipal] = useState<number | null>(null);
@@ -329,9 +329,9 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       case 'completed':
         return <Lightbulb className="w-3 h-3" />;
       case 'overdue':
-        return <AlertTriangle className="w-4 h-4" />;
+        return <AlertTriangle className="w-3 h-3" />;
       default:
-        return <Clock className="w-4 h-4" />;
+        return <Clock className="w-3 h-3" />;
     }
   };
 
@@ -381,8 +381,21 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
   };
 
   const filteredLoans = loans.filter((loan) => {
-    // Filter by status
-    if (statusFilter !== 'all' && loan.status !== statusFilter) return false;
+    // Calculate remaining days for each loan
+    const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months);
+    // If statusFilter is 'active', exclude overdue loans (remaining days == 0 and not completed)
+    if (statusFilter === 'active') {
+      if (loan.status !== 'active') return false;
+      if (daysRemaining === 0 && loan.status === 'active') return false;
+    }
+    // If statusFilter is 'overdue', only show overdue loans (remaining days == 0 and not completed)
+    if (statusFilter === 'overdue') {
+      if (!(daysRemaining === 0 && loan.status !== 'completed')) return false;
+    }
+    // If statusFilter is 'completed', only show completed loans
+    if (statusFilter === 'completed') {
+      if (loan.status !== 'completed') return false;
+    }
     // ...existing code...
     const borrowerName = loan.borrowerName || '';
     const principal = loan.principal_amount.toString();
@@ -628,8 +641,12 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredLoans.map((loan) => {
-            const progress = calculateProgress(loan.amount_paid, loan.total_amount);
+            // Calculate remaining days
             const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months);
+            // If remaining days is 0 and loan is not completed, mark as overdue for display
+            const displayStatus = (daysRemaining === 0 && loan.status !== 'completed') ? 'overdue' : loan.status;
+
+            const progress = calculateProgress(loan.amount_paid, loan.total_amount);
             const dailyPayment = loan.total_amount / (loan.duration_months * 30);
             const totalPayment = loan.principal_amount + (loan.principal_amount * loan.interest_rate / 100);
             const loanEndDate = calculateLoanEndDate(loan.start_date, loan.duration_months);
@@ -671,9 +688,9 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${getStatusColor(loan.status)}`}>
-                        {getStatusIcon(loan.status)}
-                        {getStatusText(loan.status)}
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${getStatusColor(displayStatus)}`}>
+                        {getStatusIcon(displayStatus)}
+                        {getStatusText(displayStatus)}
                       </span>
                     </div>
                   </div>

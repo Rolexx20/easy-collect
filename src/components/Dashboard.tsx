@@ -486,7 +486,7 @@ const Dashboard = ({
           <CardHeader>
             <CardTitle className="text-left flex items-left justify-left gap-2">
               <CircleAlert className="w-5 h-5 text-red-600" />
-              Arrears Borrowers Details
+              Arrears Loans
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -528,7 +528,7 @@ const Dashboard = ({
 
                         {/* Right section: Arrears amount and missed days */}
                         <div className="flex flex-col items-end text-right">
-                          <div className="font-bold text-red-700 dark:text-red-300 flex items-center gap-1">
+                          <div className="font-bold text-red-700 dark:text-red-500 flex items-center gap-1">
                             ₹ {arrears.toLocaleString()}
                           </div>
                           <div className="text-xs text-gray-600 dark:text-gray-400">
@@ -549,7 +549,7 @@ const Dashboard = ({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-orange-600" />
-                Pending Amount Overdue Loans
+                Overdue Loans
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col">
@@ -630,23 +630,21 @@ const Dashboard = ({
                                   : "Unknown"}
                               </div>
                               <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <DollarSign className="w-3 h-3" />
-                                Loan: ₹{loan.total_amount.toLocaleString()}
+                                Loan: {loan.total_amount.toLocaleString()}
                               </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
+                              <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
                                 Start: {loan.start_date} | End: {endDateStr}
                               </div>
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="font-bold text-orange-700 dark:text-orange-300">
-                              Pending: ₹{pendingAmount.toLocaleString()}
+                            <div className="font-bold text-orange-700 dark:text-orange-400">
+                              Overdue: ₹ {pendingAmount.toLocaleString()}
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              Paid: ₹{loan.amount_paid.toLocaleString()}
+                            <div className="text-xs font-bold text-green-600 dark:text-green-600">
+                              Paid: ₹ {loan.amount_paid.toLocaleString()}
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 capitalize mt-1">
                               {loan.status}
                             </div>
                           </div>
