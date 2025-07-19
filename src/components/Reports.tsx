@@ -108,12 +108,49 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
   );
   const pendingAmount = totalLoanAmount - totalCollected;
 
+  // --- Arrears Calculation Helpers ---
+  const calculateArrears = (loan: any) => {
+    if (!loan.start_date || !loan.duration_months || !loan.total_amount) return 0;
+    const today = new Date();
+    const startDate = new Date(loan.start_date);
+    const daysSinceStart = Math.floor(
+      (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    const dailyPayment = loan.total_amount / (loan.duration_months * 30);
+    const expectedPayment = Math.min(
+      dailyPayment * daysSinceStart,
+      loan.total_amount
+    );
+    return Math.max(0, Math.round(expectedPayment - (loan.amount_paid || 0)));
+  };
+
+  const calculateMissedDays = (loan: any) => {
+    if (!loan.duration_months || !loan.total_amount) return 0;
+    const dailyPayment = loan.total_amount / (loan.duration_months * 30);
+    const arrears = calculateArrears(loan);
+    return arrears <= 0 ? 0 : Math.max(1, Math.floor(arrears / dailyPayment));
+  };
+
+  const getLastMissedDate = (loan: any) => {
+    if (!loan.start_date || !loan.duration_months || !loan.total_amount) return "";
+    const dailyPayment = loan.total_amount / (loan.duration_months * 30);
+    const missedDays = calculateMissedDays(loan);
+    const startDate = new Date(loan.start_date);
+    const paidDays = Math.floor((loan.amount_paid || 0) / dailyPayment);
+    const lastMissed = new Date(startDate);
+    lastMissed.setDate(startDate.getDate() + paidDays + missedDays - 1);
+    return isNaN(lastMissed.getTime())
+      ? ""
+      : lastMissed.toLocaleDateString();
+  };
+
   const reportTypes = [
     { id: "dailyCollection", label: t.dailyCollectionReport },
     { id: "overdue", label: t.overdueReport },
     { id: "collection", label: t.collectionReport },
     { id: "borrower", label: t.borrowerReport },
-    // Removed "arrears" and "reversedPayments" from selection
+    { id: "arrears", label: "Arrears & Overdue" }, // <-- Added
+    // Removed "reversedPayments" from selection
   ];
 
   const fileTypes = [
@@ -267,7 +304,10 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           });
         }
         break;
-      // Removed "arrears" and "reversedPayments" cases
+      case "arrears":
+        data = loans.filter((l) => calculateArrears(l) > 0);
+        break;
+      // Removed "reversedPayments" cases
       default:
         data = [];
     }
@@ -413,6 +453,12 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         },${payment.totalLoanAmount || 0},${payment.remainingLoanAmount || 0},${
           payment.displayAmount || payment.amount
         }\n`;
+      });
+    } else if (selectedReportType === "arrears") {
+      csvContent =
+        "No,Borrower Name,Loan Amount,Paid Amount,Arrears Amount,Missing Days,Last Missed Date\n";
+      data.forEach((loan, index) => {
+        csvContent += `${index + 1},${formatReportBorrowerName(loan.borrowerName || "N/A")},${loan.total_amount},${loan.amount_paid},${calculateArrears(loan)},${calculateMissedDays(loan)},${getLastMissedDate(loan)}\n`;
       });
     }
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -562,6 +608,26 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         payment.displayAmount || payment.amount,
       ]);
       title = t.dailyCollectionReport;
+    } else if (selectedReportType === "arrears") {
+      head = [
+        "No",
+        "Borrower Name",
+        "Loan Amount",
+        "Paid Amount",
+        "Arrears Amount",
+        "Missing Days",
+        "Last Missed Date",
+      ];
+      body = data.map((loan, index) => [
+        index + 1,
+        formatReportBorrowerName(loan.borrowerName || "N/A"),
+        loan.total_amount,
+        loan.amount_paid,
+        calculateArrears(loan),
+        calculateMissedDays(loan),
+        getLastMissedDate(loan),
+      ]);
+      title = "Arrears Report";
     }
 
     doc.text(title, 14, 16);
@@ -654,6 +720,18 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             <TableHead>{t.paymentAmount}</TableHead>
           </TableRow>
         );
+      case "arrears":
+        return (
+          <TableRow>
+            <TableHead>#</TableHead>
+            <TableHead>{t.borrowerName}</TableHead>
+            <TableHead>{t.loanAmount}</TableHead>
+            <TableHead>{t.paymentAmount}</TableHead>
+            <TableHead>Arrears Amount</TableHead>
+            <TableHead>Missed Days</TableHead>
+            <TableHead>Last Missed Date</TableHead>
+          </TableRow>
+        );
       default:
         return null;
     }
@@ -689,12 +767,16 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           ? t.noBorrowerData
           : selectedReportType === "dailyCollection"
           ? t.noDailyCollectionData
+          : selectedReportType === "arrears"
+          ? "No arrears found"
           : t.noPaymentData;
       return (
         <TableRow>
           <TableCell
             colSpan={
-              selectedReportType === "borrower"
+              selectedReportType === "arrears"
+                ? 7
+                : selectedReportType === "borrower"
                 ? 8 // updated for new columns
                 : selectedReportType === "collection"
                 ? 8 // updated for new column
@@ -875,6 +957,18 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
                   ₹ {(item.displayAmount || item.amount)?.toLocaleString()}
                 </span>
               </TableCell>
+            </TableRow>
+          );
+        case "arrears":
+          return (
+            <TableRow key={index}>
+              <TableCell>{rowNumber}</TableCell>
+              <TableCell>{formatReportBorrowerName(item.borrowerName || "N/A")}</TableCell>
+              <TableCell className="text-green-700 dark:text-green-500 font-bold">₹ {item.total_amount?.toLocaleString()}</TableCell>
+              <TableCell className="text-orange-600 dark:text-orange-400 font-bold">₹ {item.amount_paid?.toLocaleString()}</TableCell>
+              <TableCell className="text-red-600 dark:text-red-500 font-bold">₹ {calculateArrears(item)?.toLocaleString()}</TableCell>
+              <TableCell className="text-purple-700 dark:text-purple-500 font-bold">{calculateMissedDays(item)} days</TableCell>
+              <TableCell className="text-blue-700 dark:text-blue-500 font-bold">{getLastMissedDate(item)}</TableCell>
             </TableRow>
           );
         default:

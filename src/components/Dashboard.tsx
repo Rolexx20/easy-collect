@@ -106,6 +106,10 @@ const Dashboard = ({
   const completedLoans = loans.filter(
     (loan) => loan.status === "completed"
   ).length;
+    const completedLoansTotalValue = loans.filter(
+    (loan) => loan.status === "completed"
+  ).reduce((sum, loan) => sum + (Number(loan.total_amount) || 0), 0);
+
   const overdueLoans = loans.filter((loan) => loan.status === "overdue").length;
   const totalCollected = loans.reduce(
     (sum, loan) => sum + (Number(loan.amount_paid) || 0),
@@ -200,94 +204,156 @@ const Dashboard = ({
     return "Unknown";
   };
 
+  // Arrears and Overdue stats
+  const arrearsLoans = loans.filter((loan) => calculateArrears(loan) > 0);
+  const arrearsLoansCount = arrearsLoans.length;
+  const arrearsLoansTotalValue = arrearsLoans.reduce(
+    (sum, loan) => sum + calculateArrears(loan),
+    0
+  );
+
+  const overdueLoansList = loans.filter((loan) => {
+    const startDate = new Date(loan.start_date);
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + loan.duration_months);
+    const today = new Date();
+    return today > endDate && loan.amount_paid < loan.total_amount;
+  });
+  const overdueLoansCount = overdueLoansList.length;
+  const overdueLoansTotalValue = overdueLoansList.reduce(
+    (sum, loan) => sum + (loan.total_amount - loan.amount_paid),
+    0
+  );
+
   return (
     <div className="w-full p-6 py-6 space-y-6 pt-5">
       <h2 className="text-3xl font-bold text-left text-gray-800 dark:text-gray-200 justify-center gap-3">
         {t.title}
       </h2>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Combined Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Combined Loan Counts Card */}
         <Card className="bg-gradient-to-br from-blue-50/10 to-blue-200 dark:from-blue-900 dark:to-blue-800/20 border-blue-200 dark:border-blue-700 hover:shadow-lg dark:hover:shadow-blue-900/40 transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-800 dark:text-white">
-              {t.totalBorrowers}
+          <CardHeader>
+            <CardTitle className="text-lg font-extrabold text-blue-800 dark:text-blue-300 flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+              Loan Counts Overview
             </CardTitle>
-            <Users className="h-6 w-6 text-blue-600 dark:text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
-              {totalBorrowers}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="flex flex-col items-left">
+                <span className="text-sm font-bold text-blue-900 dark:text-blue-400">
+                  Loans
+                </span>
+                <span className="text-2xl font-bold text-blue-900 dark:text-blue-400">
+                  {loans.length}
+                </span>
+              </div>
+              <div className="flex flex-col items-left">
+                <span className="text-sm font-bold text-orange-700 dark:text-orange-400">
+                  Borrowers
+                </span>
+                <span className="text-2xl font-bold text-orange-700 dark:text-orange-400">
+                  {totalBorrowers}
+                </span>
+              </div>
+              <div className="flex flex-col items-left">
+                <span className="text-sm font-bold text-red-600 dark:text-red-400">
+                  Arrears
+                </span>
+                <span className="text-2xl font-bold text-red-700 dark:text-red-400">
+                  {arrearsLoansCount}
+                </span>
+              </div>
+              <div className="flex flex-col items-left">
+                <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                  Active
+                </span>
+                <span className="text-2xl font-bold text-green-700 dark:text-green-400">
+                  {activeLoans}
+                </span>
+              </div>
+
+              <div className="flex flex-col items-left">
+                <span className="text-sm font-bold text-yellow-600 dark:text-yellow-400">
+                  Overdue
+                </span>
+                <span className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">
+                  {overdueLoansCount}
+                </span>
+              </div>
+              <div className="flex flex-col items-left">
+                <span className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                  Completed
+                </span>
+                <span className="text-2xl font-bold text-purple-700 dark:text-purple-400">
+                  {completedLoans}
+                </span>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-100/20 to-green-200 dark:from-green-900 dark:to-green-800/20 border-green-200 dark:border-green-700 hover:shadow-lg dark:hover:shadow-green-900/40 transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-800 dark:text-white">
-              {t.activeLoans}
+        {/* Combined Loan Values Card */}
+        <Card className="bg-gradient-to-br from-purple-50/10 to-purple-200 dark:from-purple-900 dark:to-purple-800/20 border-purple-200 dark:border-purple-700 hover:shadow-lg dark:hover:shadow-purple-900/40 transition-shadow">
+          <CardHeader>
+            <CardTitle className="text-lg font-extrabold text-purple-800 dark:text-purple-200 flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-purple-600 dark:text-purple-200" />
+              Loan Values Overview
             </CardTitle>
-            <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-900 dark:text-green-100">
-              {activeLoans}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-red-100/20 to-red-200 dark:from-red-900 dark:to-red-800/20 border-red-200 dark:border-red-700 hover:shadow-lg dark:hover:shadow-red-900/40 transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-red-800 dark:text-white">
-              {t.overdueLoans}
-            </CardTitle>
-            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-900 dark:text-red-100">
-              {overdueLoans}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-100/20 to-purple-200 dark:from-purple-900 dark:to-purple-800/20 border-purple-200 dark:border-purple-700 hover:shadow-lg dark:hover:shadow-purple-900/40 transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-purple-800 dark:text-white">
-              {t.totalCollected}
-            </CardTitle>
-            <DollarSign className="h-6 w-6 text-purple-600 dark:text-purple-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">
-              ₹ {totalCollected.toLocaleString()}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-orange-100/20 to-orange-200 dark:from-orange-500 dark:to-orange-600/20 border-orange-200 dark:border-orange-700 hover:shadow-lg dark:hover:shadow-orange-900/40 transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-orange-800 dark:text-white">
-              {t.pendingAmount}
-            </CardTitle>
-            <Clock className="h-6 w-6 text-orange-600 dark:text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-orange-900 dark:text-orange-100">
-              ₹ {pendingAmount.toLocaleString()}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-cyan-100/20 to-cyan-200 dark:from-cyan-900 dark:to-cyan-800/20 border-cyan-200 dark:border-cyan-700 hover:shadow-lg dark:hover:shadow-cyan-900/40 transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-cyan-800 dark:text-white">
-              {t.overduePayments}
-            </CardTitle>
-            <AlertTriangle className="h-6 w-6 text-cyan-600 dark:text-cyan-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-cyan-900 dark:text-cyan-100">
-              ₹ {overduePaymentsAmount.toLocaleString()}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="flex flex-col items-left">
+                <span className="text-sm font-bold text-purple-800 dark:text-purple-400">
+                  Total Value
+                </span>
+                <span className="text-lg font-bold text-purple-900 dark:text-purple-400">
+                  ₹ {totalLoanAmount.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex flex-col items-left">
+                <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                  Collected
+                </span>
+                <span className="text-lg font-bold text-green-700 dark:text-green-400">
+                  ₹ {totalCollected.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex flex-col items-left">
+                <span className="text-sm font-bold text-orange-600 dark:text-orange-400">
+                  Pending
+                </span>
+                <span className="text-lg font-bold text-orange-700 dark:text-orange-400">
+                  ₹ {pendingAmount.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex flex-col items-left">
+                <span className="text-sm font-bold text-pink-600 dark:text-pink-400">
+                  Arrears
+                </span>
+                <span className="text-lg font-bold text-pink-700 dark:text-pink-400">
+                  ₹ {arrearsLoansTotalValue.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex flex-col items-left">
+                <span className="text-sm font-bold text-yellow-600 dark:text-yellow-400">
+                  Overdue
+                </span>
+                <span className="text-lg font-bold text-yellow-700 dark:text-yellow-400">
+                  ₹ {overdueLoansTotalValue.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex flex-col items-left">
+                <span className="text-sm font-bold text-cyan-600 dark:text-cyan-400">
+                  Completed
+                </span>
+                <span className="text-lg font-bold text-cyan-700 dark:text-cyan-400">
+                  ₹ {completedLoansTotalValue.toLocaleString()}
+                </span>
+              </div>
             </div>
           </CardContent>
         </Card>
