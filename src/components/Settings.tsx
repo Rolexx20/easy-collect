@@ -52,6 +52,9 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
   const [editProfile, setEditProfile] = useState(false);
   const [editProfileData, setEditProfileData] = useState({ name: "", email: "" });
 
+  // Last backup info
+  const [lastBackup, setLastBackup] = useState<{ name: string; updated_at: string } | null>(null);
+
   const translations = {
     en: {
       settings: "Settings",
@@ -147,6 +150,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
     loadUserProfile();
     loadAuthData();
     loadUserStats();
+    loadLastBackup();
   }, []);
 
   const loadUserStats = async () => {
@@ -228,6 +232,36 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
     }
   };
 
+  const loadLastBackup = async () => {
+    try {
+      const bucket = "Database Backup";
+      // list newest file in website-backups folder
+      const { data, error } = await supabase.storage.from(bucket).list("website-backups", {
+        limit: 1,
+        sortBy: { column: "created_at", order: "desc" },
+      } as any);
+
+      if (error) {
+        console.error("Error listing backups:", error);
+        setLastBackup(null);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const item = data[0] as any;
+        setLastBackup({
+          name: item.name,
+          updated_at: item.updated_at || item.created_at || "",
+        });
+      } else {
+        setLastBackup(null);
+      }
+    } catch (err) {
+      console.error("Error loading last backup:", err);
+      setLastBackup(null);
+    }
+  };
+
   const handleExportData = async () => {
     try {
       // Fetch real data from database
@@ -264,6 +298,9 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
         description: "Your data has been exported successfully.",
         duration: 3000,
       });
+
+      // Optionally refresh last backup if you also upload to Supabase from client or inform server to update storage
+      // loadLastBackup();
     } catch (error) {
       console.error('Error exporting data:', error);
       toast({
@@ -642,6 +679,19 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                     {t.importData}
                   </Button>
                 </label>
+              </div>
+
+              {/* Last backup display */}
+              <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                <strong>Last backup:</strong>{" "}
+                {lastBackup ? (
+                  <>
+                    <div>{new Date(lastBackup.updated_at).toLocaleString()}</div>
+                    <div className="text-xs text-muted-foreground truncate">{lastBackup.name}</div>
+                  </>
+                ) : (
+                  <span>No backups found</span>
+                )}
               </div>
             </div>
           </CardContent>
