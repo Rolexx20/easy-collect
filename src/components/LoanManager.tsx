@@ -380,35 +380,60 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
     return end.toISOString().split('T')[0];
   };
 
+  // Modify getLoanCounts to use remaining days for status
+  const getLoanCounts = () => {
+    const allLoans = loans.filter(loan => {
+      const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months);
+      return loan.status !== 'completed'; // Exclude completed loans from active/overdue count
+    });
+
+    const activeLoanCount = allLoans.filter(loan => {
+      const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months);
+      return daysRemaining > 0;
+    }).length;
+
+    const overdueLoanCount = allLoans.filter(loan => {
+      const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months);
+      return daysRemaining === 0;
+    }).length;
+
+    const completedLoanCount = loans.filter(loan => loan.status === 'completed').length;
+    const totalCount = loans.length;
+
+    return {
+      all: totalCount,
+      active: activeLoanCount,
+      overdue: overdueLoanCount,
+      completed: completedLoanCount
+    };
+  };
+
+  // Update filteredLoans to use remaining days for status determination
   const filteredLoans = loans.filter((loan) => {
-    // Calculate remaining days for each loan
     const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months);
-    // If statusFilter is 'active', exclude overdue loans (remaining days == 0 and not completed)
+    
     if (statusFilter === 'active') {
-      if (loan.status !== 'active') return false;
-      if (daysRemaining === 0 && loan.status === 'active') return false;
+      return loan.status !== 'completed' && daysRemaining > 0;
     }
-    // If statusFilter is 'overdue', only show overdue loans (remaining days == 0 and not completed)
     if (statusFilter === 'overdue') {
-      if (!(daysRemaining === 0 && loan.status !== 'completed')) return false;
+      return loan.status !== 'completed' && daysRemaining === 0;
     }
-    // If statusFilter is 'completed', only show completed loans
     if (statusFilter === 'completed') {
-      if (loan.status !== 'completed') return false;
+      return loan.status === 'completed';
     }
-    // ...existing code...
-    const borrowerName = loan.borrowerName || '';
-    const principal = loan.principal_amount.toString();
-    const status = loan.status || '';
-    return (
-      borrowerName.toLowerCase().includes(search.toLowerCase()) ||
-      principal.includes(search) ||
-      status.toLowerCase().includes(search.toLowerCase())
-    );
+    // 'all' filter
+    return true;
   }).sort((a, b) => {
-    // Sort completed loans to the bottom
+    // Sort by status: overdue first, then active, then completed
+    const getDaysRemaining = (loan: Loan) => calculateDaysRemaining(loan.start_date, loan.duration_months);
+    const aOverdue = getDaysRemaining(a) === 0 && a.status !== 'completed';
+    const bOverdue = getDaysRemaining(b) === 0 && b.status !== 'completed';
+    
+    if (aOverdue && !bOverdue) return -1;
+    if (!aOverdue && bOverdue) return 1;
     if (a.status === 'completed' && b.status !== 'completed') return 1;
     if (a.status !== 'completed' && b.status === 'completed') return -1;
+    
     // Within same status, sort by start_date (newest first)
     return new Date(b.start_date).getTime() - new Date(a.start_date).getTime();
   });
@@ -426,6 +451,13 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       return borrower.name;
     }
     return "Unknown Borrower";
+  };
+
+  // Update the loan card display status logic
+  const getDisplayStatus = (loan: Loan) => {
+    if (loan.status === 'completed') return 'completed';
+    const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months);
+    return daysRemaining === 0 ? 'overdue' : 'active';
   };
 
   return (
@@ -593,7 +625,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
             className={`rounded-full px-3 py-1 text-xs ${statusFilter === 'all' ? 'bg-green-600 text-white' : ''}`}
             onClick={() => setStatusFilter('all')}
           >
-            All
+            All ({getLoanCounts().all})
           </Button>
           <Button
             variant={statusFilter === 'active' ? 'default' : 'outline'}
@@ -601,7 +633,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
             className={`rounded-full px-3 py-1 text-xs ${statusFilter === 'active' ? 'bg-green-500 text-white' : ''}`}
             onClick={() => setStatusFilter('active')}
           >
-            {t.active}
+            {t.active} ({getLoanCounts().active})
           </Button>
           <Button
             variant={statusFilter === 'completed' ? 'default' : 'outline'}
@@ -609,7 +641,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
             className={`rounded-full px-3 py-1 text-xs ${statusFilter === 'completed' ? 'bg-blue-500 text-white' : ''}`}
             onClick={() => setStatusFilter('completed')}
           >
-            {t.completed}
+            {t.completed} ({getLoanCounts().completed})
           </Button>
           <Button
             variant={statusFilter === 'overdue' ? 'default' : 'outline'}
@@ -617,7 +649,7 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
             className={`rounded-full px-3 py-1 text-xs ${statusFilter === 'overdue' ? 'bg-red-500 text-white' : ''}`}
             onClick={() => setStatusFilter('overdue')}
           >
-            {t.overdue}
+            {t.overdue} ({getLoanCounts().overdue})
           </Button>
         </div>
         <Input
@@ -641,11 +673,10 @@ const LoanManager = ({ language, loans, borrowers, onDataChange }: LoanManagerPr
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredLoans.map((loan) => {
+            const displayStatus = getDisplayStatus(loan);
             // Calculate remaining days
             const daysRemaining = calculateDaysRemaining(loan.start_date, loan.duration_months);
             // If remaining days is 0 and loan is not completed, mark as overdue for display
-            const displayStatus = (daysRemaining === 0 && loan.status !== 'completed') ? 'overdue' : loan.status;
-
             const progress = calculateProgress(loan.amount_paid, loan.total_amount);
             const dailyPayment = loan.total_amount / (loan.duration_months * 30);
             const totalPayment = loan.principal_amount + (loan.principal_amount * loan.interest_rate / 100);

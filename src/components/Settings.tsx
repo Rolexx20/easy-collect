@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   User,
   Download,
@@ -354,69 +354,208 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
     }
   };
 
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+
   const handleImportData = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const file = event.target.files?.[0] ?? importInputRef.current?.files?.[0];
     if (!file) return;
 
+    const clearInputs = () => {
+      try { if (importInputRef.current) importInputRef.current.value = ""; } catch {}
+      try { event.target.value = ""; } catch {}
+    };
+
+    let text = "";
     try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      
-      // Validate data structure
-      if (!data.borrowers || !data.loans || !data.payments) {
-        throw new Error('Invalid backup file format');
-      }
+      text = await file.text();
+    } catch (err) {
+      console.error("Error reading file:", err);
+      toast({
+        title: "Import Failed",
+        description: "Unable to read the selected file.",
+        variant: "destructive",
+        duration: 4000,
+      });
+      clearInputs();
+      return;
+    }
 
-      // Import borrowers
-      if (data.borrowers.length > 0) {
-        for (const borrower of data.borrowers) {
-          const { id, created_at, updated_at, total_loans, active_loans, total_amount, total_paid, remaining_amount, pending_payment, ...borrowerData } = borrower;
-          await createBorrower(borrowerData);
+    let parsed: any;
+    try {
+      parsed = JSON.parse(text);
+    } catch (err) {
+      console.error("Invalid JSON:", err);
+      toast({
+        title: "Import Failed",
+        description: "File is not valid JSON. Please check the file format.",
+        variant: "destructive",
+        duration: 4000,
+      });
+      clearInputs();
+      return;
+    }
+
+    // Normalize common backup shapes
+    let borrowers: any[] = parsed.borrowers ?? parsed.data?.borrowers ?? [];
+    let loans: any[] = parsed.loans ?? parsed.data?.loans ?? [];
+    let payments: any[] = parsed.payments ?? parsed.data?.payments ?? [];
+
+    // Convert map-like objects to arrays
+    if (borrowers && !Array.isArray(borrowers) && typeof borrowers === "object") borrowers = Object.values(borrowers);
+    if (loans && !Array.isArray(loans) && typeof loans === "object") loans = Object.values(loans);
+    if (payments && !Array.isArray(payments) && typeof payments === "object") payments = Object.values(payments);
+
+    if (
+      (!borrowers || borrowers.length === 0) &&
+      (!loans || loans.length === 0) &&
+      (!payments || payments.length === 0)
+    ) {
+      toast({
+        title: "Import Failed",
+        description: "No recognizable borrowers, loans or payments found in the file.",
+        variant: "destructive",
+        duration: 4000,
+      });
+      clearInputs();
+      return;
+    }
+
+    const results = { borrowers: 0, loans: 0, payments: 0 };
+    const errors: string[] = [];
+
+    try {
+      // Whitelist of borrower columns that exist in DB - avoid aggregated/computed fields
+      const borrowerCols = new Set([
+        "id",
+        "name",
+        "phone",
+        "address",
+        "nic_number",
+        "first_name",
+        "last_name",
+        "title",
+        "email"
+      ]);
+
+      const borrowersUpsert = (borrowers || []).map((b: any) => {
+        const out: any = {};
+        for (const k of Object.keys(b || {})) {
+          if (borrowerCols.has(k)) out[k] = b[k];
+        }
+        // ensure id exists for upsert to preserve relationships
+        if (!out.id && b.id) out.id = b.id;
+        return out;
+      }).filter((r: any) => r && Object.keys(r).length > 0);
+
+      if (borrowersUpsert.length > 0) {
+        const { error: bErr } = await supabase.from("borrowers").upsert(borrowersUpsert, { returning: "minimal" } as any);
+        if (bErr) {
+          console.error("Borrowers upsert error:", bErr);
+          errors.push(`borrowers: ${bErr.message}`);
+        } else {
+          results.borrowers = borrowersUpsert.length;
         }
       }
 
-      // Import loans  
-      if (data.loans.length > 0) {
-        for (const loan of data.loans) {
-          const { id, borrowerName, amount_paid, created_at, updated_at, ...loanData } = loan;
-          await createLoan(loanData);
+      // Loans - map only expected columns (preserve ids and borrower_id)
+      const loanCols = new Set([
+        "id",
+        "borrower_id",
+        "principal_amount",
+        "interest_rate",
+        "duration_months",
+        "total_amount",
+        "amount_paid",
+        "start_date",
+        "next_payment_date",
+        "status",
+        "created_at",
+        "updated_at",
+        "arrears",
+        "user_id"
+      ]);
+
+      const loansUpsert = (loans || []).map((l: any) => {
+        const out: any = {};
+        for (const k of Object.keys(l || {})) {
+          if (loanCols.has(k)) out[k] = l[k];
+        }
+        if (!out.id && l.id) out.id = l.id;
+        // ensure borrower_id is present if available under alternative keys
+        out.borrower_id = out.borrower_id ?? l.borrowerId ?? l.borrower_id ?? null;
+        return out;
+      }).filter((r: any) => r && Object.keys(r).length > 0);
+
+      if (loansUpsert.length > 0) {
+        const { error: lErr } = await supabase.from("loans").upsert(loansUpsert, { returning: "minimal" } as any);
+        if (lErr) {
+          console.error("Loans upsert error:", lErr);
+          errors.push(`loans: ${lErr.message}`);
+        } else {
+          results.loans = loansUpsert.length;
         }
       }
 
-      // Import payments
-      if (data.payments.length > 0) {
-        for (const payment of data.payments) {
-          const { id, created_at, ...paymentData } = payment;
-          await createPayment(paymentData);
+      // Payments - map only expected columns
+      const paymentCols = new Set([
+        "id",
+        "loan_id",
+        "amount",
+        "payment_date",
+        "payment_method",
+        "notes",
+        "created_at",
+        "payment_time",
+        "user_id"
+      ]);
+
+      const paymentsUpsert = (payments || []).map((p: any) => {
+        const out: any = {};
+        for (const k of Object.keys(p || {})) {
+          if (paymentCols.has(k)) out[k] = p[k];
+        }
+        if (!out.id && p.id) out.id = p.id;
+        out.loan_id = out.loan_id ?? p.loanId ?? p.loan_id ?? null;
+        return out;
+      }).filter((r: any) => r && Object.keys(r).length > 0);
+
+      if (paymentsUpsert.length > 0) {
+        const { error: pErr } = await supabase.from("payments").upsert(paymentsUpsert, { returning: "minimal" } as any);
+        if (pErr) {
+          console.error("Payments upsert error:", pErr);
+          errors.push(`payments: ${pErr.message}`);
+        } else {
+          results.payments = paymentsUpsert.length;
         }
       }
+
+    } catch (err: any) {
+      console.error("Import exception:", err);
+      errors.push(String(err?.message ?? err));
+    }
+
+    const totalImported = results.borrowers + results.loans + results.payments;
+
+    if (totalImported > 0) {
+      const now = new Date().toISOString();
+      try { localStorage.setItem("ec_lastImport", now); } catch {}
+      setLastImport(now);
 
       toast({
         title: t.dataImported,
-        description: "Your data has been imported successfully.",
-        duration: 3000,
+        description: `Imported ${results.borrowers} borrowers, ${results.loans} loans, ${results.payments} payments.`,
+        duration: 4000,
       });
-
-      // persist last import timestamp
-      const now = new Date().toISOString();
-      try {
-        localStorage.setItem("ec_lastImport", now);
-      } catch {}
-      setLastImport(now);
-
-      // Reset the file input
-      event.target.value = '';
-    } catch (error) {
-      console.error('Error importing data:', error);
+    } else {
       toast({
         title: "Import Failed",
-        description: "Failed to import data. Please check the file format.",
+        description: errors.length > 0 ? `Errors: ${errors[0]}` : "Failed to import data. Please check the file format.",
         variant: "destructive",
-        duration: 3000,
+        duration: 6000,
       });
-      // Reset the file input
-      event.target.value = '';
     }
+
+    clearInputs();
   };
 
   const handlePasswordChange = async () => {
@@ -711,23 +850,27 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                   {t.importDesc}
                 </p>
-                <label htmlFor="import-file" className="w-full">
-                  <Input
-                    type="file"
-                    accept=".json"
-                    onChange={handleImportData}
-                    className="hidden"
-                    id="import-file"
-                  />
-                  <Button
-                    variant="outline"
-                    className="w-full flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
-                    type="button"
-                  >
-                    <Upload className="w-4 h-4" />
-                    {t.importData}
-                  </Button>
-                </label>
+
+                {/* Hidden native file input (ref) */}
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept=".json"
+                  onChange={handleImportData}
+                  className="hidden"
+                  id="import-file"
+                />
+
+                {/* Visible button opens file picker */}
+                <Button
+                  variant="outline"
+                  className="w-full flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                  type="button"
+                  onClick={() => importInputRef.current?.click()}
+                >
+                  <Upload className="w-4 h-4" />
+                  {t.importData}
+                </Button>
               </div>
 
               {/* Last backup display */}

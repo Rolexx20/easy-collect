@@ -243,18 +243,10 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             loanStatusFilter === "closed" ? "completed" : loanStatusFilter;
           if (filterStatus === "overdue") {
             data = data.filter((loan) => {
-              const startDate = loan.start_date
-                ? new Date(loan.start_date)
-                : null;
-              const durationMonths = loan.duration_months || loan.duration || 0;
-              let endDate = startDate ? new Date(startDate) : null;
-              if (endDate && durationMonths) {
-                endDate.setMonth(endDate.getMonth() + durationMonths);
-              }
-              const today = new Date();
-              // Don't treat completed loans as overdue
               const status = (loan.status || "").toLowerCase();
-              return endDate && endDate < today && status !== "completed";
+              const remainingDays = calculateRemainingDays(loan);
+              // Only include loans with 0 or negative remaining days that aren't completed
+              return remainingDays <= 0 && status !== "completed";
             });
           } else {
             data = data.filter(
@@ -267,18 +259,10 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         // Overdue: start_date + duration < today OR explicit status is "overdue"
         // but never include loans that are already completed
         data = loans.filter((loan) => {
-          const startDate = loan.start_date ? new Date(loan.start_date) : null;
-          const durationMonths = loan.duration_months || loan.duration || 0;
-          let dueDate = startDate ? new Date(startDate) : null;
-          if (dueDate && durationMonths) {
-            dueDate.setMonth(dueDate.getMonth() + durationMonths);
-          }
-          const today = new Date();
           const status = (loan.status || "").toLowerCase();
-          return (
-            status === "overdue" ||
-            ((dueDate && dueDate < today) && status !== "completed")
-          );
+          const remainingDays = calculateRemainingDays(loan);
+          // Only include loans with 0 or negative remaining days that aren't completed
+          return remainingDays <= 0 && status !== "completed";
         });
         break;
       case "borrower":
@@ -688,14 +672,12 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           const totalLoan = data.reduce((sum, l) => sum + (l.total_amount || 0), 0);
           const totalPaid = data.reduce((sum, l) => sum + (l.amount_paid || 0), 0);
           const totalRemain = data.reduce((sum, l) => sum + ((l.total_amount || 0) - (l.amount_paid || 0)), 0);
-          // head length = 8 -> keep "Total" aligned in 5th column (Status)
           body.push(["", "", "", "", "Total", totalLoan, totalRemain, totalPaid]);
           break;
         }
         case "borrower": {
           const totalLoans = data.reduce((sum, b) => sum + (loans.filter(l => l.borrower_id === b.id).length), 0);
           const totalAmount = data.reduce((sum, b) => sum + (b.total_amount || 0), 0);
-          // head length = 9 -> place totals in last two columns
           body.push(["", "", "", "", "", "", "", totalLoans, totalAmount]);
           break;
         }
@@ -703,7 +685,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           const totalLoan = data.reduce((sum, l) => sum + (l.total_amount || 0), 0);
           const totalPaid = data.reduce((sum, l) => sum + (l.amount_paid || 0), 0);
           const totalRemain = data.reduce((sum, l) => sum + ((l.total_amount || 0) - (l.amount_paid || 0)), 0);
-          // head length = 7 -> totals in columns 5,6,7
           body.push(["", "", "", "", totalLoan, totalPaid, totalRemain]);
           break;
         }
@@ -711,7 +692,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           const totalLoan = data.reduce((sum, p) => sum + (p.totalLoanAmount || 0), 0);
           const totalRemain = data.reduce((sum, p) => sum + (p.remainingLoanAmount || 0), 0);
           const totalPaid = data.reduce((sum, p) => sum + (p.displayAmount !== undefined ? p.displayAmount : p.amount || 0), 0);
-          // head length = 8 -> place "Total" in 5th column and totals in 6,7,8
           body.push(["", "", "", "", "Total", totalLoan, totalRemain, totalPaid]);
           break;
         }
@@ -720,7 +700,6 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           const totalPaid = data.reduce((sum, l) => sum + (l.amount_paid || 0), 0);
           const totalArrears = data.reduce((sum, l) => sum + calculateArrears(l), 0);
           const totalMissed = data.reduce((sum, l) => sum + calculateMissedDays(l), 0);
-          // head length = 7 -> totals in columns 2..6 (we place label in col 2)
           body.push(["", "Total", totalLoan, totalPaid, totalArrears, totalMissed, ""]);
           break;
         }
@@ -1007,14 +986,14 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
                       ? "bg-success/20 text-success border border-success/30"
                       : (item.status || "active") === "completed"
                       ? "bg-info/20 text-info border border-info/30"
-                      : "bg-muted text-muted-foreground border border-border"
+                      : "bg-success/20 text-success border border-success/30"
                   }`}
                 >
                   {isOverdue
                     ? "Overdue"
-                    : item.status === "completed"
+                    : status === "completed"
                     ? "Completed"
-                    : item.status || "Active"}
+                    : "Active"}
                 </span>
               </TableCell>
               <TableCell>
@@ -1270,6 +1249,20 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       return;
     }
     setToDate(date);
+  };
+
+  // Add this helper function after other calculation helpers
+  const calculateRemainingDays = (loan: any) => {
+    const startDate = loan.start_date ? new Date(loan.start_date) : null;
+    const durationMonths = loan.duration_months || loan.duration || 0;
+    let endDate = startDate ? new Date(startDate) : null;
+    
+    if (!endDate || !durationMonths) return 0;
+    
+    endDate.setMonth(endDate.getMonth() + durationMonths);
+    const today = new Date();
+    const remainingMs = endDate.getTime() - today.getTime();
+    return Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
   };
 
   return (
