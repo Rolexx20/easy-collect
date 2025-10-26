@@ -55,6 +55,10 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
   // Last backup info
   const [lastBackup, setLastBackup] = useState<{ name: string; updated_at: string } | null>(null);
 
+  // New states to track last export/import times
+  const [lastExport, setLastExport] = useState<string | null>(null);
+  const [lastImport, setLastImport] = useState<string | null>(null);
+
   const translations = {
     en: {
       settings: "Settings",
@@ -151,7 +155,38 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
     loadAuthData();
     loadUserStats();
     loadLastBackup();
+    loadExportImport(); // load persisted export/import timestamps
   }, []);
+
+  // Load persisted last export/import from localStorage
+  const loadExportImport = () => {
+    try {
+      const le = localStorage.getItem("ec_lastExport");
+      const li = localStorage.getItem("ec_lastImport");
+      setLastExport(le || null);
+      setLastImport(li || null);
+    } catch (err) {
+      console.error("Error loading last export/import:", err);
+    }
+  };
+
+  // New: format ISO string to "dd/MM/yyyy, HH:mm:ss"
+  const formatDateTime = (iso?: string | null) => {
+    if (!iso) return null;
+    try {
+      const d = new Date(iso);
+      const pad = (n: number) => n.toString().padStart(2, "0");
+      const day = pad(d.getDate());
+      const month = pad(d.getMonth() + 1);
+      const year = d.getFullYear();
+      const hours = pad(d.getHours());
+      const mins = pad(d.getMinutes());
+      const secs = pad(d.getSeconds());
+      return `${day}/${month}/${year}, ${hours}:${mins}:${secs}`;
+    } catch (e) {
+      return new Date(iso).toLocaleString();
+    }
+  };
 
   const loadUserStats = async () => {
     try {
@@ -299,6 +334,13 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
         duration: 3000,
       });
 
+      // persist last export timestamp
+      const now = new Date().toISOString();
+      try {
+        localStorage.setItem("ec_lastExport", now);
+      } catch {}
+      setLastExport(now);
+
       // Optionally refresh last backup if you also upload to Supabase from client or inform server to update storage
       // loadLastBackup();
     } catch (error) {
@@ -354,6 +396,13 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
         description: "Your data has been imported successfully.",
         duration: 3000,
       });
+
+      // persist last import timestamp
+      const now = new Date().toISOString();
+      try {
+        localStorage.setItem("ec_lastImport", now);
+      } catch {}
+      setLastImport(now);
 
       // Reset the file input
       event.target.value = '';
@@ -682,16 +731,36 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
               </div>
 
               {/* Last backup display */}
-              <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-                <strong>Last backup:</strong>{" "}
-                {lastBackup ? (
-                  <>
-                    <div>{new Date(lastBackup.updated_at).toLocaleString()}</div>
-                    <div className="text-xs text-muted-foreground truncate">{lastBackup.name}</div>
-                  </>
-                ) : (
-                  <span>No backups found</span>
-                )}
+              <div className="mt-3 text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                <div>
+                  <strong>Last export:</strong>{" "}
+                  {lastExport ? (
+                    <span className="ml-1">{formatDateTime(lastExport)}</span>
+                  ) : (
+                    <span className="ml-1">Never</span>
+                  )}
+                </div>
+
+                <div>
+                  <strong>Last import:</strong>{" "}
+                  {lastImport ? (
+                    <span className="ml-1">{formatDateTime(lastImport)}</span>
+                  ) : (
+                    <span className="ml-1">Never</span>
+                  )}
+                </div>
+
+                <div>
+                  <strong>Last backup:</strong>{" "}
+                  {lastBackup ? (
+                    <span className="ml-1">
+                      {formatDateTime(lastBackup.updated_at) ?? new Date(lastBackup.updated_at).toLocaleString()}
+                      <span className="text-xs text-muted-foreground truncate ml-2">{lastBackup.name}</span>
+                    </span>
+                  ) : (
+                    <span className="ml-1">No backups found</span>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
