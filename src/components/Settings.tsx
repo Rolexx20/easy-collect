@@ -464,12 +464,13 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
           <CardContent className="flex-1 flex flex-col justify-between">
             {!editProfile ? (
               <form className="space-y-4 flex flex-col h-full">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div>
                     <Label htmlFor="name">{t.name}</Label>
                     <div
-                      className="bg-gray-100 dark:bg-[#2d323c] rounded-md px-4 py-2 mt-1 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                      className="bg-gray-100 dark:bg-[#2d323c] rounded-md px-4 py-2 mt-1 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 w-full truncate"
                       id="name"
+                      style={{ minWidth: 0 }}
                     >
                       {profile.name}
                     </div>
@@ -477,8 +478,9 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                   <div>
                     <Label htmlFor="email">{t.email}</Label>
                     <div
-                      className="bg-gray-100 dark:bg-[#2d323c] rounded-md px-4 py-2 mt-1 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                      className="bg-gray-100 dark:bg-[#2d323c] rounded-md px-4 py-2 mt-1 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 w-full break-all"
                       id="email"
+                      style={{ minWidth: 0 }}
                     >
                       {profile.email}
                     </div>
@@ -538,7 +540,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
               </form>
             ) : (
               <form className="space-y-4 flex flex-col h-full">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div>
                     <Label htmlFor="edit-name">{t.name}</Label>
                     <Input
@@ -546,7 +548,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                       value={editProfileData.name}
                       onChange={e => setEditProfileData(prev => ({ ...prev, name: e.target.value }))}
                       placeholder="Enter full name"
-                      className="mt-1 bg-gray-100 dark:bg-[#23272f] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
+                      className="mt-1 bg-gray-100 dark:bg-[#23272f] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white w-full"
                     />
                   </div>
                   <div>
@@ -556,7 +558,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                       value={editProfileData.email}
                       onChange={e => setEditProfileData(prev => ({ ...prev, email: e.target.value }))}
                       placeholder="Enter email address"
-                      className="mt-1 bg-gray-100 dark:bg-[#23272f] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
+                      className="mt-1 bg-gray-100 dark:bg-[#23272f] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white w-full"
                     />
                   </div>
                 </div>

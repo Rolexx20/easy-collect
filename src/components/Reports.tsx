@@ -252,7 +252,9 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
                 endDate.setMonth(endDate.getMonth() + durationMonths);
               }
               const today = new Date();
-              return endDate && endDate < today;
+              // Don't treat completed loans as overdue
+              const status = (loan.status || "").toLowerCase();
+              return endDate && endDate < today && status !== "completed";
             });
           } else {
             data = data.filter(
@@ -262,7 +264,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         }
         break;
       case "overdue":
-        // Overdue: start_date + duration < today OR status is "overdue"
+        // Overdue: start_date + duration < today OR explicit status is "overdue"
+        // but never include loans that are already completed
         data = loans.filter((loan) => {
           const startDate = loan.start_date ? new Date(loan.start_date) : null;
           const durationMonths = loan.duration_months || loan.duration || 0;
@@ -271,7 +274,11 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             dueDate.setMonth(dueDate.getMonth() + durationMonths);
           }
           const today = new Date();
-          return loan.status === "overdue" || (dueDate && dueDate < today);
+          const status = (loan.status || "").toLowerCase();
+          return (
+            status === "overdue" ||
+            ((dueDate && dueDate < today) && status !== "completed")
+          );
         });
         break;
       case "borrower":
@@ -387,7 +394,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           loanEndDate.setMonth(loanEndDate.getMonth() + durationMonths);
         }
         const today = new Date();
-        const isOverdue = loanEndDate && loanEndDate < today;
+        const status = (loan.status || "").toLowerCase();
+        const isOverdue = loanEndDate && loanEndDate < today && status !== "completed";
         csvContent += `${index + 1},${loan.start_date},${
           loanEndDate ? loanEndDate.toISOString().split("T")[0] : ""
         },${formatReportBorrowerName(loan.borrowerName || "N/A")},${
@@ -461,6 +469,48 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
         csvContent += `${index + 1},${formatReportBorrowerName(loan.borrowerName || "N/A")},${loan.total_amount},${loan.amount_paid},${calculateArrears(loan)},${calculateMissedDays(loan)},${getLastMissedDate(loan)}\n`;
       });
     }
+    // Add totals row at the end
+    if (data.length > 0) {
+      switch (selectedReportType) {
+        case "collection": {
+          const totalLoan = data.reduce((sum, l) => sum + (l.total_amount || 0), 0);
+          const totalPaid = data.reduce((sum, l) => sum + (l.amount_paid || 0), 0);
+          const totalRemain = data.reduce((sum, l) => sum + ((l.total_amount || 0) - (l.amount_paid || 0)), 0);
+          csvContent += `,,,,,${totalLoan},${totalRemain},${totalPaid}\n`;
+          break;
+        }
+        case "borrower": {
+          const totalLoans = data.reduce((sum, b) => sum + (loans.filter(l => l.borrower_id === b.id).length), 0);
+          const totalAmount = data.reduce((sum, b) => sum + (b.total_amount || 0), 0);
+          csvContent += `,,,,,,,${totalLoans},${totalAmount}\n`;
+          break;
+        }
+        case "overdue": {
+          const totalLoan = data.reduce((sum, l) => sum + (l.total_amount || 0), 0);
+          const totalPaid = data.reduce((sum, l) => sum + (l.amount_paid || 0), 0);
+          const totalRemain = data.reduce((sum, l) => sum + ((l.total_amount || 0) - (l.amount_paid || 0)), 0);
+          csvContent += `,,,,${totalLoan},${totalPaid},${totalRemain}\n`;
+          break;
+        }
+        case "dailyCollection": {
+          const totalLoan = data.reduce((sum, p) => sum + (p.totalLoanAmount || 0), 0);
+          const totalRemain = data.reduce((sum, p) => sum + (p.remainingLoanAmount || 0), 0);
+          const totalPaid = data.reduce((sum, p) => sum + (p.displayAmount !== undefined ? p.displayAmount : p.amount || 0), 0);
+          csvContent += `,,,,,${totalLoan},${totalRemain},${totalPaid}\n`;
+          break;
+        }
+        case "arrears": {
+          const totalLoan = data.reduce((sum, l) => sum + (l.total_amount || 0), 0);
+          const totalPaid = data.reduce((sum, l) => sum + (l.amount_paid || 0), 0);
+          const totalArrears = data.reduce((sum, l) => sum + calculateArrears(l), 0);
+          const totalMissed = data.reduce((sum, l) => sum + calculateMissedDays(l), 0);
+          csvContent += `,,${totalLoan},${totalPaid},${totalArrears},${totalMissed},\n`;
+          break;
+        }
+        default:
+          break;
+      }
+    }
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -501,7 +551,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           loanEndDate.setMonth(loanEndDate.getMonth() + durationMonths);
         }
         const today = new Date();
-        const isOverdue = loanEndDate && loanEndDate < today;
+        const status = (loan.status || "").toLowerCase();
+        const isOverdue = loanEndDate && loanEndDate < today && status !== "completed";
         return [
           index + 1,
           loan.start_date,
@@ -630,12 +681,61 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
       title = "Arrears Report";
     }
 
+    // Add totals row to body BEFORE calling autoTable
+    if (data.length > 0) {
+      switch (selectedReportType) {
+        case "collection": {
+          const totalLoan = data.reduce((sum, l) => sum + (l.total_amount || 0), 0);
+          const totalPaid = data.reduce((sum, l) => sum + (l.amount_paid || 0), 0);
+          const totalRemain = data.reduce((sum, l) => sum + ((l.total_amount || 0) - (l.amount_paid || 0)), 0);
+          // head length = 8 -> keep "Total" aligned in 5th column (Status)
+          body.push(["", "", "", "", "Total", totalLoan, totalRemain, totalPaid]);
+          break;
+        }
+        case "borrower": {
+          const totalLoans = data.reduce((sum, b) => sum + (loans.filter(l => l.borrower_id === b.id).length), 0);
+          const totalAmount = data.reduce((sum, b) => sum + (b.total_amount || 0), 0);
+          // head length = 9 -> place totals in last two columns
+          body.push(["", "", "", "", "", "", "", totalLoans, totalAmount]);
+          break;
+        }
+        case "overdue": {
+          const totalLoan = data.reduce((sum, l) => sum + (l.total_amount || 0), 0);
+          const totalPaid = data.reduce((sum, l) => sum + (l.amount_paid || 0), 0);
+          const totalRemain = data.reduce((sum, l) => sum + ((l.total_amount || 0) - (l.amount_paid || 0)), 0);
+          // head length = 7 -> totals in columns 5,6,7
+          body.push(["", "", "", "", totalLoan, totalPaid, totalRemain]);
+          break;
+        }
+        case "dailyCollection": {
+          const totalLoan = data.reduce((sum, p) => sum + (p.totalLoanAmount || 0), 0);
+          const totalRemain = data.reduce((sum, p) => sum + (p.remainingLoanAmount || 0), 0);
+          const totalPaid = data.reduce((sum, p) => sum + (p.displayAmount !== undefined ? p.displayAmount : p.amount || 0), 0);
+          // head length = 8 -> place "Total" in 5th column and totals in 6,7,8
+          body.push(["", "", "", "", "Total", totalLoan, totalRemain, totalPaid]);
+          break;
+        }
+        case "arrears": {
+          const totalLoan = data.reduce((sum, l) => sum + (l.total_amount || 0), 0);
+          const totalPaid = data.reduce((sum, l) => sum + (l.amount_paid || 0), 0);
+          const totalArrears = data.reduce((sum, l) => sum + calculateArrears(l), 0);
+          const totalMissed = data.reduce((sum, l) => sum + calculateMissedDays(l), 0);
+          // head length = 7 -> totals in columns 2..6 (we place label in col 2)
+          body.push(["", "Total", totalLoan, totalPaid, totalArrears, totalMissed, ""]);
+          break;
+        }
+        default:
+          break;
+      }
+    }
+
     doc.text(title, 14, 16);
     autoTable(doc, {
       head: [head],
       body: body,
       startY: 22,
       styles: { fontSize: 9 },
+      // optional: style last row (totals) slightly bolder — leave to PDF renderer defaults
     });
     doc.save(filename);
   };
@@ -794,7 +894,88 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
     const startIdx = (page - 1) * rowsPerPage;
     const paginatedData = data.slice(startIdx, startIdx + rowsPerPage);
 
-    return paginatedData.map((item, index) => {
+    // --- Totals Calculation ---
+    let totalsRow: JSX.Element | null = null;
+    if (data.length > 0) {
+      switch (selectedReportType) {
+        case "collection": {
+          const totalLoan = data.reduce((sum, l) => sum + (l.total_amount || 0), 0);
+          const totalPaid = data.reduce((sum, l) => sum + (l.amount_paid || 0), 0);
+          const totalRemain = data.reduce((sum, l) => sum + ((l.total_amount || 0) - (l.amount_paid || 0)), 0);
+          totalsRow = (
+            <TableRow className="bg-yellow-100 dark:bg-yellow-900/40">
+              <TableCell colSpan={5} className="font-bold text-right">Total</TableCell>
+              <TableCell className="font-bold text-purple-700 dark:text-purple-400">₹ {totalLoan.toLocaleString()}</TableCell>
+              <TableCell className="font-bold text-red-600 dark:text-red-400">₹ {totalRemain.toLocaleString()}</TableCell>
+              <TableCell className="font-bold text-green-700 dark:text-green-400">₹ {totalPaid.toLocaleString()}</TableCell>
+            </TableRow>
+          );
+          break;
+        }
+        case "borrower": {
+          const totalLoans = data.reduce((sum, b) => sum + (loans.filter(l => l.borrower_id === b.id).length), 0);
+          const totalAmount = data.reduce((sum, b) => sum + (b.total_amount || 0), 0);
+          totalsRow = (
+            <TableRow className="bg-yellow-100 dark:bg-yellow-900/40">
+              <TableCell colSpan={7} className="font-bold text-right">Total</TableCell>
+              <TableCell className="font-bold">{totalLoans}</TableCell>
+              <TableCell className="font-bold text-purple-700 dark:text-purple-400">₹ {totalAmount.toLocaleString()}</TableCell>
+            </TableRow>
+          );
+          break;
+        }
+        case "overdue": {
+          const totalLoan = data.reduce((sum, l) => sum + (l.total_amount || 0), 0);
+          const totalPaid = data.reduce((sum, l) => sum + (l.amount_paid || 0), 0);
+          const totalRemain = data.reduce((sum, l) => sum + ((l.total_amount || 0) - (l.amount_paid || 0)), 0);
+          totalsRow = (
+            <TableRow className="bg-yellow-100 dark:bg-yellow-900/40">
+              <TableCell colSpan={4} className="font-bold text-right">Total</TableCell>
+              <TableCell className="font-bold text-purple-700 dark:text-purple-400">₹ {totalLoan.toLocaleString()}</TableCell>
+              <TableCell className="font-bold text-green-700 dark:text-green-400">₹ {totalPaid.toLocaleString()}</TableCell>
+              <TableCell className="font-bold text-red-600 dark:text-red-400">₹ {totalRemain.toLocaleString()}</TableCell>
+            </TableRow>
+          );
+          break;
+        }
+        case "dailyCollection": {
+          const totalLoan = data.reduce((sum, p) => sum + (p.totalLoanAmount || 0), 0);
+          const totalRemain = data.reduce((sum, p) => sum + (p.remainingLoanAmount || 0), 0);
+          const totalPaid = data.reduce((sum, p) => sum + (p.displayAmount !== undefined ? p.displayAmount : p.amount || 0), 0);
+          totalsRow = (
+            <TableRow className="bg-yellow-100 dark:bg-yellow-900/40">
+              <TableCell colSpan={5} className="font-bold text-right">Total</TableCell>
+              <TableCell className="font-bold text-purple-700 dark:text-purple-400">₹ {totalLoan.toLocaleString()}</TableCell>
+              <TableCell className="font-bold text-red-600 dark:text-red-400">₹ {totalRemain.toLocaleString()}</TableCell>
+              <TableCell className="font-bold text-green-700 dark:text-green-400">₹ {totalPaid.toLocaleString()}</TableCell>
+            </TableRow>
+          );
+          break;
+        }
+        case "arrears": {
+          const totalLoan = data.reduce((sum, l) => sum + (l.total_amount || 0), 0);
+          const totalPaid = data.reduce((sum, l) => sum + (l.amount_paid || 0), 0);
+          const totalArrears = data.reduce((sum, l) => sum + calculateArrears(l), 0);
+          const totalMissed = data.reduce((sum, l) => sum + calculateMissedDays(l), 0);
+          totalsRow = (
+            <TableRow className="bg-yellow-100 dark:bg-yellow-900/40">
+              <TableCell colSpan={2} className="font-bold text-right">Total</TableCell>
+              <TableCell className="font-bold text-green-700 dark:text-green-400">₹ {totalLoan.toLocaleString()}</TableCell>
+              <TableCell className="font-bold text-orange-600 dark:text-orange-400">₹ {totalPaid.toLocaleString()}</TableCell>
+              <TableCell className="font-bold text-red-600 dark:text-red-400">₹ {totalArrears.toLocaleString()}</TableCell>
+              <TableCell className="font-bold text-purple-700 dark:text-purple-400">{totalMissed} days</TableCell>
+              <TableCell />
+            </TableRow>
+          );
+          break;
+        }
+        default:
+          totalsRow = null;
+      }
+    }
+
+    // --- Render paginated rows ---
+    const rows = paginatedData.map((item, index) => {
       const rowNumber = startIdx + index + 1;
       switch (selectedReportType) {
         case "collection":
@@ -805,7 +986,8 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
             loanEndDate.setMonth(loanEndDate.getMonth() + durationMonths);
           }
           const today = new Date();
-          const isOverdue = loanEndDate && loanEndDate < today;
+          const status = (item.status || "").toLowerCase();
+          const isOverdue = loanEndDate && loanEndDate < today && status !== "completed";
           return (
             <TableRow key={index}>
               <TableCell>{rowNumber}</TableCell>
@@ -975,6 +1157,15 @@ const Reports = ({ language, borrowers, loans }: ReportsProps) => {
           return null;
       }
     });
+
+    // Only show totals row on last page
+    const isLastPage = page === Math.ceil(data.length / rowsPerPage);
+    return (
+      <>
+        {rows}
+        {isLastPage && totalsRow}
+      </>
+    );
   };
 
   // Pagination controls
