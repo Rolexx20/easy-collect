@@ -11,6 +11,13 @@ import {
   Shield,
   Monitor,
   Clock,
+  CloudDownload,
+  Trash2,
+  Cloud,
+  CloudUpload,
+  RefreshCcw,
+  DatabaseBackup,
+  LucideImport,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +31,18 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { getUserProfile, updateUserProfile, changePassword, type UserProfile, getBorrowers, getLoans, getPayments, createBorrower, createLoan, createPayment } from "@/lib/database";
+import {
+  getUserProfile,
+  updateUserProfile,
+  changePassword,
+  type UserProfile,
+  getBorrowers,
+  getLoans,
+  getPayments,
+  createBorrower,
+  createLoan,
+  createPayment,
+} from "@/lib/database";
 import { supabase } from "@/integrations/supabase/client";
 
 interface SettingsProps {
@@ -44,20 +62,44 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
   const [showSessionDetails, setShowSessionDetails] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
   const [totalUsers, setTotalUsers] = useState(0);
   const [editProfile, setEditProfile] = useState(false);
-  const [editProfileData, setEditProfileData] = useState({ name: "", email: "" });
+  const [editProfileData, setEditProfileData] = useState({
+    name: "",
+    email: "",
+  });
 
   // Last backup info
-  const [lastBackup, setLastBackup] = useState<{ name: string; updated_at: string } | null>(null);
+  const [lastBackup, setLastBackup] = useState<{
+    name: string;
+    updated_at: string;
+  } | null>(null);
 
   // New states to track last export/import times
   const [lastExport, setLastExport] = useState<string | null>(null);
   const [lastImport, setLastImport] = useState<string | null>(null);
+
+  // New states: cloud backups, UI flags and statuses for each action
+  const [cloudBackups, setCloudBackups] = useState<
+    Array<{ name: string; updated_at?: string }>
+  >([]);
+  const [showCloudBackups, setShowCloudBackups] = useState(false);
+  const [cloudListLoading, setCloudListLoading] = useState(false);
+
+  const [backupNowStatus, setBackupNowStatus] = useState<string | null>(null);
+  const [localImportStatus, setLocalImportStatus] = useState<string | null>(
+    null
+  );
+  const [cloudImportStatus, setCloudImportStatus] = useState<string | null>(
+    null
+  );
+
+  // NEW: maximum items to fetch / show, "load more" increments this
+  const [cloudLimit, setCloudLimit] = useState<number>(20);
 
   const translations = {
     en: {
@@ -71,8 +113,8 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       dataDesc: "Backup and restore your data",
       exportData: "Export Data",
       importData: "Import Data",
-      exportDesc: "Download all your data as backup",
-      importDesc: "Restore data from backup file",
+      exportDesc: "Upload cloud and Download all your data as backup",
+      importDesc: "Restore local data from your device backup file",
       profileUpdated: "Profile updated successfully",
       dataExported: "Data exported successfully",
       dataImported: "Data imported successfully",
@@ -101,6 +143,15 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       systemAccessDesc: "View system access statistics",
       totalUsers: "Total Users",
       activeUsers: "Active Users",
+      backupNow: "Backup Now",
+      backupStored: "Backup saved to bucket",
+      backupFailed: "Backup failed",
+      localImport: "Local Import",
+      cloudBackupsLabel: "Cloud Backups",
+      importFromCloud: "Import from cloud",
+      refreshList: "Refresh",
+      statusIdle: "Idle",
+      statusLoading: "Processing...",
     },
     ta: {
       settings: "அமைப்புகள்",
@@ -144,18 +195,46 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       systemAccessDesc: "கணினி அணுகல் புள்ளிவிவரங்களைப் பார்க்கவும்",
       totalUsers: "மொத்த பயனர்கள்",
       activeUsers: "செயலில் உள்ள பயனர்கள்",
+      backupNow: "இப்போது காப்பு சேமி",
+      backupStored: "காப்பு வட்டு(bucket)யில் சேமிக்கப்பட்டது",
+      backupFailed: "காப்பு தோல்வி",
+      localImport: "உள்ளூர் இறக்குமதி",
+      cloudBackupsLabel: "மேக காப்புகள்",
+      importFromCloud: "மேகத்திலிருந்து இறக்குமதி",
+      refreshList: "புதுப்பிக்க",
+      statusIdle: "அமைவு",
+      statusLoading: "செயலாக்கம்...",
     },
   };
 
   const t = translations[language as keyof typeof translations];
 
   // Load user profile and auth data on component mount
+  const backupTimersRef = useRef<{
+    timeoutId?: number | null;
+    intervalId?: number | null;
+  }>({
+    timeoutId: null,
+    intervalId: null,
+  });
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+
   useEffect(() => {
     loadUserProfile();
     loadAuthData();
     loadUserStats();
     loadLastBackup();
     loadExportImport(); // load persisted export/import timestamps
+    scheduleEndOfDayBackup(); // schedule automatic daily backup
+    // cleanup on unmount
+    return () => {
+      try {
+        if (backupTimersRef.current.timeoutId)
+          window.clearTimeout(backupTimersRef.current.timeoutId);
+        if (backupTimersRef.current.intervalId)
+          window.clearInterval(backupTimersRef.current.intervalId);
+      } catch {}
+    };
   }, []);
 
   // Load persisted last export/import from localStorage
@@ -163,8 +242,10 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
     try {
       const le = localStorage.getItem("ec_lastExport");
       const li = localStorage.getItem("ec_lastImport");
+      const cis = localStorage.getItem("ec_cloudImportStatus"); // Add this
       setLastExport(le || null);
       setLastImport(li || null);
+      setCloudImportStatus(cis || null); // Add this
     } catch (err) {
       console.error("Error loading last export/import:", err);
     }
@@ -191,31 +272,38 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
   const loadUserStats = async () => {
     try {
       const { count } = await supabase
-        .from('user_profiles')
-        .select('*', { count: 'exact', head: true });
+        .from("user_profiles")
+        .select("*", { count: "exact", head: true });
       setTotalUsers(count || 0);
     } catch (error) {
-      console.error('Error loading user stats:', error);
+      console.error("Error loading user stats:", error);
     }
   };
 
   const loadAuthData = async () => {
     try {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (user && session) {
         setAuthData({
           user,
           session,
-          loginTime: user.created_at ? new Date(user.created_at).toLocaleString() : 'Current session',
+          loginTime: user.created_at
+            ? new Date(user.created_at).toLocaleString()
+            : "Current session",
           lastActive: new Date().toLocaleString(),
-          provider: user.app_metadata?.provider || 'email',
-          role: user.role || 'authenticated',
+          provider: user.app_metadata?.provider || "email",
+          role: user.role || "authenticated",
         });
       }
     } catch (error) {
-      console.error('Error loading auth data:', error);
+      console.error("Error loading auth data:", error);
     }
   };
 
@@ -230,30 +318,31 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
         });
       } else {
         // Create a default profile from auth user if none exists
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
           const defaultProfile = {
             id: user.id,
             email: user.email || "",
-            name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-            password_hash: '$2a$10$' + btoa('Keliz~7227').slice(0, 53),
+            name:
+              user.user_metadata?.name || user.email?.split("@")[0] || "User",
+            password_hash: "$2a$10$" + btoa("Keliz~7227").slice(0, 53),
             created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           };
-          
+
           // Try to create the profile
           try {
-            await supabase
-              .from('user_profiles')
-              .insert([defaultProfile]);
-            
+            await supabase.from("user_profiles").insert([defaultProfile]);
+
             setUserProfile(defaultProfile);
             setProfile({
               name: defaultProfile.name,
               email: defaultProfile.email,
             });
           } catch (error) {
-            console.error('Error creating default profile:', error);
+            console.error("Error creating default profile:", error);
             // Still set the profile data for display
             setProfile({
               name: defaultProfile.name,
@@ -263,7 +352,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
         }
       }
     } catch (error) {
-      console.error('Error loading user profile:', error);
+      console.error("Error loading user profile:", error);
     }
   };
 
@@ -271,10 +360,12 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
     try {
       const bucket = "Database Backup";
       // list newest file in website-backups folder
-      const { data, error } = await supabase.storage.from(bucket).list("website-backups", {
-        limit: 1,
-        sortBy: { column: "created_at", order: "desc" },
-      } as any);
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .list("website-backups", {
+          limit: 1,
+          sortBy: { column: "created_at", order: "desc" },
+        } as any);
 
       if (error) {
         console.error("Error listing backups:", error);
@@ -297,134 +388,147 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
     }
   };
 
-  const handleExportData = async () => {
+  // Shared routine: create export JSON payload and upload to Supabase storage, optionally trigger download.
+  const performBackupAndUpload = async (alsoDownload = false) => {
     try {
-      // Fetch real data from database
+      // get data
       const [borrowersData, loansData, paymentsData] = await Promise.all([
         getBorrowers(),
         getLoans(),
-        getPayments()
+        getPayments(),
       ]);
-      
+
       const data = {
         borrowers: borrowersData,
         loans: loansData,
         payments: paymentsData,
         exportDate: new Date().toISOString(),
-        version: "1.0"
+        version: "1.0",
       };
 
-      const blob = new Blob([JSON.stringify(data, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `easycollect-backup-${
-        new Date().toISOString().split("T")[0]
-      }.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const jsonStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+
+      // create filename with timestamp
+      const now = new Date();
+      const pad = (n: number) => n.toString().padStart(2, "0");
+      const filename = `easycollect-backup-${now.getFullYear()}${pad(
+        now.getMonth() + 1
+      )}${pad(now.getDate())}-${pad(now.getHours())}${pad(
+        now.getMinutes()
+      )}${pad(now.getSeconds())}.json`;
+
+      // upload to bucket -> folder website-backups
+      const bucket = "Database Backup";
+      const path = `website-backups/${filename}`;
+
+      // Supabase upload (browser) - body can be Blob
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(path, blob, { contentType: "application/json" } as any);
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        throw uploadError;
+      }
+
+      // update UI last backup with current timestamp & name
+      const uploadedAt = new Date().toISOString();
+      setLastBackup({ name: filename, updated_at: uploadedAt });
+
+      // optionally trigger download same as export
+      if (alsoDownload) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // persist last export timestamp
+        try {
+          localStorage.setItem("ec_lastExport", uploadedAt);
+        } catch {}
+        setLastExport(uploadedAt);
+      }
 
       toast({
-        title: t.dataExported,
-        description: "Your data has been exported successfully.",
-        duration: 3000,
+        title: t.backupStored,
+        description: `${filename}`,
+        duration: 4000,
       });
 
-      // persist last export timestamp
-      const now = new Date().toISOString();
-      try {
-        localStorage.setItem("ec_lastExport", now);
-      } catch {}
-      setLastExport(now);
-
-      // Optionally refresh last backup if you also upload to Supabase from client or inform server to update storage
-      // loadLastBackup();
-    } catch (error) {
-      console.error('Error exporting data:', error);
+      return { success: true, path: path, name: filename, uploadedAt };
+    } catch (err: any) {
+      console.error("Backup/upload failed:", err);
       toast({
-        title: "Export Failed",
-        description: "Failed to export data. Please try again.",
+        title: t.backupFailed,
+        description: String(err?.message ?? err),
         variant: "destructive",
-        duration: 3000,
+        duration: 5000,
       });
+      return { success: false, error: err };
     }
   };
 
-  const importInputRef = useRef<HTMLInputElement | null>(null);
+  // Handler wired to visible "Backup Now" button - uploads and also downloads a copy
+  const handleBackupNow = async () => {
+    await performBackupAndUpload(true);
+  };
 
-  const handleImportData = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? importInputRef.current?.files?.[0];
-    if (!file) return;
-
-    const clearInputs = () => {
-      try { if (importInputRef.current) importInputRef.current.value = ""; } catch {}
-      try { event.target.value = ""; } catch {}
-    };
-
-    let text = "";
+  // Schedule a backup at end of day (next midnight) and then daily thereafter
+  const scheduleEndOfDayBackup = () => {
     try {
-      text = await file.text();
-    } catch (err) {
-      console.error("Error reading file:", err);
-      toast({
-        title: "Import Failed",
-        description: "Unable to read the selected file.",
-        variant: "destructive",
-        duration: 4000,
-      });
-      clearInputs();
-      return;
-    }
+      // clear any existing timers
+      if (backupTimersRef.current.timeoutId)
+        window.clearTimeout(backupTimersRef.current.timeoutId);
+      if (backupTimersRef.current.intervalId)
+        window.clearInterval(backupTimersRef.current.intervalId);
 
-    let parsed: any;
-    try {
-      parsed = JSON.parse(text);
-    } catch (err) {
-      console.error("Invalid JSON:", err);
-      toast({
-        title: "Import Failed",
-        description: "File is not valid JSON. Please check the file format.",
-        variant: "destructive",
-        duration: 4000,
-      });
-      clearInputs();
-      return;
-    }
+      const now = new Date();
+      const nextMidnight = new Date(now);
+      nextMidnight.setHours(24, 0, 0, 0); // next midnight
+      const msUntilMidnight = nextMidnight.getTime() - now.getTime();
 
+      // set timeout to run once at midnight, then setInterval every 24h
+      const timeoutId = window.setTimeout(async () => {
+        await performBackupAndUpload(false); // automatic backup, no download
+        // schedule daily interval
+        const intervalId = window.setInterval(() => {
+          performBackupAndUpload(false);
+        }, 24 * 60 * 60 * 1000);
+        backupTimersRef.current.intervalId = intervalId;
+      }, msUntilMidnight);
+
+      backupTimersRef.current.timeoutId = timeoutId;
+    } catch (err) {
+      console.error("Failed to schedule end-of-day backup:", err);
+    }
+  };
+
+  // Extracted import application logic reused by local and cloud imports.
+  const applyParsedData = async (parsed: any) => {
+    // This is the same upsert logic used previously in handleImportData.
     // Normalize common backup shapes
     let borrowers: any[] = parsed.borrowers ?? parsed.data?.borrowers ?? [];
     let loans: any[] = parsed.loans ?? parsed.data?.loans ?? [];
     let payments: any[] = parsed.payments ?? parsed.data?.payments ?? [];
 
     // Convert map-like objects to arrays
-    if (borrowers && !Array.isArray(borrowers) && typeof borrowers === "object") borrowers = Object.values(borrowers);
-    if (loans && !Array.isArray(loans) && typeof loans === "object") loans = Object.values(loans);
-    if (payments && !Array.isArray(payments) && typeof payments === "object") payments = Object.values(payments);
-
-    if (
-      (!borrowers || borrowers.length === 0) &&
-      (!loans || loans.length === 0) &&
-      (!payments || payments.length === 0)
-    ) {
-      toast({
-        title: "Import Failed",
-        description: "No recognizable borrowers, loans or payments found in the file.",
-        variant: "destructive",
-        duration: 4000,
-      });
-      clearInputs();
-      return;
-    }
+    if (borrowers && !Array.isArray(borrowers) && typeof borrowers === "object")
+      borrowers = Object.values(borrowers);
+    if (loans && !Array.isArray(loans) && typeof loans === "object")
+      loans = Object.values(loans);
+    if (payments && !Array.isArray(payments) && typeof payments === "object")
+      payments = Object.values(payments);
 
     const results = { borrowers: 0, loans: 0, payments: 0 };
     const errors: string[] = [];
 
     try {
-      // Whitelist of borrower columns that exist in DB - avoid aggregated/computed fields
+      // Borrowers upsert
       const borrowerCols = new Set([
         "id",
         "name",
@@ -434,30 +538,28 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
         "first_name",
         "last_name",
         "title",
-        "email"
+        "email",
       ]);
-
-      const borrowersUpsert = (borrowers || []).map((b: any) => {
-        const out: any = {};
-        for (const k of Object.keys(b || {})) {
-          if (borrowerCols.has(k)) out[k] = b[k];
-        }
-        // ensure id exists for upsert to preserve relationships
-        if (!out.id && b.id) out.id = b.id;
-        return out;
-      }).filter((r: any) => r && Object.keys(r).length > 0);
+      const borrowersUpsert = (borrowers || [])
+        .map((b: any) => {
+          const out: any = {};
+          for (const k of Object.keys(b || {})) {
+            if (borrowerCols.has(k)) out[k] = b[k];
+          }
+          if (!out.id && b.id) out.id = b.id;
+          return out;
+        })
+        .filter((r: any) => r && Object.keys(r).length > 0);
 
       if (borrowersUpsert.length > 0) {
-        const { error: bErr } = await supabase.from("borrowers").upsert(borrowersUpsert, { returning: "minimal" } as any);
-        if (bErr) {
-          console.error("Borrowers upsert error:", bErr);
-          errors.push(`borrowers: ${bErr.message}`);
-        } else {
-          results.borrowers = borrowersUpsert.length;
-        }
+        const { error: bErr } = await supabase
+          .from("borrowers")
+          .upsert(borrowersUpsert, { returning: "minimal" } as any);
+        if (bErr) errors.push(`borrowers: ${bErr.message}`);
+        else results.borrowers = borrowersUpsert.length;
       }
 
-      // Loans - map only expected columns (preserve ids and borrower_id)
+      // Loans upsert
       const loanCols = new Set([
         "id",
         "borrower_id",
@@ -472,31 +574,30 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
         "created_at",
         "updated_at",
         "arrears",
-        "user_id"
+        "user_id",
       ]);
-
-      const loansUpsert = (loans || []).map((l: any) => {
-        const out: any = {};
-        for (const k of Object.keys(l || {})) {
-          if (loanCols.has(k)) out[k] = l[k];
-        }
-        if (!out.id && l.id) out.id = l.id;
-        // ensure borrower_id is present if available under alternative keys
-        out.borrower_id = out.borrower_id ?? l.borrowerId ?? l.borrower_id ?? null;
-        return out;
-      }).filter((r: any) => r && Object.keys(r).length > 0);
+      const loansUpsert = (loans || [])
+        .map((l: any) => {
+          const out: any = {};
+          for (const k of Object.keys(l || {})) {
+            if (loanCols.has(k)) out[k] = l[k];
+          }
+          if (!out.id && l.id) out.id = l.id;
+          out.borrower_id =
+            out.borrower_id ?? l.borrowerId ?? l.borrower_id ?? null;
+          return out;
+        })
+        .filter((r: any) => r && Object.keys(r).length > 0);
 
       if (loansUpsert.length > 0) {
-        const { error: lErr } = await supabase.from("loans").upsert(loansUpsert, { returning: "minimal" } as any);
-        if (lErr) {
-          console.error("Loans upsert error:", lErr);
-          errors.push(`loans: ${lErr.message}`);
-        } else {
-          results.loans = loansUpsert.length;
-        }
+        const { error: lErr } = await supabase
+          .from("loans")
+          .upsert(loansUpsert, { returning: "minimal" } as any);
+        if (lErr) errors.push(`loans: ${lErr.message}`);
+        else results.loans = loansUpsert.length;
       }
 
-      // Payments - map only expected columns
+      // Payments upsert
       const paymentCols = new Set([
         "id",
         "loan_id",
@@ -506,56 +607,224 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
         "notes",
         "created_at",
         "payment_time",
-        "user_id"
+        "user_id",
       ]);
-
-      const paymentsUpsert = (payments || []).map((p: any) => {
-        const out: any = {};
-        for (const k of Object.keys(p || {})) {
-          if (paymentCols.has(k)) out[k] = p[k];
-        }
-        if (!out.id && p.id) out.id = p.id;
-        out.loan_id = out.loan_id ?? p.loanId ?? p.loan_id ?? null;
-        return out;
-      }).filter((r: any) => r && Object.keys(r).length > 0);
+      const paymentsUpsert = (payments || [])
+        .map((p: any) => {
+          const out: any = {};
+          for (const k of Object.keys(p || {})) {
+            if (paymentCols.has(k)) out[k] = p[k];
+          }
+          if (!out.id && p.id) out.id = p.id;
+          out.loan_id = out.loan_id ?? p.loanId ?? p.loan_id ?? null;
+          return out;
+        })
+        .filter((r: any) => r && Object.keys(r).length > 0);
 
       if (paymentsUpsert.length > 0) {
-        const { error: pErr } = await supabase.from("payments").upsert(paymentsUpsert, { returning: "minimal" } as any);
-        if (pErr) {
-          console.error("Payments upsert error:", pErr);
-          errors.push(`payments: ${pErr.message}`);
-        } else {
-          results.payments = paymentsUpsert.length;
-        }
+        const { error: pErr } = await supabase
+          .from("payments")
+          .upsert(paymentsUpsert, { returning: "minimal" } as any);
+        if (pErr) errors.push(`payments: ${pErr.message}`);
+        else results.payments = paymentsUpsert.length;
       }
 
+      return { results, errors };
     } catch (err: any) {
-      console.error("Import exception:", err);
-      errors.push(String(err?.message ?? err));
+      return {
+        results: { borrowers: 0, loans: 0, payments: 0 },
+        errors: [String(err?.message ?? err)],
+      };
+    }
+  };
+
+  // Local file import now delegates to applyParsedData
+  const handleImportData = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0] ?? importInputRef.current?.files?.[0];
+    if (!file) return;
+
+    const clearInputs = () => {
+      try {
+        if (importInputRef.current) importInputRef.current.value = "";
+      } catch {}
+      try {
+        event.target.value = "";
+      } catch {}
+    };
+
+    setLocalImportStatus(t.statusLoading);
+    let text = "";
+    try {
+      text = await file.text();
+    } catch (err) {
+      console.error("Error reading file:", err);
+      toast({
+        title: "Import Failed",
+        description: "Unable to read the selected file.",
+        variant: "destructive",
+        duration: 4000,
+      });
+      setLocalImportStatus("Failed to read file");
+      clearInputs();
+      return;
     }
 
+    let parsed: any;
+    try {
+      parsed = JSON.parse(text);
+    } catch (err) {
+      console.error("Invalid JSON:", err);
+      toast({
+        title: "Import Failed",
+        description: "File is not valid JSON.",
+        variant: "destructive",
+        duration: 4000,
+      });
+      setLocalImportStatus("Invalid JSON");
+      clearInputs();
+      return;
+    }
+
+    const { results, errors } = await applyParsedData(parsed);
     const totalImported = results.borrowers + results.loans + results.payments;
 
     if (totalImported > 0) {
       const now = new Date().toISOString();
-      try { localStorage.setItem("ec_lastImport", now); } catch {}
+      try {
+        localStorage.setItem("ec_lastImport", now);
+      } catch {}
       setLastImport(now);
-
+      setLocalImportStatus(
+        `Local Import: ${results.borrowers} borrowers, ${results.loans} loans, ${results.payments} payments`
+      );
       toast({
         title: t.dataImported,
-        description: `Imported ${results.borrowers} borrowers, ${results.loans} loans, ${results.payments} payments.`,
+        description: `Local Import: ${results.borrowers} borrowers, ${results.loans} loans, ${results.payments} payments`,
         duration: 4000,
       });
     } else {
+      setLocalImportStatus(
+        errors.length ? `Local Import Error: ${errors[0]}` : "No data imported"
+      );
       toast({
         title: "Import Failed",
-        description: errors.length > 0 ? `Errors: ${errors[0]}` : "Failed to import data. Please check the file format.",
+        description: errors.length
+          ? `Errors: ${errors[0]}`
+          : "Failed to import data.",
         variant: "destructive",
         duration: 6000,
       });
     }
 
     clearInputs();
+  };
+
+  // Cloud listing & import (updated to use cloudLimit)
+  // Handle importing from cloud storage
+  const handleCloudImport = async (filename: string) => {
+    setCloudImportStatus(t.statusLoading);
+    try {
+      const bucket = "Database Backup";
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .download(`website-backups/${filename}`);
+      if (error || !data) throw error || new Error("Download failed");
+
+      const text = await data.text();
+      const parsed = JSON.parse(text);
+      const { results, errors } = await applyParsedData(parsed);
+
+      if (errors.length) throw new Error(errors[0]);
+
+      const now = new Date().toISOString();
+      try {
+        localStorage.setItem("ec_lastImport", now);
+      } catch {}
+      setLastImport(now);
+
+      const formattedTime = formatDateTime(now);
+      const status = `Cloud Import: (${formattedTime}) -> Borrower: ${results.borrowers}, Loans: ${results.loans}, Payments: ${results.payments}`;
+
+      setCloudImportStatus(status);
+      // Persist cloud import status
+      try {
+        localStorage.setItem("ec_cloudImportStatus", status);
+      } catch {}
+
+      toast({
+        title: t.dataImported,
+        description: `Imported: (${formattedTime}) -> Borrowers: ${results.borrowers}, Loans: ${results.loans}, Payments: ${results.payments}`,
+      });
+    } catch (err) {
+      console.error("Cloud import failed:", err);
+      const failStatus = "Cloud Import failed";
+      setCloudImportStatus(failStatus);
+      // Persist failed status
+      try {
+        localStorage.setItem("ec_cloudImportStatus", failStatus);
+      } catch {}
+      toast({
+        title: "Cloud Import Failed",
+        description: String(err?.message ?? err),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadCloudBackups = async (limit = cloudLimit) => {
+    setCloudListLoading(true);
+    try {
+      const bucket = "Database Backup";
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .list("website-backups", {
+          limit,
+          sortBy: { column: "created_at", order: "desc" },
+        } as any);
+      if (error) {
+        console.error("Error listing backups:", error);
+        setCloudBackups([]);
+      } else {
+        setCloudBackups(
+          (data || []).map((it: any) => ({
+            name: it.name,
+            updated_at: it.updated_at || it.created_at,
+          }))
+        );
+      }
+    } catch (err) {
+      console.error("Error loading cloud backups:", err);
+      setCloudBackups([]);
+    } finally {
+      setCloudListLoading(false);
+    }
+  };
+
+  // NEW: delete a backup from cloud storage
+  const handleCloudDelete = async (filename: string) => {
+    if (
+      !confirm(
+        `Remove backup "${filename}" from list? (File will remain in storage)`
+      )
+    )
+      return;
+    try {
+      // Remove from UI list but don't delete from storage
+      setCloudBackups((prev) => prev.filter((b) => b.name !== filename));
+      toast({
+        title: "Removed from list",
+        description: filename,
+        duration: 3000,
+      });
+    } catch (err) {
+      console.error("Remove from list failed:", err);
+      toast({
+        title: "Failed to remove from list",
+        variant: "destructive",
+      });
+    }
   };
 
   const handlePasswordChange = async () => {
@@ -570,7 +839,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       }
 
       const { error } = await supabase.auth.updateUser({
-        password: passwordData.newPassword
+        password: passwordData.newPassword,
       });
 
       if (error) {
@@ -589,13 +858,13 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       });
 
       setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
       });
       setShowPasswordForm(false);
     } catch (error) {
-      console.error('Error changing password:', error);
+      console.error("Error changing password:", error);
       toast({
         title: "Password change failed",
         description: "An unexpected error occurred",
@@ -645,7 +914,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
 
   return (
     <div className="p-6 pt-5 pb-20 md:pb-6 max-w-5xl mx-auto">
-      {/* Header and Language Toggle */}
+      {/* Header section */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           {t.settings}
@@ -675,151 +944,346 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
         </Button>
       </div>
 
-      {/* 2x2 Grid for Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* User Profile */}
-        <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors flex flex-col justify-between min-h-[320px]">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
-              {t.userProfile}
-            </CardTitle>
-            <CardDescription>{t.profileDesc}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col justify-between">
-            {!editProfile ? (
-              <form className="space-y-4 flex flex-col h-full">
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="name">{t.name}</Label>
-                    <div
-                      className="bg-gray-100 dark:bg-[#2d323c] rounded-md px-4 py-2 mt-1 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 w-full truncate"
-                      id="name"
-                      style={{ minWidth: 0 }}
-                    >
-                      {profile.name}
+      <div className="space-y-8">
+        {/* Grid for User Profile + System Access and Session Management */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Left Column */}
+          <div className="space-y-8">
+            {/* User Profile Card */}
+            <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  {t.userProfile}
+                </CardTitle>
+                <CardDescription>{t.profileDesc}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!editProfile ? (
+                  <form className="space-y-4 flex flex-col h-full">
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="name">{t.name}</Label>
+                        <div
+                          className="bg-gray-100 dark:bg-[#2d323c] rounded-md px-4 py-2 mt-1 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 w-full truncate"
+                          id="name"
+                          style={{ minWidth: 0 }}
+                        >
+                          {profile.name}
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="email">{t.email}</Label>
+                        <div
+                          className="bg-gray-100 dark:bg-[#2d323c] rounded-md px-4 py-2 mt-1 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 w-full break-all"
+                          id="email"
+                          style={{ minWidth: 0 }}
+                        >
+                          {profile.email}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="email">{t.email}</Label>
-                    <div
-                      className="bg-gray-100 dark:bg-[#2d323c] rounded-md px-4 py-2 mt-1 text-base font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 w-full break-all"
-                      id="email"
-                      style={{ minWidth: 0 }}
-                    >
-                      {profile.email}
-                    </div>
-                  </div>
-                </div>
-                {/* Password Section */}
-                <div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Password Section */}
                     <div>
-                      <Label htmlFor="newPassword">{t.newPassword}</Label>
-                      <Input
-                        id="newPassword"
-                        type="password"
-                        value={passwordData.newPassword}
-                        onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))
-                        }
-                        placeholder={t.newPassword}
-                        className="mt-1 bg-gray-100 dark:bg-[#23272f] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
-                      />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="newPassword">{t.newPassword}</Label>
+                          <Input
+                            id="newPassword"
+                            type="password"
+                            value={passwordData.newPassword}
+                            onChange={(e) =>
+                              setPasswordData((prev) => ({
+                                ...prev,
+                                newPassword: e.target.value,
+                              }))
+                            }
+                            placeholder={t.newPassword}
+                            className="mt-1 bg-gray-100 dark:bg-[#23272f] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="confirmPassword">
+                            {t.confirmPassword}
+                          </Label>
+                          <Input
+                            id="confirmPassword"
+                            type="password"
+                            value={passwordData.confirmPassword}
+                            onChange={(e) =>
+                              setPasswordData((prev) => ({
+                                ...prev,
+                                confirmPassword: e.target.value,
+                              }))
+                            }
+                            placeholder={t.confirmPassword}
+                            className="mt-1 bg-gray-100 dark:bg-[#23272f] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-col md:flex-row gap-2 mt-5">
+                        <Button
+                          onClick={handlePasswordChange}
+                          className="flex items-center gap-2 md:flex-1 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                          variant="outline"
+                          type="button"
+                          style={{ backgroundColor: "#2563eb", color: "#fff" }}
+                          disabled={
+                            !passwordData.newPassword ||
+                            !passwordData.confirmPassword
+                          }
+                        >
+                          <Lock className="w-4 h-4" />
+                          {t.changePassword}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex items-center gap-2 md:flex-1 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                          type="button"
+                          onClick={handleEditProfile}
+                        >
+                          <User className="w-4 h-4" />
+                          Edit Profile
+                        </Button>
+                      </div>
                     </div>
-                    <div>
-                      <Label htmlFor="confirmPassword">{t.confirmPassword}</Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        value={passwordData.confirmPassword}
-                        onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))
-                        }
-                        placeholder={t.confirmPassword}
-                        className="mt-1 bg-gray-100 dark:bg-[#23272f] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white"
-                      />
+                  </form>
+                ) : (
+                  <form className="space-y-4 flex flex-col h-full">
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="edit-name">{t.name}</Label>
+                        <Input
+                          id="edit-name"
+                          value={editProfileData.name}
+                          onChange={(e) =>
+                            setEditProfileData((prev) => ({
+                              ...prev,
+                              name: e.target.value,
+                            }))
+                          }
+                          placeholder="Enter full name"
+                          className="mt-1 bg-gray-100 dark:bg-[#23272f] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white w-full"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-email">{t.email}</Label>
+                        <Input
+                          id="edit-email"
+                          value={editProfileData.email}
+                          onChange={(e) =>
+                            setEditProfileData((prev) => ({
+                              ...prev,
+                              email: e.target.value,
+                            }))
+                          }
+                          placeholder="Enter email address"
+                          className="mt-1 bg-gray-100 dark:bg-[#23272f] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white w-full"
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex flex-col md:flex-row gap-2 mt-5">
-                    <Button
-                      onClick={handlePasswordChange}
-                      className="flex items-center gap-2 md:flex-1 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
-                      variant="outline"
-                      type="button"
-                      style={{ backgroundColor: "#2563eb", color: "#fff" }}
-                      disabled={!passwordData.newPassword || !passwordData.confirmPassword}
-                    >
-                      <Lock className="w-4 h-4" />
-                      {t.changePassword}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="flex items-center gap-2 md:flex-1 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
-                      type="button"
-                      onClick={handleEditProfile}
-                    >
-                      <User className="w-4 h-4" />
-                      Edit Profile
-                    </Button>
-                  </div>
-                </div>
-              </form>
-            ) : (
-              <form className="space-y-4 flex flex-col h-full">
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="edit-name">{t.name}</Label>
-                    <Input
-                      id="edit-name"
-                      value={editProfileData.name}
-                      onChange={e => setEditProfileData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Enter full name"
-                      className="mt-1 bg-gray-100 dark:bg-[#23272f] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white w-full"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="edit-email">{t.email}</Label>
-                    <Input
-                      id="edit-email"
-                      value={editProfileData.email}
-                      onChange={e => setEditProfileData(prev => ({ ...prev, email: e.target.value }))}
-                      placeholder="Enter email address"
-                      className="mt-1 bg-gray-100 dark:bg-[#23272f] border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white w-full"
-                    />
-                  </div>
-                </div>
-                <div className="flex flex-col md:flex-row gap-2 mt-5">
-                  <Button
-                    onClick={async () => {
-                      await handleSaveProfile();
-                    }}
-                    className="flex-1 flex items-center gap-2 bg-gray-100 dark:bg-[#1d4ed8] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
-                    disabled={
-                      isLoadingProfile ||
-                      !editProfileData.name ||
-                      !editProfileData.email
-                    }
-                    type="button"
-                  >
-                    <User className="w-4 h-4" />
-                    {isLoadingProfile ? "Saving..." : t.saveProfile}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
-                    onClick={handleCancelEditProfile}
-                    disabled={isLoadingProfile}
-                    type="button"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            )}
-          </CardContent>
-        </Card>
+                    <div className="flex flex-col md:flex-row gap-2 mt-5">
+                      <Button
+                        onClick={async () => {
+                          await handleSaveProfile();
+                        }}
+                        className="flex-1 flex items-center gap-2 bg-gray-100 dark:bg-[#1d4ed8] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                        disabled={
+                          isLoadingProfile ||
+                          !editProfileData.name ||
+                          !editProfileData.email
+                        }
+                        type="button"
+                      >
+                        <User className="w-4 h-4" />
+                        {isLoadingProfile ? "Saving..." : t.saveProfile}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-1 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                        onClick={handleCancelEditProfile}
+                        disabled={isLoadingProfile}
+                        type="button"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </CardContent>
+            </Card>
 
-        {/* Data Management */}
-        <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors h-full flex flex-col">
+            {/* System Access Card */}
+            <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Monitor className="w-5 h-5" />
+                  {t.systemAccess}
+                </CardTitle>
+                <CardDescription>{t.systemAccessDesc}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-[#262b34] rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-blue-600" />
+                      <span className="font-medium">{t.totalUsers}</span>
+                    </div>
+                    <span className="text-2xl font-bold text-blue-600">
+                      {totalUsers}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-[#262b34] rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-green-600" />
+                      <span className="font-medium">{t.activeUsers}</span>
+                    </div>
+                    <span className="text-2xl font-bold text-green-600">1</span>
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                    Current session: {authData?.user?.email || "Unknown"}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column: Session Management */}
+          <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                {t.sessionManagement}
+              </CardTitle>
+              <CardDescription>{t.sessionDesc}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {authData && (
+                <div className="grid grid-cols-1 gap-8">
+                  {/* Current Session Info */}
+                  <div className="space-y-4">
+                    <h3 className="font-medium flex items-center gap-2">
+                      <Monitor className="w-4 h-4" />
+                      {t.currentSession}
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t.userId}:
+                        </span>
+                        <span className="font-mono text-xs">
+                          {authData.user.id.slice(0, 8)}...
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t.email}:
+                        </span>
+                        <span>{authData.user.email}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t.userRole}:
+                        </span>
+                        <span className="capitalize">{authData.role}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Provider:
+                        </span>
+                        <span className="capitalize">{authData.provider}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Session Activity */}
+                  <div className="space-y-4">
+                    <h3 className="font-medium flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Activity
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t.loginTime}:
+                        </span>
+                        <span>{authData.loginTime}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {t.lastActive}:
+                        </span>
+                        <span>{authData.lastActive}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Status:
+                        </span>
+                        <span className="text-green-600 dark:text-green-400">
+                          Active
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Session Details Toggle */}
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                <Button
+                  onClick={() => setShowSessionDetails(!showSessionDetails)}
+                  variant="outline"
+                  className="w-full dark:bg-[#1d4ed8]"
+                >
+                  <Shield className="w-4 h-4 mr-2" />
+                  {showSessionDetails
+                    ? t.hideSessionDetails
+                    : t.showSessionDetails}
+                </Button>
+                {/* Detailed Session Information */}
+                {showSessionDetails && authData && (
+                  <div className="mt-4 p-4 bg-gray-50 dark:bg-[#262b34] rounded-lg">
+                    <h4 className="font-medium mb-3 text-gray-700 dark:text-gray-300">
+                      {t.sessionDetails}
+                    </h4>
+                    <div className="space-y-2 text-xs font-mono">
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Session ID:
+                        </span>
+                        <br />
+                        <span className="break-all">
+                          {authData.session.access_token.slice(0, 50)}...
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400">
+                          User Metadata:
+                        </span>
+                        <br />
+                        <pre className="text-xs bg-gray-100 dark:bg-[#23272f] p-2 rounded mt-1 overflow-x-auto">
+                          {JSON.stringify(authData.user.user_metadata, null, 2)}
+                        </pre>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400">
+                          App Metadata:
+                        </span>
+                        <br />
+                        <pre className="text-xs bg-gray-100 dark:bg-[#23272f] p-2 rounded mt-1 overflow-x-auto">
+                          {JSON.stringify(authData.user.app_metadata, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Data Management Card - Full Width */}
+        <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors mt-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Database className="w-5 h-5" />
@@ -827,219 +1291,302 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
             </CardTitle>
             <CardDescription>{t.dataDesc}</CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col justify-between">
+          <CardContent>
             <div className="space-y-6">
-              {/* Export Section */}
-              <div>
-                <h3 className="font-medium mb-1">{t.exportData}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              {/* Export / Backup Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <h3 className="font-medium mb-1">{t.backupNow}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  {/* Backup now uploads to bucket and downloads a copy */}
                   {t.exportDesc}
-                </p>
-                <Button
-                  onClick={handleExportData}
-                  variant="outline"
-                  className="w-full flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
-                >
-                  <Download className="w-4 h-4" />
-                  {t.exportData}
-                </Button>
-              </div>
-              {/* Import Section */}
-              <div>
-                <h3 className="font-medium mb-1">{t.importData}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  </p>
+                  <div>
+                  {/* Keep Backup Now button (uploads + downloads) */}
+                  <div>
+                    <Button
+                    onClick={async () => {
+                      setBackupNowStatus(t.statusLoading);
+                      const res = await performBackupAndUpload(true);
+                      if (res?.success) {
+                      // performBackupAndUpload sets lastBackup; clear temp status so UI shows formatted time
+                      setBackupNowStatus(null);
+                      } else {
+                      setBackupNowStatus("Failed");
+                      }
+                    }}
+                    variant="outline"
+                    className="w-full flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 transition-transform transform hover:scale-105 hover:bg-blue-600 hover:text-white"
+                    >
+                    <DatabaseBackup className="w-4 h-4" />
+                    {t.backupNow}
+                    </Button>
+                    {/* status below the button */}
+                    <div className="text-xs text-gray-500 mt-2">
+                    {backupNowStatus ??
+                      (lastBackup
+                      ? `Last backup: ${formatDateTime(
+                        lastBackup.updated_at ?? null
+                        )}`
+                      : t.statusIdle)}
+                    </div>
+                  </div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-medium mb-1">{t.importData}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  {/* Backup now uploads to bucket and downloads a copy */}
                   {t.importDesc}
+                  </p>
+                  <div>
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportData}
+                    className="hidden"
+                    id="import-file"
+                  />
+                  <Button
+                    variant="outline"
+                    className="w-full flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 transition-transform transform hover:scale-105 hover:bg-green-600 hover:text-white"
+                    type="button"
+                    onClick={() => importInputRef.current?.click()}
+                  >
+                    <LucideImport className="w-4 h-4" />
+                    {t.localImport}
+                  </Button>
+                  {/* status below the button */}
+                  <div className="text-xs text-gray-500 mt-2">
+                    {localImportStatus ??
+                    (lastImport
+                      ? `Last Local import: ${formatDateTime(lastImport)}`
+                      : t.statusIdle)}
+                  </div>
+                  </div>
+                </div>
+                </div>
+
+              {/* Cloud Backups Section */}
+              <div>
+                <h3 className="font-medium mb-1">{t.cloudBackupsLabel}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Access backups stored in the cloud and import selected
+                  backups.
                 </p>
-
-                {/* Hidden native file input (ref) */}
-                <input
-                  ref={importInputRef}
-                  type="file"
-                  accept=".json"
-                  onChange={handleImportData}
-                  className="hidden"
-                  id="import-file"
-                />
-
-                {/* Visible button opens file picker */}
-                <Button
-                  variant="outline"
-                  className="w-full flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
-                  type="button"
-                  onClick={() => importInputRef.current?.click()}
-                >
-                  <Upload className="w-4 h-4" />
-                  {t.importData}
-                </Button>
-              </div>
-
-              {/* Last backup display */}
-              <div className="mt-3 text-sm text-gray-600 dark:text-gray-400 space-y-2">
-                <div>
-                  <strong>Last export:</strong>{" "}
-                  {lastExport ? (
-                    <span className="ml-1">{formatDateTime(lastExport)}</span>
-                  ) : (
-                    <span className="ml-1">Never</span>
-                  )}
+                <div className="flex gap-8">
+                  <Button
+                    variant="outline"
+                    className="w-full flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 transition-transform transform hover:scale-105 hover:bg-blue-600 hover:text-white"
+                    onClick={async () => {
+                      const next = !showCloudBackups;
+                      setShowCloudBackups(next);
+                      if (next) await loadCloudBackups();
+                    }}
+                  >
+                    <CloudUpload className="w-4 h-4" />
+                    {t.cloudBackupsLabel}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => loadCloudBackups()}
+                    className="w-24 flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 transition-transform transform hover:scale-105 hover:bg-gray-600 hover:text-white"
+                  >
+                    <RefreshCcw className="w-4 h-4" />
+                    {t.refreshList}
+                  </Button>
+                </div>
+                <div className="text-xs text-gray-500 mt-2">
+                  {cloudImportStatus ?? t.statusIdle}
                 </div>
 
-                <div>
-                  <strong>Last import:</strong>{" "}
-                  {lastImport ? (
-                    <span className="ml-1">{formatDateTime(lastImport)}</span>
-                  ) : (
-                    <span className="ml-1">Never</span>
-                  )}
-                </div>
+                {/* Dropdown/list of backups */}
+                {showCloudBackups && (
+                  <div className="mt-3">
+                    {cloudListLoading ? (
+                      <div className="text-sm">{t.statusLoading}</div>
+                    ) : cloudBackups.length === 0 ? (
+                      <div className="text-sm">No backups found</div>
+                    ) : (
+                      <>
+                        {/* Recent backups (first 5) with numbers */}
+                        <div className="mb-4 bg-gray-50 dark:bg-[#262b34] p-3 rounded">
+                          <h4 className="font-medium text-sm mb-2 text-blue-800 dark:text-blue-400">Recent Backups</h4>
+                          <ol className="list-decimal list-inside space-y-2">
+                            {cloudBackups.slice(0, 5).map((b, index) => (
+                              <li key={b.name} className="flex justify-between items-center py-1">
+                                <div className="text-sm break-words">
+                                  <span className="font-medium text-xs">{index + 1}. {b.name}</span>
+                                  <div className="text-xs text-gray-500 ml-3">
+                                    {formatDateTime(b.updated_at ?? null)}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleCloudImport(b.name)}
+                                    className="p-2 rounded-md text-green-600 hover:bg-green-50 dark:hover:bg-green-800 transition-colors"
+                                    title="Import from cloud"
+                                  >
+                                    <CloudDownload className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                      try {
+                                        const bucket = "Database Backup";
+                                        const { data, error } =
+                                          await supabase.storage
+                                            .from(bucket)
+                                            .download(`website-backups/${b.name}`);
+                                        if (error || !data)
+                                          throw (
+                                            error || new Error("Download failed")
+                                          );
+                                        const url = URL.createObjectURL(
+                                          await data
+                                            .arrayBuffer()
+                                            .then((buf) => new Blob([buf]))
+                                        );
+                                        const a = document.createElement("a");
+                                        a.href = url;
+                                        a.download = b.name;
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        document.body.removeChild(a);
+                                        URL.revokeObjectURL(url);
+                                      } catch (err) {
+                                        console.error(
+                                          "Download cloud file failed:",
+                                          err
+                                        );
+                                        toast({
+                                          title: "Download failed",
+                                          variant: "destructive",
+                                        });
+                                      }
+                                    }}
+                                    className="p-2 rounded-md text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-800 transition-colors"
+                                    title="Download backup"
+                                  >
+                                    <Download className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleCloudDelete(b.name)}
+                                    className="p-2 rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-800 transition-colors"
+                                    title="Delete backup"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
 
-                <div>
-                  <strong>Last backup:</strong>{" "}
-                  {lastBackup ? (
-                    <span className="ml-1">
-                      {formatDateTime(lastBackup.updated_at) ?? new Date(lastBackup.updated_at).toLocaleString()}
-                      <span className="text-xs text-muted-foreground truncate ml-2">{lastBackup.name}</span>
-                    </span>
-                  ) : (
-                    <span className="ml-1">No backups found</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        {/* Session Management */}
-        <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors h-full flex flex-col">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              {t.sessionManagement}
-            </CardTitle>
-            <CardDescription>{t.sessionDesc}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {authData && (
-              <div className="grid grid-cols-1 gap-8">
-                {/* Current Session Info */}
-                <div className="space-y-4">
-                  <h3 className="font-medium flex items-center gap-2">
-                    <Monitor className="w-4 h-4" />
-                    {t.currentSession}
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">{t.userId}:</span>
-                      <span className="font-mono text-xs">{authData.user.id.slice(0, 8)}...</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">{t.email}:</span>
-                      <span>{authData.user.email}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">{t.userRole}:</span>
-                      <span className="capitalize">{authData.role}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">Provider:</span>
-                      <span className="capitalize">{authData.provider}</span>
-                    </div>
+                        {/* Older backups in collapsible section (open by default, no internal scroller) */}
+                        {cloudBackups.length > 5 && (
+                          <details className="bg-gray-50 dark:bg-[#262b34] p-3 rounded" >
+                            <summary className="cursor-pointer list-none font-medium text-sm mb-2 text-red-800 dark:text-red-400 [&::-webkit-details-marker]:hidden flex justify-between items-center">
+                              <span>Older Backups ({cloudBackups.length - 5})</span>
+                              <span className="text-xs text-gray-500">Expand / Collapse</span>
+                            </summary>
+
+                            <ol className="list-decimal list-inside space-y-2 mt-2" start={6}>
+                              {cloudBackups.slice(5).map((b, index) => (
+                                <li key={b.name} className="flex justify-between items-center py-1">
+                                  <div className="text-sm break-words">
+                                    <span className="font-medium text-xs">{index + 6}. {b.name}</span>
+                                    <div className="text-xs text-gray-500 ml-3">
+                                      {formatDateTime(b.updated_at ?? null)}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleCloudImport(b.name)}
+                                      className="p-2 rounded-md text-green-600 hover:bg-green-50 dark:hover:bg-green-800 transition-colors"
+                                      title="Import from cloud"
+                                    >
+                                      <CloudDownload className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={async () => {
+                                        try {
+                                          const bucket = "Database Backup";
+                                          const { data, error } =
+                                            await supabase.storage
+                                              .from(bucket)
+                                              .download(`website-backups/${b.name}`);
+                                          if (error || !data) throw (error || new Error("Download failed"));
+                                          const url = URL.createObjectURL(
+                                            await data.arrayBuffer().then((buf) => new Blob([buf]))
+                                          );
+                                          const a = document.createElement("a");
+                                          a.href = url;
+                                          a.download = b.name;
+                                          document.body.appendChild(a);
+                                          a.click();
+                                          document.body.removeChild(a);
+                                          URL.revokeObjectURL(url);
+                                        } catch (err) {
+                                          console.error("Download cloud file failed:", err);
+                                          toast({
+                                            title: "Download failed",
+                                            variant: "destructive",
+                                          });
+                                        }
+                                      }}
+                                      className="p-2 rounded-md text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-800 transition-colors"
+                                      title="Download backup"
+                                    >
+                                      <Download className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleCloudDelete(b.name)}
+                                      className="p-2 rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-800 transition-colors"
+                                      title="Delete backup"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </li>
+                              ))}
+                            </ol>
+                          </details>
+                        )}
+                      </>
+                    )}
+
+                    {/* Load more button - keep existing code */}
+                    {cloudBackups.length >= cloudLimit && (
+                      <div className="mt-3 text-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            const next = cloudLimit + 20;
+                            setCloudLimit(next);
+                            await loadCloudBackups(next);
+                          }}
+                          className="px-3 py-1"
+                        >
+                          Load more
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                </div>
-
-                {/* Session Activity */}
-                <div className="space-y-4">
-                  <h3 className="font-medium flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    Activity
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">{t.loginTime}:</span>
-                      <span>{authData.loginTime}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">{t.lastActive}:</span>
-                      <span>{authData.lastActive}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">Status:</span>
-                      <span className="text-green-600 dark:text-green-400">Active</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Session Details Toggle */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-              <Button
-                onClick={() => setShowSessionDetails(!showSessionDetails)}
-                variant="outline"
-                className="w-full dark:bg-[#1d4ed8]"
-              >
-                <Shield className="w-4 h-4 mr-2" />
-                {showSessionDetails ? t.hideSessionDetails : t.showSessionDetails}
-              </Button>
-              {/* Detailed Session Information */}
-              {showSessionDetails && authData && (
-                <div className="mt-4 p-4 bg-gray-50 dark:bg-[#262b34] rounded-lg">
-                  <h4 className="font-medium mb-3 text-gray-700 dark:text-gray-300">
-                    {t.sessionDetails}
-                  </h4>
-                  <div className="space-y-2 text-xs font-mono">
-                    <div>
-                      <span className="text-gray-600 dark:text-gray-400">Session ID:</span>
-                      <br />
-                      <span className="break-all">{authData.session.access_token.slice(0, 50)}...</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600 dark:text-gray-400">User Metadata:</span>
-                      <br />
-                      <pre className="text-xs bg-gray-100 dark:bg-[#23272f] p-2 rounded mt-1 overflow-x-auto">
-                        {JSON.stringify(authData.user.user_metadata, null, 2)}
-                      </pre>
-                    </div>
-                    <div>
-                      <span className="text-gray-600 dark:text-gray-400">App Metadata:</span>
-                      <br />
-                      <pre className="text-xs bg-gray-100 dark:bg-[#23272f] p-2 rounded mt-1 overflow-x-auto">
-                        {JSON.stringify(authData.user.app_metadata, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* System Access */}
-        <Card className="shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors h-full flex flex-col">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Monitor className="w-5 h-5" />
-              {t.systemAccess}
-            </CardTitle>
-            <CardDescription>{t.systemAccessDesc}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-[#262b34] rounded-lg">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-blue-600" />
-                  <span className="font-medium">{t.totalUsers}</span>
-                </div>
-                <span className="text-2xl font-bold text-blue-600">{totalUsers}</span>
-              </div>
-              <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-[#262b34] rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-green-600" />
-                  <span className="font-medium">{t.activeUsers}</span>
-                </div>
-                <span className="text-2xl font-bold text-green-600">1</span>
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                Current session: {authData?.user?.email || 'Unknown'}
+                )}
               </div>
             </div>
           </CardContent>
