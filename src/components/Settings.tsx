@@ -412,11 +412,21 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       // create filename with timestamp
       const now = new Date();
       const pad = (n: number) => n.toString().padStart(2, "0");
-      const filename = `easycollect-backup-${now.getFullYear()}${pad(
+      // derive user id and username (fallbacks) and sanitize username for filename
+      const userId = (authData?.user?.id ?? userProfile?.id ?? "unknown").toString();
+      const rawName =
+        (userProfile?.name ??
+          authData?.user?.user_metadata?.name ??
+          authData?.user?.email ??
+          "user")
+          .toString();
+      const safeName = rawName.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+      // Filename format: easycollect-backup-YYYYMMDD-HHMMSS-<safeName>-<userId>.json
+      const filename = `${now.getFullYear()}${pad(
         now.getMonth() + 1
       )}${pad(now.getDate())}-${pad(now.getHours())}${pad(
         now.getMinutes()
-      )}${pad(now.getSeconds())}.json`;
+      )}${pad(now.getSeconds())}-${safeName}.json`;
 
       // upload to bucket -> folder website-backups
       const bucket = "Database Backup";
