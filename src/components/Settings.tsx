@@ -783,7 +783,9 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
     }
   };
 
-  const loadCloudBackups = async (limit = cloudLimit) => {
+  // loadCloudBackups: by default only show backups matching the current user's sanitized name.
+  // Pass showAll = true to bypass this client-side filter and show all backups.
+  const loadCloudBackups = async (limit = cloudLimit, showAll = false) => {
     setCloudListLoading(true);
     try {
       const bucket = "Database Backup";
@@ -793,17 +795,36 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
           limit,
           sortBy: { column: "created_at", order: "desc" },
         } as any);
+
       if (error) {
         console.error("Error listing backups:", error);
         setCloudBackups([]);
-      } else {
-        setCloudBackups(
-          (data || []).map((it: any) => ({
-            name: it.name,
-            updated_at: it.updated_at || it.created_at,
-          }))
-        );
+        return;
       }
+
+      // derive sanitized name for current user (same logic as filename creation)
+      const rawName =
+        (userProfile?.name ??
+          authData?.user?.user_metadata?.name ??
+          authData?.user?.email ??
+          "user")
+          .toString();
+      const safeName = rawName.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+
+      let items = (data || []).map((it: any) => ({
+        name: it.name,
+        updated_at: it.updated_at || it.created_at,
+      }));
+
+      // If not showing all, filter out files that do not include the user's safe name segment
+      if (!showAll && safeName) {
+        items = items.filter((it) => {
+          // match "-safeName" anywhere in filename (covers multiple filename formats)
+          return it.name.toLowerCase().includes(`-${safeName}`) || it.name.toLowerCase().includes(`${safeName}.json`);
+        });
+      }
+
+      setCloudBackups(items);
     } catch (err) {
       console.error("Error loading cloud backups:", err);
       setCloudBackups([]);
