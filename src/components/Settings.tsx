@@ -388,8 +388,8 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
     }
   };
 
-  // Shared routine: create export JSON payload and upload to Supabase storage, optionally trigger download.
-  const performBackupAndUpload = async (alsoDownload = false) => {
+  // Update the performBackupAndUpload function
+  const performBackupAndUpload = async (isManual = false) => {
     try {
       // get data
       const [borrowersData, loansData, paymentsData] = await Promise.all([
@@ -409,30 +409,52 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       const jsonStr = JSON.stringify(data, null, 2);
       const blob = new Blob([jsonStr], { type: "application/json" });
 
-      // create filename with timestamp
+      // Create filename with new format
       const now = new Date();
       const pad = (n: number) => n.toString().padStart(2, "0");
-      // derive user id and username (fallbacks) and sanitize username for filename
-      const userId = (authData?.user?.id ?? userProfile?.id ?? "unknown").toString();
-      const rawName =
-        (userProfile?.name ??
-          authData?.user?.user_metadata?.name ??
-          authData?.user?.email ??
-          "user")
-          .toString();
-      const safeName = rawName.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-      // Filename format: easycollect-backup-YYYYMMDD-HHMMSS-<safeName>-<userId>.json
-      const filename = `${now.getFullYear()}${pad(
-        now.getMonth() + 1
-      )}${pad(now.getDate())}-${pad(now.getHours())}${pad(
-        now.getMinutes()
-      )}${pad(now.getSeconds())}-${safeName}.json`;
 
-      // upload to bucket -> folder website-backups
+      // Format date as YYYYMMDD
+      const dateStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(
+        now.getDate()
+      )}`;
+
+      // Format time as HHMMSS
+      const timeStr = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(
+        now.getSeconds()
+      )}`;
+
+      // Inside performBackupAndUpload function, update the username extraction:
+
+      // Get first name only (sanitized)
+      const getFirstName = () => {
+        const fullName =
+          userProfile?.name ??
+          authData?.user?.user_metadata?.name ??
+          authData?.user?.email?.split("@")[0] ??
+          "user";
+
+        // Get first word only and sanitize
+        const firstName = fullName
+          .split(" ")[0] // Take first word only
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/gi, "-")
+          .replace(/-+/g, "-") // Replace multiple hyphens with single
+          .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
+
+        return firstName;
+      };
+
+      const username = getFirstName();
+
+      // New filename format: YYYYMMDD-HHMMSS-[auto/manual]-firstname.json
+      const filename = `${dateStr}-${timeStr}-${
+        isManual ? "manual" : "auto"
+      }-${username}.json`;
+
+      // Upload to bucket
       const bucket = "Database Backup";
       const path = `website-backups/${filename}`;
 
-      // Supabase upload (browser) - body can be Blob
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(bucket)
         .upload(path, blob, { contentType: "application/json" } as any);
@@ -442,12 +464,12 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
         throw uploadError;
       }
 
-      // update UI last backup with current timestamp & name
+      // Update UI last backup info
       const uploadedAt = new Date().toISOString();
       setLastBackup({ name: filename, updated_at: uploadedAt });
 
-      // optionally trigger download same as export
-      if (alsoDownload) {
+      // Handle manual download if requested
+      if (isManual) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -457,7 +479,6 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        // persist last export timestamp
         try {
           localStorage.setItem("ec_lastExport", uploadedAt);
         } catch {}
@@ -466,11 +487,11 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
 
       toast({
         title: t.backupStored,
-        description: `${filename}`,
+        description: filename,
         duration: 4000,
       });
 
-      return { success: true, path: path, name: filename, uploadedAt };
+      return { success: true, path, name: filename, uploadedAt };
     } catch (err: any) {
       console.error("Backup/upload failed:", err);
       toast({
@@ -490,44 +511,34 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
 
   // Schedule a backup at end of day (next midnight) and then daily thereafter
   const scheduleEndOfDayBackup = () => {
-  try {
-    // clear any existing timers
-    if (backupTimersRef.current.timeoutId)
-      window.clearTimeout(backupTimersRef.current.timeoutId);
-    if (backupTimersRef.current.intervalId)
-      window.clearInterval(backupTimersRef.current.intervalId);
+    try {
+      // clear any existing timers
+      if (backupTimersRef.current.timeoutId)
+        window.clearTimeout(backupTimersRef.current.timeoutId);
+      if (backupTimersRef.current.intervalId)
+        window.clearInterval(backupTimersRef.current.intervalId);
 
-    const now = new Date();
-    const nextNoon = new Date(now);
-    nextNoon.setHours(11, 15, 0, 0); // set to 12:00:00.000
+      const now = new Date();
+      const nextMidnight = new Date(now);
+      nextMidnight.setHours(24, 0, 0, 0); // next midnight
+      const msUntilMidnight = nextMidnight.getTime() - now.getTime();
 
-    // If it's already past noon, schedule for tomorrow
-    if (now.getHours() >= 12) {
-      nextNoon.setDate(nextNoon.getDate() + 1);
+      // set timeout to run once at midnight, then setInterval every 24h
+      const timeoutId = window.setTimeout(async () => {
+        await performBackupAndUpload(false); // automatic backup, no download
+        // schedule daily interval
+        const intervalId = window.setInterval(() => {
+          performBackupAndUpload(false);
+        }, 24 * 60 * 60 * 1000);
+        backupTimersRef.current.intervalId = intervalId;
+      }, msUntilMidnight);
+
+      backupTimersRef.current.timeoutId = timeoutId;
+    } catch (err) {
+      console.error("Failed to schedule end-of-day backup:", err);
     }
+  };
 
-    const msUntilNoon = nextNoon.getTime() - now.getTime();
-
-    // set timeout to run once at noon, then setInterval every 24h
-    const timeoutId = window.setTimeout(async () => {
-      await performBackupAndUpload(false); // automatic backup, no download
-      
-      // schedule daily interval at 12 PM
-      const intervalId = window.setInterval(() => {
-        performBackupAndUpload(false);
-      }, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
-      
-      backupTimersRef.current.intervalId = intervalId;
-    }, msUntilNoon);
-
-    backupTimersRef.current.timeoutId = timeoutId;
-
-    // Log next backup time (optional)
-    console.log('Next automatic backup scheduled for:', nextNoon.toLocaleString());
-  } catch (err) {
-    console.error("Failed to schedule noon backup:", err);
-  }
-};
   // Extracted import application logic reused by local and cloud imports.
   const applyParsedData = async (parsed: any) => {
     // This is the same upsert logic used previously in handleImportData.
@@ -813,12 +824,12 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       }
 
       // derive sanitized name for current user (same logic as filename creation)
-      const rawName =
-        (userProfile?.name ??
-          authData?.user?.user_metadata?.name ??
-          authData?.user?.email ??
-          "user")
-          .toString();
+      const rawName = (
+        userProfile?.name ??
+        authData?.user?.user_metadata?.name ??
+        authData?.user?.email ??
+        "user"
+      ).toString();
       const safeName = rawName.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
 
       let items = (data || []).map((it: any) => ({
@@ -830,7 +841,10 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       if (!showAll && safeName) {
         items = items.filter((it) => {
           // match "-safeName" anywhere in filename (covers multiple filename formats)
-          return it.name.toLowerCase().includes(`-${safeName}`) || it.name.toLowerCase().includes(`${safeName}.json`);
+          return (
+            it.name.toLowerCase().includes(`-${safeName}`) ||
+            it.name.toLowerCase().includes(`${safeName}.json`)
+          );
         });
       }
 
@@ -1335,79 +1349,79 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
           <CardContent>
             <div className="space-y-6">
               {/* Export / Backup Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
                   <h3 className="font-medium mb-1">{t.backupNow}</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  {/* Backup now uploads to bucket and downloads a copy */}
-                  {t.exportDesc}
+                    {/* Backup now uploads to bucket and downloads a copy */}
+                    {t.exportDesc}
                   </p>
                   <div>
-                  {/* Keep Backup Now button (uploads + downloads) */}
-                  <div>
-                    <Button
-                    onClick={async () => {
-                      setBackupNowStatus(t.statusLoading);
-                      const res = await performBackupAndUpload(true);
-                      if (res?.success) {
-                      // performBackupAndUpload sets lastBackup; clear temp status so UI shows formatted time
-                      setBackupNowStatus(null);
-                      } else {
-                      setBackupNowStatus("Failed");
-                      }
-                    }}
-                    variant="outline"
-                    className="w-full flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 transition-transform transform hover:scale-105 hover:bg-blue-600 hover:text-white"
-                    >
-                    <DatabaseBackup className="w-4 h-4" />
-                    {t.backupNow}
-                    </Button>
-                    {/* status below the button */}
-                    <div className="text-xs text-gray-500 mt-2">
-                    {backupNowStatus ??
-                      (lastBackup
-                      ? `Last backup: ${formatDateTime(
-                        lastBackup.updated_at ?? null
-                        )}`
-                      : t.statusIdle)}
+                    {/* Keep Backup Now button (uploads + downloads) */}
+                    <div>
+                      <Button
+                        onClick={async () => {
+                          setBackupNowStatus(t.statusLoading);
+                          const res = await performBackupAndUpload(true);
+                          if (res?.success) {
+                            // performBackupAndUpload sets lastBackup; clear temp status so UI shows formatted time
+                            setBackupNowStatus(null);
+                          } else {
+                            setBackupNowStatus("Failed");
+                          }
+                        }}
+                        variant="outline"
+                        className="w-full flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 transition-transform transform hover:scale-105 hover:bg-blue-600 hover:text-white"
+                      >
+                        <DatabaseBackup className="w-4 h-4" />
+                        {t.backupNow}
+                      </Button>
+                      {/* status below the button */}
+                      <div className="text-xs text-gray-500 mt-2">
+                        {backupNowStatus ??
+                          (lastBackup
+                            ? `Last backup: ${formatDateTime(
+                                lastBackup.updated_at ?? null
+                              )}`
+                            : t.statusIdle)}
+                      </div>
                     </div>
-                  </div>
                   </div>
                 </div>
                 <div>
                   <h3 className="font-medium mb-1">{t.importData}</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  {/* Backup now uploads to bucket and downloads a copy */}
-                  {t.importDesc}
+                    {/* Backup now uploads to bucket and downloads a copy */}
+                    {t.importDesc}
                   </p>
                   <div>
-                  <input
-                    ref={importInputRef}
-                    type="file"
-                    accept=".json"
-                    onChange={handleImportData}
-                    className="hidden"
-                    id="import-file"
-                  />
-                  <Button
-                    variant="outline"
-                    className="w-full flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 transition-transform transform hover:scale-105 hover:bg-green-600 hover:text-white"
-                    type="button"
-                    onClick={() => importInputRef.current?.click()}
-                  >
-                    <LucideImport className="w-4 h-4" />
-                    {t.localImport}
-                  </Button>
-                  {/* status below the button */}
-                  <div className="text-xs text-gray-500 mt-2">
-                    {localImportStatus ??
-                    (lastImport
-                      ? `Last Local import: ${formatDateTime(lastImport)}`
-                      : t.statusIdle)}
-                  </div>
+                    <input
+                      ref={importInputRef}
+                      type="file"
+                      accept=".json"
+                      onChange={handleImportData}
+                      className="hidden"
+                      id="import-file"
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-full flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 transition-transform transform hover:scale-105 hover:bg-green-600 hover:text-white"
+                      type="button"
+                      onClick={() => importInputRef.current?.click()}
+                    >
+                      <LucideImport className="w-4 h-4" />
+                      {t.localImport}
+                    </Button>
+                    {/* status below the button */}
+                    <div className="text-xs text-gray-500 mt-2">
+                      {localImportStatus ??
+                        (lastImport
+                          ? `Last Local import: ${formatDateTime(lastImport)}`
+                          : t.statusIdle)}
+                    </div>
                   </div>
                 </div>
-                </div>
+              </div>
 
               {/* Cloud Backups Section */}
               <div>
@@ -1453,12 +1467,19 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                       <>
                         {/* Recent backups (first 5) with numbers */}
                         <div className="mb-4 bg-gray-50 dark:bg-[#262b34] p-3 rounded">
-                          <h4 className="font-medium text-sm mb-2 text-blue-800 dark:text-blue-400">Recent Backups</h4>
+                          <h4 className="font-medium text-sm mb-2 text-blue-800 dark:text-blue-400">
+                            Recent Backups
+                          </h4>
                           <ol className="list-decimal list-inside space-y-2">
                             {cloudBackups.slice(0, 5).map((b, index) => (
-                              <li key={b.name} className="flex justify-between items-center py-1">
+                              <li
+                                key={b.name}
+                                className="flex justify-between items-center py-1"
+                              >
                                 <div className="text-sm break-words">
-                                  <span className="font-medium text-xs">{index + 1}. {b.name}</span>
+                                  <span className="font-medium text-xs">
+                                    {index + 1}. {b.name}
+                                  </span>
                                   <div className="text-xs text-gray-500 ml-3">
                                     {formatDateTime(b.updated_at ?? null)}
                                   </div>
@@ -1482,10 +1503,13 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                                         const { data, error } =
                                           await supabase.storage
                                             .from(bucket)
-                                            .download(`website-backups/${b.name}`);
+                                            .download(
+                                              `website-backups/${b.name}`
+                                            );
                                         if (error || !data)
                                           throw (
-                                            error || new Error("Download failed")
+                                            error ||
+                                            new Error("Download failed")
                                           );
                                         const url = URL.createObjectURL(
                                           await data
@@ -1532,17 +1556,29 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
 
                         {/* Older backups in collapsible section (open by default, no internal scroller) */}
                         {cloudBackups.length > 5 && (
-                          <details className="bg-gray-50 dark:bg-[#262b34] p-3 rounded" >
+                          <details className="bg-gray-50 dark:bg-[#262b34] p-3 rounded">
                             <summary className="cursor-pointer list-none font-medium text-sm mb-2 text-red-800 dark:text-red-400 [&::-webkit-details-marker]:hidden flex justify-between items-center">
-                              <span>Older Backups ({cloudBackups.length - 5})</span>
-                              <span className="text-xs text-gray-500">Expand / Collapse</span>
+                              <span>
+                                Older Backups ({cloudBackups.length - 5})
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                Expand / Collapse
+                              </span>
                             </summary>
 
-                            <ol className="list-decimal list-inside space-y-2 mt-2" start={6}>
+                            <ol
+                              className="list-decimal list-inside space-y-2 mt-2"
+                              start={6}
+                            >
                               {cloudBackups.slice(5).map((b, index) => (
-                                <li key={b.name} className="flex justify-between items-center py-1">
+                                <li
+                                  key={b.name}
+                                  className="flex justify-between items-center py-1"
+                                >
                                   <div className="text-sm break-words">
-                                    <span className="font-medium text-xs">{index + 6}. {b.name}</span>
+                                    <span className="font-medium text-xs">
+                                      {index + 6}. {b.name}
+                                    </span>
                                     <div className="text-xs text-gray-500 ml-3">
                                       {formatDateTime(b.updated_at ?? null)}
                                     </div>
@@ -1566,10 +1602,18 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                                           const { data, error } =
                                             await supabase.storage
                                               .from(bucket)
-                                              .download(`website-backups/${b.name}`);
-                                          if (error || !data) throw (error || new Error("Download failed"));
+                                              .download(
+                                                `website-backups/${b.name}`
+                                              );
+                                          if (error || !data)
+                                            throw (
+                                              error ||
+                                              new Error("Download failed")
+                                            );
                                           const url = URL.createObjectURL(
-                                            await data.arrayBuffer().then((buf) => new Blob([buf]))
+                                            await data
+                                              .arrayBuffer()
+                                              .then((buf) => new Blob([buf]))
                                           );
                                           const a = document.createElement("a");
                                           a.href = url;
@@ -1579,7 +1623,10 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                                           document.body.removeChild(a);
                                           URL.revokeObjectURL(url);
                                         } catch (err) {
-                                          console.error("Download cloud file failed:", err);
+                                          console.error(
+                                            "Download cloud file failed:",
+                                            err
+                                          );
                                           toast({
                                             title: "Download failed",
                                             variant: "destructive",
