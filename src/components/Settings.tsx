@@ -388,6 +388,38 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
     }
   };
 
+  // Helper to produce the same safe segment used in filenames and filtering:
+  const deriveSafeUserSegment = async () => {
+    try {
+      // Try to get freshest auth user (scheduler may run when authData not set)
+      const supRes = await supabase.auth.getUser();
+      const runtimeUser = supRes?.data?.user ?? authData?.user ?? null;
+
+      const rawName =
+        userProfile?.name ??
+        runtimeUser?.user_metadata?.name ??
+        runtimeUser?.email ??
+        "user";
+
+      const firstName =
+        String(rawName)
+          .split(" ")[0]
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/gi, "-")
+          .replace(/-+/g, "-")
+          .replace(/^-|-$/g, "") || "user";
+
+      const uidFrag = (runtimeUser?.id || userProfile?.id || "")
+        .toString()
+        .slice(0, 8);
+
+      return uidFrag ? `${firstName}-${uidFrag}` : firstName;
+    } catch (e) {
+      const fallback = (userProfile?.name ?? "user").toString().split(" ")[0];
+      return fallback.toLowerCase().replace(/[^a-z0-9]+/gi, "-");
+    }
+  };
+
   // Update the performBackupAndUpload function
   const performBackupAndUpload = async (isManual = false) => {
     try {
@@ -409,47 +441,13 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       const jsonStr = JSON.stringify(data, null, 2);
       const blob = new Blob([jsonStr], { type: "application/json" });
 
-      // Create filename with new format
-      const now = new Date();
-      const pad = (n: number) => n.toString().padStart(2, "0");
+      // Derive safe user segment at runtime (important for scheduled backups)
+      const usernameSegment = await deriveSafeUserSegment();
 
-      // Format date as YYYYMMDD
-      const dateStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(
-        now.getDate()
-      )}`;
-
-      // Format time as HHMMSS
-      const timeStr = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(
-        now.getSeconds()
-      )}`;
-
-      // Inside performBackupAndUpload function, update the username extraction:
-
-      // Get first name only (sanitized)
-      const getFirstName = () => {
-        const fullName =
-          userProfile?.name ??
-          authData?.user?.user_metadata?.name ??
-          authData?.user?.email?.split("@")[0] ??
-          "user";
-
-        // Get first word only and sanitize
-        const firstName = fullName
-          .split(" ")[0] // Take first word only
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/gi, "-")
-          .replace(/-+/g, "-") // Replace multiple hyphens with single
-          .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
-
-        return firstName;
-      };
-
-      const username = getFirstName();
-
-      // New filename format: YYYYMMDD-HHMMSS-[auto/manual]-firstname.json
-      const filename = `${dateStr}-${timeStr}-${
-        isManual ? "manual" : "auto"
-      }-${username}.json`;
+      // New filename format: YYYYMMDD-HHMMSS-[auto/manual]-firstname-uid8.json
+      const filename = `${
+        isManual ? "Manual" : "Auto"
+      }-${usernameSegment}.json`;
 
       // Upload to bucket
       const bucket = "Database Backup";
@@ -520,7 +518,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
 
       const now = new Date();
       const nextMidnight = new Date(now);
-      nextMidnight.setHours(11.29, 0, 0, 0); // next midnight
+      nextMidnight.setHours(12, 5, 0, 0); // next midnight
       const msUntilMidnight = nextMidnight.getTime() - now.getTime();
 
       // set timeout to run once at midnight, then setInterval every 24h
@@ -824,13 +822,8 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       }
 
       // derive sanitized name for current user (same logic as filename creation)
-      const rawName = (
-        userProfile?.name ??
-        authData?.user?.user_metadata?.name ??
-        authData?.user?.email ??
-        "user"
-      ).toString();
-      const safeName = rawName.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+      const usernameSegment = await deriveSafeUserSegment();
+      const firstNameOnly = usernameSegment.split("-")[0];
 
       let items = (data || []).map((it: any) => ({
         name: it.name,
@@ -838,12 +831,13 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       }));
 
       // If not showing all, filter out files that do not include the user's safe name segment
-      if (!showAll && safeName) {
+      if (!showAll && usernameSegment) {
         items = items.filter((it) => {
-          // match "-safeName" anywhere in filename (covers multiple filename formats)
+          const n = it.name.toLowerCase();
           return (
-            it.name.toLowerCase().includes(`-${safeName}`) ||
-            it.name.toLowerCase().includes(`${safeName}.json`)
+            n.includes(`-${usernameSegment}`) ||
+            n.includes(`${usernameSegment}.json`) ||
+            n.includes(`-${firstNameOnly}`)
           );
         });
       }
@@ -1353,18 +1347,15 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                 <div>
                   <h3 className="font-medium mb-1">{t.backupNow}</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    {/* Backup now uploads to bucket and downloads a copy */}
                     {t.exportDesc}
                   </p>
                   <div>
-                    {/* Keep Backup Now button (uploads + downloads) */}
                     <div>
                       <Button
                         onClick={async () => {
                           setBackupNowStatus(t.statusLoading);
                           const res = await performBackupAndUpload(true);
                           if (res?.success) {
-                            // performBackupAndUpload sets lastBackup; clear temp status so UI shows formatted time
                             setBackupNowStatus(null);
                           } else {
                             setBackupNowStatus("Failed");
@@ -1376,7 +1367,6 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                         <DatabaseBackup className="w-4 h-4" />
                         {t.backupNow}
                       </Button>
-                      {/* status below the button */}
                       <div className="text-xs text-gray-500 mt-2">
                         {backupNowStatus ??
                           (lastBackup
@@ -1391,7 +1381,6 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                 <div>
                   <h3 className="font-medium mb-1">{t.importData}</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    {/* Backup now uploads to bucket and downloads a copy */}
                     {t.importDesc}
                   </p>
                   <div>
@@ -1412,7 +1401,6 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                       <LucideImport className="w-4 h-4" />
                       {t.localImport}
                     </Button>
-                    {/* status below the button */}
                     <div className="text-xs text-gray-500 mt-2">
                       {localImportStatus ??
                         (lastImport
