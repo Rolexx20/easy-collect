@@ -520,7 +520,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
 
       const now = new Date();
       const nextMidnight = new Date(now);
-      nextMidnight.setHours(24, 0, 0, 0); // next midnight
+      nextMidnight.setHours(11.29, 0, 0, 0); // next midnight
       const msUntilMidnight = nextMidnight.getTime() - now.getTime();
 
       // set timeout to run once at midnight, then setInterval every 24h
