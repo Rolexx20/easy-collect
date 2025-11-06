@@ -490,34 +490,44 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
 
   // Schedule a backup at end of day (next midnight) and then daily thereafter
   const scheduleEndOfDayBackup = () => {
-    try {
-      // clear any existing timers
-      if (backupTimersRef.current.timeoutId)
-        window.clearTimeout(backupTimersRef.current.timeoutId);
-      if (backupTimersRef.current.intervalId)
-        window.clearInterval(backupTimersRef.current.intervalId);
+  try {
+    // clear any existing timers
+    if (backupTimersRef.current.timeoutId)
+      window.clearTimeout(backupTimersRef.current.timeoutId);
+    if (backupTimersRef.current.intervalId)
+      window.clearInterval(backupTimersRef.current.intervalId);
 
-      const now = new Date();
-      const nextMidnight = new Date(now);
-      nextMidnight.setHours(24, 0, 0, 0); // next midnight
-      const msUntilMidnight = nextMidnight.getTime() - now.getTime();
+    const now = new Date();
+    const nextNoon = new Date(now);
+    nextNoon.setHours(11, 15, 0, 0); // set to 12:00:00.000
 
-      // set timeout to run once at midnight, then setInterval every 24h
-      const timeoutId = window.setTimeout(async () => {
-        await performBackupAndUpload(false); // automatic backup, no download
-        // schedule daily interval
-        const intervalId = window.setInterval(() => {
-          performBackupAndUpload(false);
-        }, 24 * 60 * 60 * 1000);
-        backupTimersRef.current.intervalId = intervalId;
-      }, msUntilMidnight);
-
-      backupTimersRef.current.timeoutId = timeoutId;
-    } catch (err) {
-      console.error("Failed to schedule end-of-day backup:", err);
+    // If it's already past noon, schedule for tomorrow
+    if (now.getHours() >= 12) {
+      nextNoon.setDate(nextNoon.getDate() + 1);
     }
-  };
 
+    const msUntilNoon = nextNoon.getTime() - now.getTime();
+
+    // set timeout to run once at noon, then setInterval every 24h
+    const timeoutId = window.setTimeout(async () => {
+      await performBackupAndUpload(false); // automatic backup, no download
+      
+      // schedule daily interval at 12 PM
+      const intervalId = window.setInterval(() => {
+        performBackupAndUpload(false);
+      }, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
+      
+      backupTimersRef.current.intervalId = intervalId;
+    }, msUntilNoon);
+
+    backupTimersRef.current.timeoutId = timeoutId;
+
+    // Log next backup time (optional)
+    console.log('Next automatic backup scheduled for:', nextNoon.toLocaleString());
+  } catch (err) {
+    console.error("Failed to schedule noon backup:", err);
+  }
+};
   // Extracted import application logic reused by local and cloud imports.
   const applyParsedData = async (parsed: any) => {
     // This is the same upsert logic used previously in handleImportData.
