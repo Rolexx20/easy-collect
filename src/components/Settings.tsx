@@ -445,9 +445,39 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       const usernameSegment = await deriveSafeUserSegment();
 
       // New filename format: YYYYMMDD-HHMMSS-[auto/manual]-firstname-uid8.json
-      const filename = `${
-        isManual ? "Manual" : "Auto"
-      }-${usernameSegment}.json`;
+      const now = new Date();
+      const timestamp = `${now.getFullYear()}${String(
+        now.getMonth() + 1
+      ).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(
+        now.getHours()
+      ).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(
+        now.getSeconds()
+      ).padStart(2, "0")}`;
+
+      const filename = isManual
+        ? `Manual-${usernameSegment}-${String(
+        now.getHours()
+      ).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(
+        now.getSeconds()
+      ).padStart(2, "0")}.json`
+        : `Auto-${usernameSegment}-${now.getFullYear()}${String(
+            now.getMonth() + 1
+          ).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}.json`;
+
+      if (!isManual) {
+        const { data: existing, error: listErr } = await supabase.storage
+          .from("Database Backup")
+          .list("website-backups", {
+            limit: 100,
+            sortBy: { column: "created_at", order: "desc" },
+          });
+
+        const alreadyExists = existing?.some((f: any) => f.name === filename);
+        if (alreadyExists) {
+          console.log("Auto backup already exists for today:", filename);
+          return { success: false, skipped: true };
+        }
+      }
 
       // Upload to bucket
       const bucket = "Database Backup";
@@ -518,7 +548,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
 
       const now = new Date();
       const nextMidnight = new Date(now);
-      nextMidnight.setHours(24, 0, 0, 0); // next midnight
+      nextMidnight.setHours(10, 16, 0, 0); // next midnight
       const msUntilMidnight = nextMidnight.getTime() - now.getTime();
 
       // set timeout to run once at midnight, then setInterval every 24h
