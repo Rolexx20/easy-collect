@@ -18,6 +18,7 @@ import {
   RefreshCcw,
   DatabaseBackup,
   LucideImport,
+  DownloadCloud,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -101,6 +102,14 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
   // NEW: maximum items to fetch / show, "load more" increments this
   const [cloudLimit, setCloudLimit] = useState<number>(20);
 
+  // NEW: secure backup states
+  const [showSecureBackups, setShowSecureBackups] = useState(false);
+  const [secureBackupPassword, setSecureBackupPassword] = useState("");
+  const [secureBackups, setSecureBackups] = useState<
+    Array<{ name: string; updated_at?: string }>
+  >([]);
+  const [isLoadingSecure, setIsLoadingSecure] = useState(false);
+
   const translations = {
     en: {
       settings: "Settings",
@@ -147,7 +156,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       backupStored: "Backup saved to bucket",
       backupFailed: "Backup failed",
       localImport: "Local Import",
-      cloudBackupsLabel: "Cloud Backups",
+      cloudBackupsLabel: "User Cloud Backups",
       importFromCloud: "Import from cloud",
       refreshList: "Refresh",
       statusIdle: "Idle",
@@ -445,9 +454,40 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       const usernameSegment = await deriveSafeUserSegment();
 
       // New filename format: YYYYMMDD-HHMMSS-[auto/manual]-firstname-uid8.json
-      const filename = `${
-        isManual ? "Manual" : "Auto"
-      }-${usernameSegment}.json`;
+      const now = new Date();
+      const timestamp = `${now.getFullYear()}${String(
+        now.getMonth() + 1
+      ).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(
+        now.getHours()
+      ).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(
+        now.getSeconds()
+      ).padStart(2, "0")}`;
+
+      const filename = isManual
+        ? `Manual-${usernameSegment}-${String(now.getHours()).padStart(
+            2,
+            "0"
+          )}${String(now.getMinutes()).padStart(2, "0")}${String(
+            now.getSeconds()
+          ).padStart(2, "0")}.json`
+        : `Auto-${usernameSegment}-${now.getFullYear()}${String(
+            now.getMonth() + 1
+          ).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}.json`;
+
+      if (!isManual) {
+        const { data: existing, error: listErr } = await supabase.storage
+          .from("Database Backup")
+          .list("website-backups", {
+            limit: 100,
+            sortBy: { column: "created_at", order: "desc" },
+          });
+
+        const alreadyExists = existing?.some((f: any) => f.name === filename);
+        if (alreadyExists) {
+          console.log("Auto backup already exists for today:", filename);
+          return { success: false, skipped: true };
+        }
+      }
 
       // Upload to bucket
       const bucket = "Database Backup";
@@ -518,7 +558,7 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
 
       const now = new Date();
       const nextMidnight = new Date(now);
-      nextMidnight.setHours(24, 0, 0, 0); // next midnight
+      nextMidnight.setHours(10, 16, 0, 0); // next midnight
       const msUntilMidnight = nextMidnight.getTime() - now.getTime();
 
       // set timeout to run once at midnight, then setInterval every 24h
@@ -958,6 +998,46 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
       });
     } finally {
       setIsLoadingProfile(false);
+    }
+  };
+
+  // Add this function before return statement
+  const loadSecureBackups = async (password: string) => {
+    if (password !== "Keliz~7227") {
+      toast({
+        title: "Access Denied",
+        description: "Invalid password for secure backups",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoadingSecure(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from("Database Backup")
+        .list("auto_db_backup", {
+          limit: cloudLimit,
+          sortBy: { column: "created_at", order: "desc" },
+        } as any);
+
+      if (error) throw error;
+
+      setSecureBackups(
+        data.map((it) => ({
+          name: it.name,
+          updated_at: it.updated_at || it.created_at,
+        })) || []
+      );
+    } catch (err) {
+      console.error("Error loading secure backups:", err);
+      toast({
+        title: "Error",
+        description: "Failed to load secure backups",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingSecure(false);
     }
   };
 
@@ -1415,157 +1495,112 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
               <div>
                 <h3 className="font-medium mb-1">{t.cloudBackupsLabel}</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  Access backups stored in the cloud and import selected
-                  backups.
+                  Access and manage your cloud and secure database backups.
                 </p>
-                <div className="flex gap-8">
-                  <Button
-                    variant="outline"
-                    className="w-full flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 transition-transform transform hover:scale-105 hover:bg-blue-600 hover:text-white"
-                    onClick={async () => {
-                      const next = !showCloudBackups;
-                      setShowCloudBackups(next);
-                      if (next) await loadCloudBackups();
-                    }}
-                  >
-                    <CloudUpload className="w-4 h-4" />
-                    {t.cloudBackupsLabel}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => loadCloudBackups()}
-                    className="w-24 flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 transition-transform transform hover:scale-105 hover:bg-gray-600 hover:text-white"
-                  >
-                    <RefreshCcw className="w-4 h-4" />
-                    {t.refreshList}
-                  </Button>
+
+                {/* Two-column layout for buttons */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-7 mb-4">
+                  {/* Right Column - Cloud Backups */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1 flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 transition-transform transform hover:scale-105 hover:bg-blue-600 hover:text-white"
+                      onClick={async () => {
+                        const next = !showCloudBackups;
+                        setShowCloudBackups(next);
+                        if (next) await loadCloudBackups();
+                      }}
+                    >
+                      <CloudUpload className="w-4 h-4" />
+                      {t.cloudBackupsLabel}
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => loadCloudBackups()}
+                      className="w-10 flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 transition-transform transform hover:scale-105 hover:bg-gray-600 hover:text-white"
+                    >
+                      <RefreshCcw className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  {/* Left Column - DB Backup */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1 flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 transition-transform transform hover:scale-105 hover:bg-yellow-600 hover:text-white"
+                      onClick={async () => {
+                        if (showSecureBackups) {
+                          setShowSecureBackups(false);
+                          return;
+                        }
+
+                        const pwd = prompt(
+                          "Enter password to access secure backups:"
+                        );
+                        if (!pwd) return;
+                        setSecureBackupPassword(pwd);
+                        await loadSecureBackups(pwd);
+                        setShowSecureBackups(true);
+                      }}
+                    >
+                      <Key className="w-4 h-4" />
+                      Secure DB Backup
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        if (secureBackupPassword) {
+                          await loadSecureBackups(secureBackupPassword);
+                          setShowSecureBackups(true);
+                          return;
+                        }
+
+                        const pwd = prompt(
+                          "Enter password to refresh secure backups:"
+                        );
+                        if (!pwd) return;
+                        setSecureBackupPassword(pwd);
+                        await loadSecureBackups(pwd);
+                        setShowSecureBackups(true);
+                      }}
+                      className="w-10 flex items-center gap-2 bg-gray-100 dark:bg-[#23272f] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 transition-transform transform hover:scale-105 hover:bg-gray-600 hover:text-white"
+                      disabled={!showSecureBackups}
+                    >
+                      <RefreshCcw className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="text-xs text-gray-500 mt-2">
+
+                <div className="text-xs text-gray-500 mt-2 mb-4">
                   {cloudImportStatus ?? t.statusIdle}
                 </div>
 
-                {/* Dropdown/list of backups */}
-                {showCloudBackups && (
-                  <div className="mt-3">
-                    {cloudListLoading ? (
-                      <div className="text-sm">{t.statusLoading}</div>
-                    ) : cloudBackups.length === 0 ? (
-                      <div className="text-sm">No backups found</div>
-                    ) : (
-                      <>
-                        {/* Recent backups (first 5) with numbers */}
-                        <div className="mb-4 bg-gray-50 dark:bg-[#262b34] p-3 rounded">
-                          <h4 className="font-medium text-sm mb-2 text-blue-800 dark:text-blue-400">
-                            Recent Backups
-                          </h4>
-                          <ol className="list-decimal list-inside space-y-2">
-                            {cloudBackups.slice(0, 5).map((b, index) => (
-                              <li
-                                key={b.name}
-                                className="flex justify-between items-center py-1"
-                              >
-                                <div className="text-sm break-words">
-                                  <span className="font-medium text-xs">
-                                    {index + 1}. {b.name}
-                                  </span>
-                                  <div className="text-xs text-gray-500 ml-3">
-                                    {formatDateTime(b.updated_at ?? null)}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleCloudImport(b.name)}
-                                    className="p-2 rounded-md text-green-600 hover:bg-green-50 dark:hover:bg-green-800 transition-colors"
-                                    title="Import from cloud"
-                                  >
-                                    <CloudDownload className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={async () => {
-                                      try {
-                                        const bucket = "Database Backup";
-                                        const { data, error } =
-                                          await supabase.storage
-                                            .from(bucket)
-                                            .download(
-                                              `website-backups/${b.name}`
-                                            );
-                                        if (error || !data)
-                                          throw (
-                                            error ||
-                                            new Error("Download failed")
-                                          );
-                                        const url = URL.createObjectURL(
-                                          await data
-                                            .arrayBuffer()
-                                            .then((buf) => new Blob([buf]))
-                                        );
-                                        const a = document.createElement("a");
-                                        a.href = url;
-                                        a.download = b.name;
-                                        document.body.appendChild(a);
-                                        a.click();
-                                        document.body.removeChild(a);
-                                        URL.revokeObjectURL(url);
-                                      } catch (err) {
-                                        console.error(
-                                          "Download cloud file failed:",
-                                          err
-                                        );
-                                        toast({
-                                          title: "Download failed",
-                                          variant: "destructive",
-                                        });
-                                      }
-                                    }}
-                                    className="p-2 rounded-md text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-800 transition-colors"
-                                    title="Download backup"
-                                  >
-                                    <Download className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleCloudDelete(b.name)}
-                                    className="p-2 rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-800 transition-colors"
-                                    title="Delete backup"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </li>
-                            ))}
-                          </ol>
-                        </div>
-
-                        {/* Older backups in collapsible section (open by default, no internal scroller) */}
-                        {cloudBackups.length > 5 && (
-                          <details className="bg-gray-50 dark:bg-[#262b34] p-3 rounded">
-                            <summary className="cursor-pointer list-none font-medium text-sm mb-2 text-red-800 dark:text-red-400 [&::-webkit-details-marker]:hidden flex justify-between items-center">
-                              <span>
-                                Older Backups ({cloudBackups.length - 5})
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                Expand / Collapse
-                              </span>
-                            </summary>
-
-                            <ol
-                              className="list-decimal list-inside space-y-2 mt-2"
-                              start={6}
-                            >
-                              {cloudBackups.slice(5).map((b, index) => (
+                {/* Combined display of both backup lists */}
+                {(showCloudBackups || showSecureBackups) && (
+                  <div className="grid grid-cols-1 gap-4">
+                    {/* Cloud Backups List */}
+                    {showCloudBackups && (
+                      <div className="mt-3">
+                        {cloudListLoading ? (
+                          <div className="text-sm">{t.statusLoading}</div>
+                        ) : cloudBackups.length === 0 ? (
+                          <div className="text-sm">No cloud backups found</div>
+                        ) : (
+                          <div className="bg-gray-50 dark:bg-[#262b34] p-3 rounded">
+                            <h4 className="font-medium text-sm mb-2 text-blue-800 dark:text-blue-400">
+                              Cloud Backups
+                            </h4>
+                            <ol className="list-decimal list-inside space-y-2">
+                              {cloudBackups.map((b, index) => (
                                 <li
                                   key={b.name}
                                   className="flex justify-between items-center py-1"
                                 >
                                   <div className="text-sm break-words">
                                     <span className="font-medium text-xs">
-                                      {index + 6}. {b.name}
+                                      {index + 1}. {b.name}
                                     </span>
                                     <div className="text-xs text-gray-500 ml-3">
                                       {formatDateTime(b.updated_at ?? null)}
@@ -1639,26 +1674,137 @@ const Settings = ({ language, setLanguage }: SettingsProps) => {
                                 </li>
                               ))}
                             </ol>
-                          </details>
+                          </div>
                         )}
-                      </>
+                      </div>
                     )}
 
-                    {/* Load more button - keep existing code */}
-                    {cloudBackups.length >= cloudLimit && (
-                      <div className="mt-3 text-center">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={async () => {
-                            const next = cloudLimit + 20;
-                            setCloudLimit(next);
-                            await loadCloudBackups(next);
-                          }}
-                          className="px-3 py-1"
-                        >
-                          Load more
-                        </Button>
+                    {/* Secure Backups List */}
+                    {showSecureBackups && (
+                      <div className="mt-3">
+                        {isLoadingSecure ? (
+                          <div className="text-sm">{t.statusLoading}</div>
+                        ) : secureBackups.length === 0 ? (
+                          <div className="text-sm">No secure backups found</div>
+                        ) : (
+                          <div className="bg-yellow-50 dark:bg-[#2d2d1f] p-3 rounded">
+                            <h4 className="font-medium text-sm mb-2 text-yellow-800 dark:text-yellow-400">
+                              Secure Database Backups
+                            </h4>
+                            <div className="max-h-64 overflow-auto">
+                              <ol className="list-decimal list-inside space-y-2">
+                                {secureBackups.map((b, index) => (
+                                  <li
+                                    key={b.name}
+                                    className="flex justify-between items-center py-1"
+                                  >
+                                    <div className="text-sm break-words">
+                                      <span className="font-medium text-xs">
+                                        {index + 1}. {b.name}
+                                      </span>
+                                      <div className="text-xs text-gray-500 ml-3">
+                                        {formatDateTime(b.updated_at ?? null)}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 mr-5">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={async () => {
+                                          try {
+                                            const { data, error } =
+                                              await supabase.storage
+                                                .from("Database Backup")
+                                                .download(
+                                                  `auto_db_backup/${b.name}`
+                                                );
+                                            if (error) throw error;
+                                            const text = await data.text();
+                                            const parsed = JSON.parse(text);
+                                            const { results, errors } =
+                                              await applyParsedData(parsed);
+                                            if (errors.length)
+                                              throw new Error(errors[0]);
+                                            const now =
+                                              new Date().toISOString();
+                                            try {
+                                              localStorage.setItem(
+                                                "ec_lastImport",
+                                                now
+                                              );
+                                            } catch {}
+                                            setLastImport(now);
+                                            toast({
+                                              title: t.dataImported,
+                                              description: `Imported: Borrowers: ${results.borrowers}, Loans: ${results.loans}, Payments: ${results.payments}`,
+                                            });
+                                          } catch (err) {
+                                            console.error(
+                                              "Import secure backup failed:",
+                                              err
+                                            );
+                                            toast({
+                                              title: "Import failed",
+                                              variant: "destructive",
+                                              description: String(
+                                                err?.message ?? err
+                                              ),
+                                            });
+                                          }
+                                        }}
+                                        className="p-2 rounded-md text-green-600 hover:bg-yellow-50 dark:hover:bg-green-800 transition-colors"
+                                        title="Import from cloud"
+                                      >
+                                        <CloudDownload className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={async () => {
+                                          try {
+                                            const { data, error } =
+                                              await supabase.storage
+                                                .from("Database Backup")
+                                                .download(
+                                                  `auto_db_backup/${b.name}`
+                                                );
+                                            if (error) throw error;
+                                            const url = URL.createObjectURL(
+                                              await data
+                                                .arrayBuffer()
+                                                .then((buf) => new Blob([buf]))
+                                            );
+                                            const a =
+                                              document.createElement("a");
+                                            a.href = url;
+                                            a.download = b.name;
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                            URL.revokeObjectURL(url);
+                                          } catch (err) {
+                                            console.error(
+                                              "Download secure backup failed:",
+                                              err
+                                            );
+                                            toast({
+                                              title: "Download failed",
+                                              variant: "destructive",
+                                            });
+                                          }
+                                        }}
+                                        className="p-2 rounded-md text-blue-600 hover:bg-yellow-50 dark:hover:bg-blue-800 transition-colors"
+                                        title="Download secure backup"
+                                      >
+                                        <Download className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  </li>
+                                ))}
+                              </ol>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
